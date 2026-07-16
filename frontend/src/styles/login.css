@@ -1,0 +1,223 @@
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:'Segoe UI',sans-serif;
+}
+
+.login-page{
+    width:100%;
+    height:100vh;
+    background-size:cover;
+    background-position:center;
+    background-repeat:no-repeat;
+
+    display:flex;
+    justify-content:center;
+    align-items:center;
+
+    position:relative;
+}
+
+/* Dark transparent overlay */
+.overlay{
+    position:absolute;
+    inset:0;
+    background:rgba(0,0,0,.20);
+}
+
+/* Glass Card */
+
+.glass-card{
+
+    position:relative;
+    z-index:2;
+
+    width:430px;
+
+    padding:45px;
+
+    border-radius:25px;
+
+    background:rgba(255,255,255,.05);
+
+    backdrop-filter:blur(25px);
+    -webkit-backdrop-filter:blur(25px);
+
+    border:1px solid rgba(255,255,255,.18);
+
+    box-shadow:0 8px 35px rgba(0,0,0,.35);
+
+    display:flex;
+    flex-direction:column;
+
+}
+
+/* Email & Password */
+
+.glass-card input{
+
+    width:100%;
+
+    padding:16px;
+
+    margin-bottom:20px;
+
+    border-radius:12px;
+
+    border:1px solid rgba(255,255,255,.18);
+
+    background:rgba(255,255,255,.08);
+
+    backdrop-filter:blur(12px);
+
+    outline:none;
+
+    color:white;
+
+    font-size:16px;
+
+}
+
+.glass-card input::placeholder{
+
+    color:rgba(255,255,255,.75);
+
+}
+
+/* Password */
+
+.password-box{
+
+    position:relative;
+
+}
+
+.password-box span{
+
+    position:absolute;
+
+    top:17px;
+
+    right:18px;
+
+    color:white;
+
+    cursor:pointer;
+
+    font-size:18px;
+
+}
+
+/* Login Button */
+
+.glass-card button{
+
+    width:100%;
+
+    padding:16px;
+
+    margin-top:10px;
+
+    border-radius:12px;
+
+    border:1px solid rgba(255,255,255,.18);
+
+    background:rgba(255,255,255,.08);
+
+    backdrop-filter:blur(12px);
+
+    color:white;
+
+    font-size:18px;
+
+    cursor:pointer;
+
+    transition:.3s;
+
+}
+
+.glass-card button:hover{
+
+    background:rgba(255,255,255,.18);
+
+    transform:translateY(-2px);
+
+}
+
+/* Error */
+
+.error{
+
+    color:#ff6b6b;
+
+    text-align:center;
+
+    margin-bottom:15px;
+
+    font-size:14px;
+
+}
+
+/* Bottom Links */
+
+.bottom-links{
+
+    margin-top:22px;
+
+    display:flex;
+
+    justify-content:space-between;
+
+    align-items:center;
+
+}
+
+.bottom-links a{
+
+    color:rgba(255,255,255,.90);
+
+    text-decoration:none;
+
+    font-size:14px;
+
+    transition:.3s;
+
+}
+
+.bottom-links a:hover{
+
+    color:white;
+
+    text-decoration:underline;
+
+}
+
+/* Mobile */
+
+@media(max-width:768px){
+
+.glass-card{
+
+width:90%;
+
+padding:30px;
+
+}
+
+}
+.title{
+    color:white;
+    font-size:40px;
+    font-weight:700;
+    text-align:center;
+    margin-bottom:10px;
+    letter-spacing:1px;
+}
+
+.subtitle{
+    color:rgba(255,255,255,.85);
+    text-align:center;
+    margin-bottom:35px;
+    font-size:16px;
+}
