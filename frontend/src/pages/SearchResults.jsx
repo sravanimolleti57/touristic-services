@@ -13,6 +13,47 @@ import {
 } from "react-icons/fa";
 import { PLACES } from "../data/destinations";
 import { FLIGHTS, AIRLINE_META, fetchLiveFlights, AIRPORTS } from "../data/flights";
+import CalendarWidget from "../components/CalendarWidget";
+
+/**
+ * Generates mock availability data for the current + next month.
+ * type "hotels" → marks dates where 1-2 hotels are full (red) or a holiday deal (green).
+ * type "flights" → marks dates where flights are fully booked (red) or holiday (green).
+ * Returns Record<"YYYY-MM-DD", "full" | "holiday">
+ */
+function generateAvailabilityData(type) {
+  const data = {};
+  const now = new Date();
+
+  // Deterministic "full" day offsets differ per type so calendars look distinct
+  const fullOffsets   = type === "hotels" ? [2, 5, 9, 14, 18, 22, 26] : [1, 4, 8, 13, 17, 21, 25];
+  const holidayOffsets = type === "hotels" ? [6, 12, 20, 28]           : [3, 10, 16, 24];
+
+  [-1, 0, 1, 2].forEach((monthDelta) => {
+    const base = new Date(now.getFullYear(), now.getMonth() + monthDelta, 1);
+    const daysInMonth = new Date(base.getFullYear(), base.getMonth() + 1, 0).getDate();
+
+    fullOffsets.forEach((d) => {
+      if (d <= daysInMonth) {
+        const key = `${base.getFullYear()}-${String(base.getMonth() + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+        data[key] = "full";
+      }
+    });
+
+    holidayOffsets.forEach((d) => {
+      if (d <= daysInMonth) {
+        const key = `${base.getFullYear()}-${String(base.getMonth() + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+        // Don't overwrite a "full" marker
+        if (!data[key]) data[key] = "holiday";
+      }
+    });
+  });
+
+  return data;
+}
+
+const HOTEL_AVAILABILITY = generateAvailabilityData("hotels");
+const FLIGHT_AVAILABILITY = generateAvailabilityData("flights");
 
 const HOTELS = [
   { id: 7, type: "hotel", name: "The Leela Palace", location: "New Delhi, India", rating: 4.9, reviews: 1234, price: "₹28,000/night", img: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400&q=80", amenities: ["wifi", "pool", "gym", "parking", "restaurant", "ac"], sentiment: "98% Positive" },
@@ -153,6 +194,23 @@ function BookingModal({ hotel, onClose }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    const userObj = JSON.parse(localStorage.getItem("user")) || { email: "user@example.com" };
+    const userEmail = userObj.email || "user@example.com";
+    const storageKey = `bookedHotels_${userEmail}`;
+    const savedHotels = JSON.parse(localStorage.getItem(storageKey)) || [];
+    const newBooking = {
+      id: Date.now(),
+      hotelName: hotel.name,
+      location: hotel.location,
+      price: hotel.price,
+      checkIn: formData.checkIn,
+      checkOut: formData.checkOut,
+      guests: formData.guests,
+      rooms: formData.rooms,
+      roomType: formData.roomType,
+      guestName: formData.fullName,
+    };
+    localStorage.setItem(storageKey, JSON.stringify([...savedHotels, newBooking]));
     setSubmitted(true);
   };
 
@@ -653,6 +711,27 @@ function FlightBookingModal({ flight, passengers: passengerCount, onClose }) {
     });
   };
 
+  const handleFlightSubmit = (e) => {
+    e.preventDefault();
+    const userObj = JSON.parse(localStorage.getItem("user")) || { email: "user@example.com" };
+    const userEmail = userObj.email || "user@example.com";
+    const storageKey = `bookedFlights_${userEmail}`;
+    const savedFlights = JSON.parse(localStorage.getItem(storageKey)) || [];
+    const newBooking = {
+      id: Date.now(),
+      airline: flight.airline,
+      flightNo: flight.flightNo,
+      departure: flight.departure,
+      arrival: flight.arrival,
+      price: flight.price,
+      passengersCount: formData.passengers.length,
+      seatPref: formData.seatPref,
+      mealPref: formData.mealPref,
+    };
+    localStorage.setItem(storageKey, JSON.stringify([...savedFlights, newBooking]));
+    setSubmitted(true);
+  };
+
   const inputStyle = {
     width: "100%", background: "#0f172a", border: "1px solid #334155",
     borderRadius: 10, padding: "11px 14px", color: "white", fontSize: 14,
@@ -739,7 +818,7 @@ function FlightBookingModal({ flight, passengers: passengerCount, onClose }) {
           </div>
         </div>
 
-        <form onSubmit={e => { e.preventDefault(); setSubmitted(true); }}>
+        <form onSubmit={handleFlightSubmit}>
 
           {/* Passenger Details */}
           <div style={{ fontSize: 13, fontWeight: 700, color: "#93c5fd", marginBottom: 14, textTransform: "uppercase", letterSpacing: 1 }}>
@@ -949,7 +1028,7 @@ export default function SearchResults() {
   const [loading, setLoading] = useState(false);
   const [flightFrom, setFlightFrom] = useState("");
   const [flightTo, setFlightTo] = useState("");
-  const [flightDate, setFlightDate] = useState("");
+  const [flightDate, setFlightDate] = useState(params.get("date") || "");
   const [passengers, setPassengers] = useState(1);
   const [flightClass, setFlightClass] = useState("All");
   const [flightSort, setFlightSort] = useState("price");
@@ -961,6 +1040,29 @@ export default function SearchResults() {
   const [showTracker, setShowTracker] = useState(false);
 
   const user = JSON.parse(localStorage.getItem("user")) || { name: "Traveler", email: "user@example.com" };
+  const userEmail = user.email || "user@example.com";
+
+  const [bookedHotelsCount, setBookedHotelsCount] = useState(0);
+  const [bookedFlightsCount, setBookedFlightsCount] = useState(0);
+
+  useEffect(() => {
+    const savedHotels = JSON.parse(localStorage.getItem(`bookedHotels_${userEmail}`)) || [];
+    const savedFlights = JSON.parse(localStorage.getItem(`bookedFlights_${userEmail}`)) || [];
+    setBookedHotelsCount(savedHotels.length);
+    setBookedFlightsCount(savedFlights.length);
+  }, [userEmail, bookingHotel, bookingFlight]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const q = params.get("q") || "";
+    const tab = params.get("tab") || "places";
+    const date = params.get("date") || "";
+    setQuery(q);
+    setActiveTab(tab);
+    if (date) {
+      setFlightDate(date);
+    }
+  }, [location.search]);
 
   const toggleWishlist = (id) =>
     setWishlist(w => w.includes(id) ? w.filter(i => i !== id) : [...w, id]);
@@ -1112,10 +1214,12 @@ export default function SearchResults() {
             <FaUserCircle size={42} style={{ cursor: "pointer", color: "#3b82f6" }} onClick={() => setShowProfile(!showProfile)} />
             {showProfile && (
               <div style={{ position: "absolute", top: 52, right: 0, background: "#1e293b", padding: 20, borderRadius: 16, width: 220, boxShadow: "0 20px 60px rgba(0,0,0,0.5)", zIndex: 200, border: "1px solid #334155" }}>
-                <div style={{ fontWeight: 700 }}>{user.name}</div>
+                <div style={{ fontWeight: 700 }}>{user.name || "Traveler"}</div>
                 <div style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>{user.email}</div>
                 <hr style={{ border: "1px solid #334155", margin: "12px 0" }} />
-                <div style={{ fontSize: 13, color: "#94a3b8" }}>Wishlist: {wishlist.length} items</div>
+                <div style={{ fontSize: 13, color: "#94a3b8" }}>🏨 Hotels Booked: {bookedHotelsCount}</div>
+                <div style={{ fontSize: 13, color: "#94a3b8", marginTop: 4 }}>✈️ Flights Booked: {bookedFlightsCount}</div>
+                <div style={{ fontSize: 13, color: "#94a3b8", marginTop: 4 }}>❤️ Wishlist: {wishlist.length} items</div>
                 <button onClick={() => { localStorage.removeItem("user"); navigate("/"); }} style={{ width: "100%", marginTop: 12, padding: 10, borderRadius: 8, border: "none", background: "#ef444420", color: "#ef4444", cursor: "pointer", fontWeight: 600 }}>
                   Logout
                 </button>
@@ -1253,6 +1357,110 @@ export default function SearchResults() {
             {query && ` for "${query}"`}
           </p>
         </div>
+
+        {/* ── Hotel Availability Calendar ─────────────────────────────────── */}
+        {activeTab === "hotels" && (
+          <div style={{ marginBottom: 24 }}>
+            <div style={{
+              background: "linear-gradient(135deg, rgba(139,92,246,0.1), rgba(30,41,59,0.7))",
+              border: "1px solid rgba(139,92,246,0.2)",
+              borderRadius: 18, padding: "16px 20px",
+              display: "flex", alignItems: "flex-start", gap: 20,
+              flexWrap: "wrap",
+            }}>
+              {/* Info panel */}
+              <div style={{ flex: "0 0 auto", maxWidth: 220 }}>
+                <div style={{ display: "inline-flex", alignItems: "center", gap: 7, background: "rgba(139,92,246,0.15)", border: "1px solid rgba(139,92,246,0.3)", borderRadius: 20, padding: "4px 12px", marginBottom: 10 }}>
+                  <span style={{ fontSize: 12 }}>🏨</span>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: "#c4b5fd", textTransform: "uppercase", letterSpacing: 1 }}>Hotel Availability</span>
+                </div>
+                <h3 style={{ margin: "0 0 8px", fontSize: 15, fontWeight: 800, color: "white" }}>Room Availability Calendar</h3>
+                <p style={{ margin: "0 0 14px", fontSize: 12, color: "#64748b", lineHeight: 1.6 }}>
+                  Check which dates have rooms available before booking. Click a date to filter hotels.
+                </p>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)", borderRadius: 10, padding: "8px 12px" }}>
+                    <span style={{ width: 10, height: 10, borderRadius: "50%", background: "#ef4444", boxShadow: "0 0 6px rgba(239,68,68,0.7)", flexShrink: 0 }} />
+                    <div>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: "#fca5a5" }}>Fully Booked</div>
+                      <div style={{ fontSize: 10, color: "#64748b" }}>1–2 hotels fully booked on this date</div>
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, background: "rgba(34,197,94,0.08)", border: "1px solid rgba(34,197,94,0.2)", borderRadius: 10, padding: "8px 12px" }}>
+                    <span style={{ width: 10, height: 10, borderRadius: "50%", background: "#22c55e", boxShadow: "0 0 6px rgba(34,197,94,0.7)", flexShrink: 0 }} />
+                    <div>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: "#86efac" }}>Holiday / Open</div>
+                      <div style={{ fontSize: 10, color: "#64748b" }}>Special holiday — great availability</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              {/* Calendar */}
+              <div style={{ flex: 1, minWidth: 280 }}>
+                <CalendarWidget
+                  compact
+                  availabilityData={HOTEL_AVAILABILITY}
+                  onDateSelect={(date) => {
+                    const iso = date.toISOString().split("T")[0];
+                    setFlightDate(iso);
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── Flight Availability Calendar ────────────────────────────────── */}
+        {activeTab === "flights" && (
+          <div style={{ marginBottom: 24 }}>
+            <div style={{
+              background: "linear-gradient(135deg, rgba(6,182,212,0.08), rgba(30,41,59,0.7))",
+              border: "1px solid rgba(6,182,212,0.2)",
+              borderRadius: 18, padding: "16px 20px",
+              display: "flex", alignItems: "flex-start", gap: 20,
+              flexWrap: "wrap",
+            }}>
+              {/* Info panel */}
+              <div style={{ flex: "0 0 auto", maxWidth: 220 }}>
+                <div style={{ display: "inline-flex", alignItems: "center", gap: 7, background: "rgba(6,182,212,0.12)", border: "1px solid rgba(6,182,212,0.3)", borderRadius: 20, padding: "4px 12px", marginBottom: 10 }}>
+                  <span style={{ fontSize: 12 }}>✈️</span>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: "#67e8f9", textTransform: "uppercase", letterSpacing: 1 }}>Flight Availability</span>
+                </div>
+                <h3 style={{ margin: "0 0 8px", fontSize: 15, fontWeight: 800, color: "white" }}>Seat Availability Calendar</h3>
+                <p style={{ margin: "0 0 14px", fontSize: 12, color: "#64748b", lineHeight: 1.6 }}>
+                  Pick a date on the calendar to prefill the flight search form below.
+                </p>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)", borderRadius: 10, padding: "8px 12px" }}>
+                    <span style={{ width: 10, height: 10, borderRadius: "50%", background: "#ef4444", boxShadow: "0 0 6px rgba(239,68,68,0.7)", flexShrink: 0 }} />
+                    <div>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: "#fca5a5" }}>Fully Booked</div>
+                      <div style={{ fontSize: 10, color: "#64748b" }}>All seats on this date are taken</div>
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, background: "rgba(34,197,94,0.08)", border: "1px solid rgba(34,197,94,0.2)", borderRadius: 10, padding: "8px 12px" }}>
+                    <span style={{ width: 10, height: 10, borderRadius: "50%", background: "#22c55e", boxShadow: "0 0 6px rgba(34,197,94,0.7)", flexShrink: 0 }} />
+                    <div>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: "#86efac" }}>Holiday / Open</div>
+                      <div style={{ fontSize: 10, color: "#64748b" }}>Holiday — extra flights available</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              {/* Calendar */}
+              <div style={{ flex: 1, minWidth: 280 }}>
+                <CalendarWidget
+                  compact
+                  availabilityData={FLIGHT_AVAILABILITY}
+                  onDateSelect={(date) => {
+                    const iso = date.toISOString().split("T")[0];
+                    setFlightDate(iso);
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Grid */}
         {loading ? (

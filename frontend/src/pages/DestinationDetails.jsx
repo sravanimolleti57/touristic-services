@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   FaArrowLeft, FaStar, FaMapMarkerAlt, FaClock, FaCalendarAlt,
@@ -110,7 +110,19 @@ export default function DestinationDetails() {
   const [lightboxIdx, setLightboxIdx] = useState(null);
   const [showProfile, setShowProfile] = useState(false);
   const [expandedVisit, setExpandedVisit] = useState(null);
+  
   const user = JSON.parse(localStorage.getItem("user")) || { name: "Traveler", email: "user@example.com" };
+  const userEmail = user.email || "user@example.com";
+
+  const [bookedHotelsCount, setBookedHotelsCount] = useState(0);
+  const [bookedFlightsCount, setBookedFlightsCount] = useState(0);
+
+  useEffect(() => {
+    const savedHotels = JSON.parse(localStorage.getItem(`bookedHotels_${userEmail}`)) || [];
+    const savedFlights = JSON.parse(localStorage.getItem(`bookedFlights_${userEmail}`)) || [];
+    setBookedHotelsCount(savedHotels.length);
+    setBookedFlightsCount(savedFlights.length);
+  }, [userEmail]);
 
   if (!place) {
     return (
@@ -221,12 +233,15 @@ export default function DestinationDetails() {
                   borderRadius: 16, width: 220, boxShadow: "0 20px 60px rgba(0,0,0,0.5)",
                   zIndex: 200, border: "1px solid #334155",
                 }}>
-                  <div style={{ fontWeight: 700 }}>{user.name}</div>
+                  <div style={{ fontWeight: 700 }}>{user.name || "Traveler"}</div>
                   <div style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>{user.email}</div>
                   <hr style={{ border: "1px solid #334155", margin: "12px 0" }} />
+                  <div style={{ fontSize: 13, color: "#94a3b8" }}>🏨 Hotels Booked: {bookedHotelsCount}</div>
+                  <div style={{ fontSize: 13, color: "#94a3b8", marginTop: 4 }}>✈️ Flights Booked: {bookedFlightsCount}</div>
                   <button onClick={() => { localStorage.removeItem("user"); navigate("/"); }} style={{
                     width: "100%", padding: 10, borderRadius: 8, border: "none",
                     background: "#ef444420", color: "#ef4444", cursor: "pointer", fontWeight: 600,
+                    marginTop: 12,
                   }}>Logout</button>
                 </div>
               )}
