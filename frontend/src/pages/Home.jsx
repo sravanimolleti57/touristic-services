@@ -79,10 +79,10 @@ function Home() {
       </div>
 
       {/* Main Content */}
-      <div style={{ flex: 1, padding: "30px 40px", overflowY: "auto" }}>
+      <div style={{ flex: 1, padding: "24px 40px", overflowY: "auto" }}>
 
         {/* Top bar */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 40 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
           <form onSubmit={handleSearch} style={{ flex: 1, display: "flex", alignItems: "center", background: "#1e293b", padding: "13px 18px", borderRadius: 14, maxWidth: 580, border: "1px solid #334155", gap: 10 }}>
             <FaSearch style={{ color: "#3b82f6", flexShrink: 0 }} />
             <input
@@ -90,9 +90,10 @@ function Home() {
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               placeholder="Search places, hotels, flights..."
+              autoComplete="off"
               style={{ flex: 1, background: "transparent", border: "none", outline: "none", color: "white", fontSize: 15 }}
             />
-            <button type="submit" style={{ background: "linear-gradient(to right,#3b82f6,#8b5cf6)", border: "none", color: "white", padding: "8px 18px", borderRadius: 8, cursor: "pointer", fontWeight: 700, fontSize: 13, flexShrink: 0 }}>
+            <button type="submit" onClick={handleSearch} style={{ background: "linear-gradient(to right,#3b82f6,#8b5cf6)", border: "none", color: "white", padding: "8px 18px", borderRadius: 8, cursor: "pointer", fontWeight: 700, fontSize: 13, flexShrink: 0 }}>
               Search
             </button>
           </form>
@@ -115,7 +116,7 @@ function Home() {
         </div>
 
         {/* Hero */}
-        <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.22fr) minmax(300px, 0.78fr)", gap: 24, alignItems: "start", marginBottom: 40 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, alignItems: "start", marginBottom: 20 }}>
           <div
             style={{
               background: "linear-gradient(135deg, rgba(30,41,59,0.9), rgba(15,23,42,0.95))",
@@ -169,7 +170,7 @@ function Home() {
         </div>
 
         {/* Quick Access Cards */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 40 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 20 }}>
           {QUICK_LINKS.map(({ label, icon, tab, desc }) => (
             <div key={tab} onClick={() => goToTab(tab)}
               style={{ background: "#1e293b", borderRadius: 16, padding: "20px 22px", cursor: "pointer", border: "1px solid #334155", display: "flex", alignItems: "center", justifyContent: "space-between", transition: "border-color 0.2s" }}
@@ -187,7 +188,7 @@ function Home() {
         </div>
 
         {/* Trending Destinations */}
-        <div style={{ marginBottom: 36 }}>
+        <div style={{ marginBottom: 20 }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <FaFire color="#f59e0b" />
