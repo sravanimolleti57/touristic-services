@@ -1,0 +1,6 @@
+POST http://127.0.0.1:5001/predict
+Content-Type: application/json
+
+{
+    "review": "The hotel was clean and the staff were friendly."
+}

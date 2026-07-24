@@ -1,538 +1,394 @@
-import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { FaHome, FaMapMarkerAlt, FaHotel, FaPlane, FaComments, FaUpload, FaPlayCircle, FaMicrophone } from "react-icons/fa";
+import { useMemo, useState, useEffect } from "react";
+import {
+  FaUpload, FaPlayCircle, FaMicrophone, FaComments,
+  FaChartBar, FaRegCheckCircle, FaTrash
+} from "react-icons/fa";
+import SharedNavbar from "../components/SharedNavbar";
+import "../styles/shared.css";
+import { addReview, getReviews } from "../services/reviewService";
 
-const defaultReviews = [
-	{
-		id: 1,
-		type: "text",
-		title: "Amazing Bali sunset",
-		content: "The beach clubs, food, and sunset views were unforgettable. Highly recommend staying near Seminyak.",
-		createdAt: "Today",
-		mediaName: null,
-		mediaUrl: null,
-	},
-	{
-		id: 2,
-		type: "audio",
-		title: "Voice review from Paris",
-		content: "Recorded a short travel voice note after visiting the Louvre and Seine river walk.",
-		createdAt: "2 days ago",
-		mediaName: "paris-voice-note.mp3",
-		mediaUrl: null,
-	},
-	{
-		id: 3,
-		type: "video",
-		title: "Tokyo street video",
-		content: "Captured the neon streets of Shibuya crossing during the evening rush.",
-		createdAt: "1 week ago",
-		mediaName: "tokyo-explore.mp4",
-		mediaUrl: null,
-	},
-];
 
-const storageKey = "dashboard-reviews";
-
-function Dashboard() {
-	const navigate = useNavigate();
-	const [activeSection, setActiveSection] = useState("reviews");
-	const [reviewText, setReviewText] = useState("");
-	const [reviewTitle, setReviewTitle] = useState("");
-	const [audioFile, setAudioFile] = useState(null);
-	const [videoFile, setVideoFile] = useState(null);
-
-	const [reviews, setReviews] = useState(() => {
-		try {
-			const saved = JSON.parse(localStorage.getItem(storageKey));
-			return Array.isArray(saved) && saved.length ? saved : defaultReviews;
-		} catch {
-			return defaultReviews;
-		}
-	});
-
-	const reviewStats = useMemo(() => {
-		return {
-			total: reviews.length,
-			text: reviews.filter((review) => review.type === "text").length,
-			audio: reviews.filter((review) => review.type === "audio").length,
-			video: reviews.filter((review) => review.type === "video").length,
-		};
-	}, [reviews]);
-
-	const saveReviews = (nextReviews) => {
-		setReviews(nextReviews);
-		localStorage.setItem(storageKey, JSON.stringify(nextReviews));
-	};
-
-	const handleSubmit = (e) => {
-		e.preventDefault();
-
-		const nextItems = [];
-		const baseTitle = reviewTitle.trim() || "New trip review";
-		const baseContent = reviewText.trim() || "No text entered — uploaded media only.";
-		const nowLabel = "Just now";
-
-		if (reviewText.trim()) {
-			nextItems.push({
-				id: Date.now(),
-				type: "text",
-				title: baseTitle,
-				content: reviewText.trim(),
-				createdAt: nowLabel,
-				mediaName: null,
-				mediaUrl: null,
-			});
-		}
-
-		if (audioFile) {
-			nextItems.push({
-				id: Date.now() + 1,
-				type: "audio",
-				title: `${baseTitle} - Audio`,
-				content: baseContent,
-				createdAt: nowLabel,
-				mediaName: audioFile.name,
-				mediaUrl: URL.createObjectURL(audioFile),
-			});
-		}
-
-		if (videoFile) {
-			nextItems.push({
-				id: Date.now() + 2,
-				type: "video",
-				title: `${baseTitle} - Video`,
-				content: baseContent,
-				createdAt: nowLabel,
-				mediaName: videoFile.name,
-				mediaUrl: URL.createObjectURL(videoFile),
-			});
-		}
-
-		if (!nextItems.length) return;
-
-		saveReviews([...nextItems.reverse(), ...reviews]);
-		setReviewTitle("");
-		setReviewText("");
-		setAudioFile(null);
-		setVideoFile(null);
-		e.target.reset();
-	};
-
-	const sidebarItems = [
-		{ icon: <FaHome />, label: "Home", action: () => navigate("/home") },
-		{ icon: <FaMapMarkerAlt />, label: "Places", action: () => navigate("/search?tab=places") },
-		{ icon: <FaHotel />, label: "Hotels", action: () => navigate("/search?tab=hotels") },
-		{ icon: <FaPlane />, label: "Flights", action: () => navigate("/search?tab=flights") },
-		{ icon: <FaComments />, label: "Reviews", action: () => setActiveSection("reviews"), active: activeSection === "reviews" },
-	];
-
-	return (
-		<div style={pageStyle}>
-			<aside style={sidebarStyle}>
-				<h2 style={brandStyle}>Travel Dashboard 🌍</h2>
-
-				<div style={menuWrapStyle}>
-					{sidebarItems.map(({ icon, label, action, active }) => (
-						<div
-							key={label}
-							onClick={action}
-							style={{
-								...menuItemStyle,
-								background: active ? "#1d4ed840" : "transparent",
-								color: active ? "#3b82f6" : "#94a3b8",
-								borderLeft: active ? "3px solid #3b82f6" : "3px solid transparent",
-							}}
-						>
-							{icon} {label}
-						</div>
-					))}
-				</div>
-
-				<div style={sidebarCardStyle}>
-					<div style={sidebarLabelStyle}>Review stats</div>
-					<div style={{ marginTop: 12, display: "grid", gap: 10 }}>
-						<StatLine label="Total" value={reviewStats.total} />
-						<StatLine label="Text" value={reviewStats.text} />
-						<StatLine label="Audio" value={reviewStats.audio} />
-						<StatLine label="Video" value={reviewStats.video} />
-					</div>
-				</div>
-			</aside>
-
-			<main style={mainStyle}>
-				<section style={heroStyle}>
-					<div>
-						<div style={sectionTagStyle}>Reviews center</div>
-						<h1 style={heroTitleStyle}>Collect text, audio, and video reviews in one place</h1>
-						<p style={heroTextStyle}>
-							Give travelers a richer way to share feedback — quick text notes, voice reviews, and short video clips.
-						</p>
-					</div>
-					<button onClick={() => setActiveSection("reviews")} style={primaryButtonStyle}>Open Reviews</button>
-				</section>
-
-				{activeSection === "reviews" && (
-					<div style={{ display: "grid", gridTemplateColumns: "minmax(330px, 0.95fr) minmax(320px, 1.05fr)", gap: 18, alignItems: "start" }}>
-						<section style={panelStyle}>
-							<div style={panelHeaderStyle}>
-								<div>
-									<div style={sectionTagStyle}>Add new review</div>
-									<h2 style={panelTitleStyle}>Upload a review</h2>
-								</div>
-								<FaUpload color="#93c5fd" />
-							</div>
-
-							<form onSubmit={handleSubmit} style={{ display: "grid", gap: 14 }}>
-								<div>
-									<label style={fieldLabelStyle}>Review title</label>
-									<input
-										value={reviewTitle}
-										onChange={(e) => setReviewTitle(e.target.value)}
-										placeholder="Trip summary or destination name"
-										style={inputStyle}
-									/>
-								</div>
-
-								<div>
-									<label style={fieldLabelStyle}>Text review</label>
-									<textarea
-										value={reviewText}
-										onChange={(e) => setReviewText(e.target.value)}
-										placeholder="Share what you liked, what to avoid, and any travel tips..."
-										rows={6}
-										style={{ ...inputStyle, resize: "vertical", minHeight: 140 }}
-									/>
-								</div>
-
-								<div style={uploadGridStyle}>
-									<div style={uploadCardStyle}>
-										<div style={uploadHeaderStyle}>
-											<FaMicrophone color="#93c5fd" />
-											<div>
-												<div style={uploadTitleStyle}>Audio review</div>
-												<div style={uploadHintStyle}>Upload mp3, wav, or m4a</div>
-											</div>
-										</div>
-										<input
-											type="file"
-											accept="audio/*"
-											onChange={(e) => setAudioFile(e.target.files?.[0] || null)}
-											style={fileInputStyle}
-										/>
-										{audioFile && <FilePreview name={audioFile.name} type="Audio" />}
-									</div>
-
-									<div style={uploadCardStyle}>
-										<div style={uploadHeaderStyle}>
-											<FaPlayCircle color="#93c5fd" />
-											<div>
-												<div style={uploadTitleStyle}>Video review</div>
-												<div style={uploadHintStyle}>Upload mp4, mov, or webm</div>
-											</div>
-										</div>
-										<input
-											type="file"
-											accept="video/*"
-											onChange={(e) => setVideoFile(e.target.files?.[0] || null)}
-											style={fileInputStyle}
-										/>
-										{videoFile && <FilePreview name={videoFile.name} type="Video" />}
-									</div>
-								</div>
-
-								<button type="submit" style={primaryButtonStyle}>Save review</button>
-							</form>
-						</section>
-
-						<section style={panelStyle}>
-							<div style={panelHeaderStyle}>
-								<div>
-									<div style={sectionTagStyle}>Published reviews</div>
-									<h2 style={panelTitleStyle}>Recent submissions</h2>
-								</div>
-								<div style={{ color: "#94a3b8", fontSize: 13 }}>{reviews.length} items</div>
-							</div>
-
-							<div style={{ display: "grid", gap: 14 }}>
-								{reviews.map((review) => (
-									<article key={review.id} style={reviewCardStyle}>
-										<div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start" }}>
-											<div>
-												<div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-													<h3 style={{ margin: 0, fontSize: 16, color: "white" }}>{review.title}</h3>
-													<span style={typeBadgeStyle(review.type)}>{review.type} review</span>
-												</div>
-												<div style={{ marginTop: 6, fontSize: 12, color: "#64748b" }}>{review.createdAt}</div>
-											</div>
-										</div>
-
-										<p style={{ margin: "12px 0 0", color: "#cbd5e1", fontSize: 13, lineHeight: 1.7 }}>{review.content}</p>
-
-										{review.mediaName && (
-											<div style={mediaChipStyle}>
-												Attached file: <strong>{review.mediaName}</strong>
-											</div>
-										)}
-
-										{review.type === "audio" && review.mediaUrl && (
-											<audio controls style={{ width: "100%", marginTop: 12 }} src={review.mediaUrl} />
-										)}
-
-										{review.type === "video" && review.mediaUrl && (
-											<video controls style={videoStyle} src={review.mediaUrl} />
-										)}
-									</article>
-								))}
-							</div>
-						</section>
-					</div>
-				)}
-			</main>
-		</div>
-	);
-}
-
-function StatLine({ label, value }) {
-	return (
-		<div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
-			<span style={{ color: "#94a3b8" }}>{label}</span>
-			<strong style={{ color: "white" }}>{value}</strong>
-		</div>
-	);
+/* ────────────────────────────────────────────────────────────
+   HELPERS
+   ──────────────────────────────────────────────────────────── */
+function typeMeta(type) {
+  if (type === "audio") return { color:"#22c55e", label:"Audio",  emoji:"🎙️" };
+  if (type === "video") return { color:"#f59e0b", label:"Video",  emoji:"🎬" };
+  return                        { color:"#3b82f6", label:"Text",   emoji:"✍️" };
 }
 
 function FilePreview({ name, type }) {
-	return (
-		<div style={{ marginTop: 10, padding: "10px 12px", borderRadius: 12, background: "#0f172a", border: "1px solid #334155", color: "#cbd5e1", fontSize: 12 }}>
-			{type}: {name}
-		</div>
-	);
+  return (
+    <div style={{
+      marginTop:10, padding:"10px 12px", borderRadius:10,
+      background:"rgba(59,130,246,0.06)", border:"1px solid rgba(59,130,246,0.15)",
+      color:"#93c5fd", fontSize:12, display:"flex", alignItems:"center", gap:8,
+    }}>
+      {type === "Audio" ? "🎙️" : "🎬"} {name}
+    </div>
+  );
 }
 
-const pageStyle = {
-	display: "flex",
-	minHeight: "100vh",
-	background: "#0f172a",
-	color: "white",
-	fontFamily: "'Segoe UI', sans-serif",
+/* ────────────────────────────────────────────────────────────
+   DASHBOARD
+   ──────────────────────────────────────────────────────────── */
+function Dashboard() {
+
+  const [reviewText,  setReviewText]  = useState("");
+  const [reviewTitle, setReviewTitle] = useState("");
+  const [audioFile,   setAudioFile]   = useState(null);
+  const [videoFile,   setVideoFile]   = useState(null);
+  const [submitted,   setSubmitted]   = useState(false);
+  const [titleFocus,  setTitleFocus]  = useState(false);
+  const [textFocus,   setTextFocus]   = useState(false);
+
+  const [reviews, setReviews] = useState([]);
+
+  const stats = useMemo(() => ({
+    total: reviews.length,
+    text:  reviews.filter(r => r.type === "text").length,
+    audio: reviews.filter(r => r.type === "audio").length,
+    video: reviews.filter(r => r.type === "video").length,
+  }), [reviews]);
+
+useEffect(() => {
+  fetchReviews();
+}, []);
+
+const fetchReviews = async () => {
+  try {
+    const response = await getReviews();
+    setReviews(response.data.reviews || []);
+  } catch (error) {
+    console.error(error);
+  }
 };
 
-const sidebarStyle = {
-	width: 240,
-	background: "#1e293b",
-	padding: "28px 16px",
-	flexShrink: 0,
-	borderRight: "1px solid #334155",
-	display: "flex",
-	flexDirection: "column",
-	gap: 16,
+
+  
+  const handleSubmit = async (e) => {
+  e.preventDefault();
+
+  if (!reviewText.trim()) {
+    alert("Please enter a review.");
+    return;
+  }
+
+  try {
+    // Send review to backend
+    const response = await addReview({
+      review: reviewText,
+    });
+
+    // Add the newly saved review to the top of the list
+    setReviews((prev) => [response.data.review, ...prev]);
+
+    // Clear form
+    setReviewTitle("");
+    setReviewText("");
+    setAudioFile(null);
+    setVideoFile(null);
+
+    e.target.reset();
+
+    setSubmitted(true);
+
+    setTimeout(() => {
+      setSubmitted(false);
+    }, 3000);
+
+  } catch (error) {
+    console.error(error);
+    alert("Failed to submit review.");
+  }
 };
 
-const brandStyle = {
-	marginBottom: 8,
-	fontSize: 17,
-	fontWeight: 800,
-	background: "linear-gradient(to right, #3b82f6, #8b5cf6)",
-	WebkitBackgroundClip: "text",
-	WebkitTextFillColor: "transparent",
+  const deleteReview = (id) => {
+  setReviews(reviews.filter((r) => r._id !== id));
 };
 
-const menuWrapStyle = {
-	display: "grid",
-	gap: 4,
-};
+  /* ── Shared styles ────────────────────────────────────────── */
+  const inputStyle = (focused) => ({
+    width:"100%", boxSizing:"border-box",
+    background:"rgba(5,11,24,0.7)",
+    border:`1px solid ${focused ? "#3b82f6" : "rgba(148,163,184,0.12)"}`,
+    borderRadius:12, padding:"12px 16px", color:"white",
+    fontSize:14, fontFamily:"inherit", outline:"none",
+    boxShadow: focused ? "0 0 0 3px rgba(59,130,246,0.12)" : "none",
+    transition:"all 0.25s",
+    resize:"vertical",
+  });
 
-const menuItemStyle = {
-	display: "flex",
-	alignItems: "center",
-	gap: 10,
-	padding: "11px 16px",
-	borderRadius: 10,
-	cursor: "pointer",
-	fontSize: 14,
-	fontWeight: 500,
-};
+  return (
+    <div className="sr-page">
+      <SharedNavbar activeTab="reviews" />
 
-const sidebarCardStyle = {
-	marginTop: "auto",
-	background: "#0f172a",
-	border: "1px solid #334155",
-	borderRadius: 16,
-	padding: 16,
-};
+      {/* Keyframes */}
+      <style>{`
+        @keyframes dash-fadeUp {
+          from { opacity:0; transform:translateY(20px); }
+          to   { opacity:1; transform:translateY(0); }
+        }
+      `}</style>
 
-const sidebarLabelStyle = {
-	fontSize: 11,
-	color: "#64748b",
-	fontWeight: 700,
-	textTransform: "uppercase",
-	letterSpacing: 1,
-};
+      <div className="sr-main" style={{ padding:"80px 0 60px" }}>
+        <div style={{ maxWidth:1320, margin:"0 auto", padding:"0 32px" }}>
 
-const mainStyle = {
-	flex: 1,
-	padding: 24,
-	overflowY: "auto",
-};
+          {/* ── Hero banner ────────────────────────────────── */}
+          <div style={{
+            borderRadius:28, padding:"36px 40px",
+            background:"linear-gradient(135deg,rgba(59,130,246,0.12) 0%,rgba(139,92,246,0.10) 100%)",
+            border:"1px solid rgba(59,130,246,0.18)",
+            display:"flex", justifyContent:"space-between", alignItems:"center", gap:24,
+            flexWrap:"wrap", marginBottom:36,
+            animation:"dash-fadeUp 0.5s ease",
+          }}>
+            <div>
+              <div className="sr-section-tag"><FaComments size={11} /> Reviews Center</div>
+              <h1 style={{ margin:"10px 0 10px", fontSize:32, fontWeight:900, color:"white", lineHeight:1.15 }}>
+                Share Your Travel Stories
+              </h1>
+              <p style={{ margin:0, fontSize:15, color:"#94a3b8", lineHeight:1.7, maxWidth:560 }}>
+                Give fellow travelers a richer way to share feedback — quick text notes,
+                voice reviews, and short video clips all in one place.
+              </p>
+            </div>
+            <button
+              className="sr-btn"
+              onClick={() => document.getElementById("review-form")?.scrollIntoView({ behavior:"smooth" })}
+            >
+              + Write a Review
+            </button>
+          </div>
 
-const heroStyle = {
-	display: "flex",
-	justifyContent: "space-between",
-	alignItems: "center",
-	gap: 16,
-	marginBottom: 20,
-	padding: 24,
-	borderRadius: 24,
-	border: "1px solid rgba(148,163,184,0.16)",
-	background: "linear-gradient(135deg, rgba(30,41,59,0.96), rgba(15,23,42,0.96))",
-};
+          {/* ── Stat pills ─────────────────────────────────── */}
+          <div style={{
+            display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:16, marginBottom:36,
+          }}>
+            {[
+              { label:"Total Reviews", value:stats.total, icon:"📋", c:"#3b82f6" },
+              { label:"Text",          value:stats.text,  icon:"✍️", c:"#8b5cf6" },
+              { label:"Audio",         value:stats.audio, icon:"🎙️", c:"#22c55e" },
+              { label:"Video",         value:stats.video, icon:"🎬", c:"#f59e0b" },
+            ].map(({ label, value, icon, c }) => (
+              <div key={label} style={{
+                background:"rgba(15,23,42,0.7)", backdropFilter:"blur(20px)",
+                border:"1px solid rgba(148,163,184,0.10)",
+                borderRadius:20, padding:"20px 24px",
+                display:"flex", alignItems:"center", gap:14,
+                animation:"dash-fadeUp 0.5s ease",
+              }}>
+                <div style={{
+                  width:44, height:44, borderRadius:12, fontSize:20,
+                  background:`${c}18`, border:`1px solid ${c}30`,
+                  display:"flex", alignItems:"center", justifyContent:"center",
+                }}>{icon}</div>
+                <div>
+                  <div style={{ fontSize:26, fontWeight:900, color:"white", lineHeight:1 }}>{value}</div>
+                  <div style={{ fontSize:12, color:"#64748b", marginTop:2 }}>{label}</div>
+                </div>
+              </div>
+            ))}
+          </div>
 
-const sectionTagStyle = {
-	fontSize: 12,
-	color: "#93c5fd",
-	fontWeight: 800,
-	textTransform: "uppercase",
-	letterSpacing: 1.3,
-};
+          {/* ── Success toast ───────────────────────────────── */}
+          {submitted && (
+            <div style={{
+              marginBottom:20, padding:"14px 20px",
+              background:"rgba(34,197,94,0.10)", border:"1px solid rgba(34,197,94,0.25)",
+              borderRadius:14, color:"#86efac", fontSize:14,
+              display:"flex", alignItems:"center", gap:10,
+              animation:"dash-fadeUp 0.3s ease",
+            }}>
+              <FaRegCheckCircle color="#22c55e" /> Review submitted successfully!
+            </div>
+          )}
 
-const heroTitleStyle = {
-	margin: "10px 0 0",
-	fontSize: 30,
-	lineHeight: 1.15,
-};
+          {/* ── Two column: form + list ─────────────────────── */}
+          <div style={{
+            display:"grid",
+            gridTemplateColumns:"minmax(340px,1fr) minmax(340px,1.1fr)",
+            gap:24, alignItems:"start",
+          }}>
 
-const heroTextStyle = {
-	margin: "10px 0 0",
-	maxWidth: 700,
-	color: "#94a3b8",
-	lineHeight: 1.7,
-	fontSize: 14,
-};
+            {/* Upload form */}
+            <div id="review-form" style={{
+              background:"rgba(15,23,42,0.72)", backdropFilter:"blur(20px)",
+              WebkitBackdropFilter:"blur(20px)", border:"1px solid rgba(148,163,184,0.10)",
+              borderRadius:24, padding:28,
+            }}>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20 }}>
+                <div>
+                  <div className="sr-section-tag"><FaUpload size={11} /> Add New Review</div>
+                  <h2 style={{ margin:"6px 0 0", fontSize:20, fontWeight:800, color:"white" }}>Upload a Review</h2>
+                </div>
+                <div style={{ fontSize:28 }}>✍️</div>
+              </div>
 
-const primaryButtonStyle = {
-	padding: "12px 18px",
-	borderRadius: 12,
-	border: "none",
-	background: "linear-gradient(to right, #3b82f6, #8b5cf6)",
-	color: "white",
-	fontWeight: 700,
-	cursor: "pointer",
-};
+              <form onSubmit={handleSubmit} style={{ display:"grid", gap:16 }}>
+                {/* Title */}
+                <div>
+                  <label style={{ display:"block", fontSize:12, color:"#94a3b8", fontWeight:600, marginBottom:8 }}>
+                    Review Title
+                  </label>
+                  <input
+                    value={reviewTitle}
+                    onChange={e => setReviewTitle(e.target.value)}
+                    onFocus={() => setTitleFocus(true)}
+                    onBlur={() => setTitleFocus(false)}
+                    placeholder="Trip summary or destination name"
+                    style={inputStyle(titleFocus)}
+                  />
+                </div>
 
-const panelStyle = {
-	background: "#1e293b",
-	border: "1px solid #334155",
-	borderRadius: 22,
-	padding: 18,
-};
+                {/* Body */}
+                <div>
+                  <label style={{ display:"block", fontSize:12, color:"#94a3b8", fontWeight:600, marginBottom:8 }}>
+                    Text Review
+                  </label>
+                  <textarea
+                    value={reviewText}
+                    onChange={e => setReviewText(e.target.value)}
+                    onFocus={() => setTextFocus(true)}
+                    onBlur={() => setTextFocus(false)}
+                    placeholder="Share what you liked, what to avoid, and any travel tips..."
+                    rows={5}
+                    style={{ ...inputStyle(textFocus), resize:"vertical", minHeight:120 }}
+                  />
+                </div>
 
-const panelHeaderStyle = {
-	display: "flex",
-	justifyContent: "space-between",
-	alignItems: "center",
-	gap: 10,
-	marginBottom: 14,
-};
+                {/* Media uploads */}
+                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
+                  {[
+                    { label:"Audio Review", icon:<FaMicrophone color="#22c55e" />, accept:"audio/*", file:audioFile, set:setAudioFile, type:"Audio", hint:"mp3, wav, m4a" },
+                    { label:"Video Review", icon:<FaPlayCircle color="#f59e0b" />, accept:"video/*", file:videoFile, set:setVideoFile, type:"Video", hint:"mp4, mov, webm" },
+                  ].map(({ label, icon, accept, file, set, type, hint }) => (
+                    <div key={type} style={{
+                      background:"rgba(5,11,24,0.6)", border:"1px solid rgba(148,163,184,0.10)",
+                      borderRadius:14, padding:14,
+                    }}>
+                      <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:8 }}>
+                        {icon}
+                        <div>
+                          <div style={{ fontSize:13, fontWeight:700, color:"white" }}>{label}</div>
+                          <div style={{ fontSize:11, color:"#64748b" }}>{hint}</div>
+                        </div>
+                      </div>
+                      <input
+                        type="file" accept={accept}
+                        onChange={e => set(e.target.files?.[0] || null)}
+                        style={{ width:"100%", color:"#94a3b8", fontSize:12 }}
+                      />
+                      {file && <FilePreview name={file.name} type={type} />}
+                    </div>
+                  ))}
+                </div>
 
-const panelTitleStyle = {
-	margin: "6px 0 0",
-	fontSize: 22,
-	color: "white",
-};
+                <button type="submit" className="sr-btn" style={{ width:"100%", justifyContent:"center" }}>
+                  Save Review
+                </button>
+              </form>
+            </div>
 
-const fieldLabelStyle = {
-	display: "block",
-	marginBottom: 8,
-	fontSize: 12,
-	color: "#94a3b8",
-	fontWeight: 600,
-};
+            {/* Reviews list */}
+            <div style={{
+              background:"rgba(15,23,42,0.72)", backdropFilter:"blur(20px)",
+              WebkitBackdropFilter:"blur(20px)", border:"1px solid rgba(148,163,184,0.10)",
+              borderRadius:24, padding:28,
+            }}>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20 }}>
+                <div>
+                  <div className="sr-section-tag"><FaChartBar size={11} /> Published Reviews</div>
+                  <h2 style={{ margin:"6px 0 0", fontSize:20, fontWeight:800, color:"white" }}>Recent Submissions</h2>
+                </div>
+                <div style={{
+                  fontSize:12, color:"#94a3b8", background:"rgba(30,41,59,0.7)",
+                  padding:"5px 12px", borderRadius:20, border:"1px solid rgba(148,163,184,0.1)",
+                }}>
+                  {reviews.length} items
+                </div>
+              </div>
 
-const inputStyle = {
-	width: "100%",
-	background: "#0f172a",
-	color: "white",
-	border: "1px solid #334155",
-	borderRadius: 14,
-	padding: "12px 14px",
-	outline: "none",
-	fontSize: 14,
-	boxSizing: "border-box",
-};
+              <div style={{ display:"grid", gap:14, maxHeight:"68vh", overflowY:"auto", paddingRight:4 }}>
+                {reviews.map((rev) => {
+                  const meta = typeMeta(rev.type);
+                  return (
+                    <article key={rev.id} style={{
+                      background:"rgba(5,11,24,0.65)", border:"1px solid rgba(148,163,184,0.08)",
+                      borderRadius:18, padding:"16px 18px",
+                      transition:"border-color .2s, transform .2s",
+                    }}
+                      onMouseEnter={e => { e.currentTarget.style.borderColor="rgba(59,130,246,0.25)"; e.currentTarget.style.transform="translateY(-2px)"; }}
+                      onMouseLeave={e => { e.currentTarget.style.borderColor="rgba(148,163,184,0.08)"; e.currentTarget.style.transform=""; }}
+                    >
+                      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:12, marginBottom:8 }}>
+                        <div style={{ display:"flex", alignItems:"center", gap:8, flexWrap:"wrap" }}>
+                          <span style={{ fontSize:16 }}>{meta.emoji}</span>
+                          <h3 style={{ margin:0, fontSize:15, color:"white", fontWeight:700 }}>{rev.title}</h3>
+                          <span style={{
+                            fontSize:11, padding:"3px 9px", borderRadius:20,
+                            background:`${meta.color}18`, border:`1px solid ${meta.color}40`,
+                            color:meta.color, fontWeight:700, textTransform:"capitalize",
+                          }}>{meta.label}</span>
+                        </div>
+                        <button
+                          onClick={() => deleteReview(rev.id)}
+                          style={{
+                            background:"none", border:"none", cursor:"pointer",
+                            color:"#475569", padding:4, fontSize:13, flexShrink:0,
+                          }}
+                          onMouseEnter={e => e.currentTarget.style.color = "#ef4444"}
+                          onMouseLeave={e => e.currentTarget.style.color = "#475569"}
+                        >
+                          <FaTrash />
+                        </button>
+                      </div>
+                      <div style={{ fontSize:11, color:"#475569", marginBottom:8 }}>{rev.createdAt}</div>
+                      <p style={{ margin:0, color:"#94a3b8", fontSize:13, lineHeight:1.7 }}>{rev.content}</p>
 
-const uploadGridStyle = {
-	display: "grid",
-	gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-	gap: 12,
-};
+                      {rev.mediaName && (
+                        <div style={{
+                          marginTop:10, padding:"8px 12px", borderRadius:10,
+                          background:"rgba(59,130,246,0.08)", color:"#93c5fd", fontSize:12,
+                          display:"flex", alignItems:"center", gap:6,
+                        }}>
+                          {rev.type === "audio" ? "🎙️" : "🎬"} {rev.mediaName}
+                        </div>
+                      )}
+                      {rev.type === "audio" && rev.mediaUrl && (
+                        <audio controls style={{ width:"100%", marginTop:10 }} src={rev.mediaUrl} />
+                      )}
+                      {rev.type === "video" && rev.mediaUrl && (
+                        <video controls style={{ width:"100%", marginTop:10, borderRadius:10, border:"1px solid rgba(148,163,184,0.1)" }} src={rev.mediaUrl} />
+                      )}
+                    </article>
+                  );
+                })}
 
-const uploadCardStyle = {
-	background: "#0f172a",
-	border: "1px solid #334155",
-	borderRadius: 18,
-	padding: 14,
-};
+                {reviews.length === 0 && (
+                  <div className="sr-empty" style={{ padding:"40px 20px" }}>
+                    <div className="sr-empty-icon">📝</div>
+                    <h3 style={{ color:"#94a3b8" }}>No reviews yet</h3>
+                    <p>Write your first travel review above!</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
-const uploadHeaderStyle = {
-	display: "flex",
-	alignItems: "center",
-	gap: 10,
-	marginBottom: 10,
-};
-
-const uploadTitleStyle = {
-	color: "white",
-	fontWeight: 700,
-};
-
-const uploadHintStyle = {
-	fontSize: 12,
-	color: "#64748b",
-	marginTop: 2,
-};
-
-const fileInputStyle = {
-	width: "100%",
-	color: "#cbd5e1",
-	fontSize: 13,
-};
-
-const reviewCardStyle = {
-	background: "#0f172a",
-	border: "1px solid #334155",
-	borderRadius: 18,
-	padding: 16,
-};
-
-const mediaChipStyle = {
-	marginTop: 12,
-	padding: "8px 10px",
-	borderRadius: 12,
-	background: "rgba(59,130,246,0.12)",
-	color: "#cbd5e1",
-	fontSize: 12,
-};
-
-const videoStyle = {
-	width: "100%",
-	marginTop: 12,
-	borderRadius: 14,
-	border: "1px solid #334155",
-};
-
-function typeBadgeStyle(type) {
-	const color = type === "audio" ? "#22c55e" : type === "video" ? "#f59e0b" : "#3b82f6";
-	return {
-		fontSize: 11,
-		padding: "4px 9px",
-		borderRadius: 999,
-		background: `${color}18`,
-		border: `1px solid ${color}40`,
-		color,
-		textTransform: "capitalize",
-		fontWeight: 700,
-	};
+      {/* Responsive */}
+      <style>{`
+        @media (max-width:900px) {
+          #review-form + div { grid-template-columns:1fr; }
+        }
+        @media (max-width:768px) {
+          .dash-grid { grid-template-columns:1fr !important; }
+        }
+      `}</style>
+    </div>
+  );
 }
 
 export default Dashboard;
