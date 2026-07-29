@@ -5,6 +5,8 @@ import Home from "./pages/Home";
 import SearchResults from "./pages/SearchResults";
 import DestinationDetails from "./pages/DestinationDetails";
 import Dashboard from "./pages/Dashboard";
+import Register from "./pages/Register";
+
 
 function App() {
   return (
@@ -15,6 +17,7 @@ function App() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/search" element={<SearchResults />} />
         <Route path="/explore/:placeId" element={<DestinationDetails />} />
+        <Route path="/register" element={<Register />} />
       </Routes>
     </BrowserRouter>
   );
