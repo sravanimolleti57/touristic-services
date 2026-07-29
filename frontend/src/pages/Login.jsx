@@ -7,6 +7,7 @@ import {
   FaLock,
   FaBrain,
 } from "react-icons/fa";
+import axios from "axios";
 
 /* ───────────────── Floating Background ───────────────── */
 
@@ -112,7 +113,7 @@ function Login() {
 
   /* ───────────── Login Function ───────────── */
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     setError("");
 
     if (!email || !password) {
@@ -120,35 +121,76 @@ function Login() {
       return;
     }
 
-    const savedUser = JSON.parse(localStorage.getItem("travelUser"));
+    setLoading(true);
 
-    if (!savedUser) {
-      setError("Please register first.");
-      return;
+    try {
+      const response = await axios.post(
+        "http://127.0.0.1:5000/login",
+        {
+          email,
+          password,
+        }
+      );
+
+      localStorage.setItem(
+        "user",
+        JSON.stringify({
+          name: response.data.name,
+          email: response.data.email,
+          isLoggedIn: true,
+        })
+      );
+
+      
+
+      navigate("/home");
+    } catch (err) {
+      setError(
+        err.response?.data?.message ||
+          "Login Failed"
+      );
+    } finally {
+      setLoading(false);
     }
+  };
+    /* ───────────── Register Function ───────────── */
 
-    if (
-      savedUser.email !== email ||
-      savedUser.password !== password
-    ) {
-      setError("Invalid Email or Password.");
+  const handleRegister = async () => {
+    setError("");
+
+    if (!name || !email || !password) {
+      setError("Please fill all fields.");
       return;
     }
 
     setLoading(true);
 
-    localStorage.setItem(
-      "user",
-      JSON.stringify({
-        name: savedUser.name,
-        email: savedUser.email,
-        isLoggedIn: true,
-      })
-    );
+    try {
+      const response = await axios.post(
+        "http://127.0.0.1:5000/register",
+        {
+          name,
+          email,
+          password,
+        }
+      );
 
-    setTimeout(() => {
-      navigate("/home");
-    }, 1000);
+      
+
+      setName("");
+      setEmail("");
+      setPassword("");
+
+      setIsRegister(false);
+      setError("");
+    } catch (err) {
+      setError(
+        err.response?.data?.message ||
+          "Registration Failed"
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   /* ───────────── Enter Key ───────────── */
@@ -157,13 +199,13 @@ function Login() {
     if (e.key !== "Enter") return;
 
     if (isRegister) {
-      // Registration handled in button
-      return;
+      handleRegister();
+    } else {
+      handleLogin();
     }
-
-    handleLogin();
   };
-    /* ───────────── Shared Input Style ───────────── */
+
+  /* ───────────── Shared Input Style ───────────── */
 
   const inputBox = (focused) => ({
     display: "flex",
@@ -171,7 +213,9 @@ function Login() {
     gap: 10,
     background: "rgba(15,23,42,0.65)",
     border: `1px solid ${
-      focused ? "#3b82f6" : "rgba(148,163,184,0.15)"
+      focused
+        ? "#3b82f6"
+        : "rgba(148,163,184,0.15)"
     }`,
     borderRadius: 14,
     padding: "14px 18px",
@@ -227,11 +271,26 @@ function Login() {
 
       <Orbs />
 
-      <FloatingIcon icon="✈️" style={{ top: "8%", left: "6%" }} />
-      <FloatingIcon icon="🏝️" style={{ top: "70%", left: "5%" }} />
-      <FloatingIcon icon="🗺️" style={{ top: "15%", right: "8%" }} />
-      <FloatingIcon icon="🏔️" style={{ top: "80%", right: "8%" }} />
-      <FloatingIcon icon="🌍" style={{ top: "45%", left: "3%" }} />
+      <FloatingIcon
+        icon="✈️"
+        style={{ top: "8%", left: "6%" }}
+      />
+      <FloatingIcon
+        icon="🏝️"
+        style={{ top: "70%", left: "5%" }}
+      />
+      <FloatingIcon
+        icon="🗺️"
+        style={{ top: "15%", right: "8%" }}
+      />
+      <FloatingIcon
+        icon="🏔️"
+        style={{ top: "80%", right: "8%" }}
+      />
+      <FloatingIcon
+        icon="🌍"
+        style={{ top: "45%", left: "3%" }}
+      />
 
       <div
         style={{
@@ -239,7 +298,8 @@ function Login() {
           maxWidth: 420,
           background: "rgba(15,23,42,.72)",
           backdropFilter: "blur(30px)",
-          border: "1px solid rgba(148,163,184,.15)",
+          border:
+            "1px solid rgba(148,163,184,.15)",
           borderRadius: 28,
           padding: "40px 36px",
           animation: "lp-fadeUp .6s ease",
@@ -249,8 +309,7 @@ function Login() {
           zIndex: 10,
         }}
       >
-
-        {/* Logo */}
+              {/* Logo */}
 
         <div
           style={{
@@ -319,9 +378,7 @@ function Login() {
               padding: 12,
               border: "none",
               cursor: "pointer",
-              color: isRegister
-                ? "#94a3b8"
-                : "white",
+              color: isRegister ? "#94a3b8" : "white",
               background: !isRegister
                 ? "linear-gradient(135deg,#3b82f6,#8b5cf6)"
                 : "transparent",
@@ -340,9 +397,7 @@ function Login() {
               padding: 12,
               border: "none",
               cursor: "pointer",
-              color: isRegister
-                ? "white"
-                : "#94a3b8",
+              color: isRegister ? "white" : "#94a3b8",
               background: isRegister
                 ? "linear-gradient(135deg,#3b82f6,#8b5cf6)"
                 : "transparent",
@@ -351,7 +406,8 @@ function Login() {
             Register
           </button>
         </div>
-                {/* Heading */}
+
+        {/* Heading */}
 
         <div style={{ marginBottom: 20 }}>
           <h2
@@ -362,7 +418,9 @@ function Login() {
               fontWeight: 700,
             }}
           >
-            {isRegister ? "Create Account 🚀" : "Welcome Back ✈️"}
+            {isRegister
+              ? "Create Account 🚀"
+              : "Welcome Back ✈️"}
           </h2>
 
           <p
@@ -398,7 +456,9 @@ function Login() {
                 type="text"
                 placeholder="Enter your name"
                 value={name}
-                onChange={(e) => setName(e.target.value)}
+                onChange={(e) =>
+                  setName(e.target.value)
+                }
                 onFocus={() => setNameFocus(true)}
                 onBlur={() => setNameFocus(false)}
                 style={{
@@ -430,14 +490,18 @@ function Login() {
 
           <div style={inputBox(emailFocus)}>
             <FaEnvelope
-              color={emailFocus ? "#3b82f6" : "#64748b"}
+              color={
+                emailFocus ? "#3b82f6" : "#64748b"
+              }
             />
 
             <input
               type="email"
               placeholder="yourname@gmail.com"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) =>
+                setEmail(e.target.value)
+              }
               onFocus={() => setEmailFocus(true)}
               onBlur={() => setEmailFocus(false)}
               onKeyDown={handleKeyDown}
@@ -468,14 +532,18 @@ function Login() {
 
           <div style={inputBox(pwFocus)}>
             <FaLock
-              color={pwFocus ? "#3b82f6" : "#64748b"}
+              color={
+                pwFocus ? "#3b82f6" : "#64748b"
+              }
             />
 
             <input
               type={showPw ? "text" : "password"}
               placeholder="Enter Password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) =>
+                setPassword(e.target.value)
+              }
               onFocus={() => setPwFocus(true)}
               onBlur={() => setPwFocus(false)}
               onKeyDown={handleKeyDown}
@@ -495,7 +563,11 @@ function Login() {
                 color: "#94a3b8",
               }}
             >
-              {showPw ? <FaEyeSlash /> : <FaEye />}
+              {showPw ? (
+                <FaEyeSlash />
+              ) : (
+                <FaEye />
+              )}
             </span>
           </div>
         </div>
@@ -505,7 +577,8 @@ function Login() {
         {error && (
           <div
             style={{
-              background: "rgba(239,68,68,.1)",
+              background:
+                "rgba(239,68,68,.1)",
               color: "#fca5a5",
               padding: 12,
               borderRadius: 10,
@@ -516,39 +589,15 @@ function Login() {
             ⚠️ {error}
           </div>
         )}
-
-        {/* Button */}
+                {/* Button */}
 
         <button
-          onClick={() => {
+          onClick={async () => {
             if (isRegister) {
-              if (!name || !email || !password) {
-                setError("Please fill all fields.");
-                return;
-              }
-
-              localStorage.setItem(
-                "travelUser",
-                JSON.stringify({
-                  name,
-                  email,
-                  password,
-                })
-              );
-
-              alert("Registration Successful!");
-
-              setName("");
-              setEmail("");
-              setPassword("");
-
-              setIsRegister(false);
-              setError("");
-
-              return;
+              await handleRegister();
+            } else {
+              await handleLogin();
             }
-
-            handleLogin();
           }}
           disabled={loading}
           style={{
@@ -561,10 +610,16 @@ function Login() {
             color: "white",
             fontSize: 15,
             fontWeight: 700,
-            cursor: "pointer",
+            cursor: loading ? "not-allowed" : "pointer",
+            opacity: loading ? 0.7 : 1,
+            transition: ".3s",
           }}
         >
-          {loading ? "Please Wait..." : isRegister ? "Register 🚀" : "Sign In ✈️"}
+          {loading
+            ? "Please Wait..."
+            : isRegister
+            ? "Register 🚀"
+            : "Sign In ✈️"}
         </button>
 
         {/* AI Badge */}
@@ -622,6 +677,7 @@ function Login() {
             </span>
           ))}
         </div>
+
       </div>
     </div>
   );
