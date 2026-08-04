@@ -10,13 +10,14 @@ import {
   FaCheckCircle, FaBed, FaPhone, FaEnvelope, FaUser,
   FaCreditCard, FaLock, FaSuitcase, FaChair,
   FaInfoCircle, FaTicketAlt, FaSatelliteDish, FaSlidersH,
-  FaMapMarkedAlt, FaShieldAlt, FaSmile, FaSuitcaseRolling
+  FaMapMarkedAlt, FaShieldAlt, FaSmile, FaSuitcaseRolling, FaChartPie
 } from "react-icons/fa";
 
 import { PLACES } from "../data/destinations";
 import { FLIGHTS, AIRLINE_META, fetchLiveFlights } from "../data/flights";
 import CalendarWidget from "../components/CalendarWidget";
 import SharedNavbar from "../components/SharedNavbar";
+import FeedbackAnalysisModal from "../components/FeedbackAnalysisModal";
 import "../styles/shared.css";
 
 /**
@@ -129,7 +130,7 @@ function PlaceCard({ item, wishlist, toggleWishlist, onExplore }) {
   );
 }
 
-function HotelCard({ item, wishlist, toggleWishlist, onBook }) {
+function HotelCard({ item, wishlist, toggleWishlist, onBook, onFeedbackAnalysis }) {
   return (
     <div style={S.card}>
       <div style={{ position: "relative" }}>
@@ -159,14 +160,27 @@ function HotelCard({ item, wishlist, toggleWishlist, onBook }) {
             <span key={a} title={AMENITY_LABELS[a]} style={S.amenity}>{AMENITY_ICONS[a]} {AMENITY_LABELS[a]}</span>
           ))}
         </div>
-        <div style={{ marginTop: 10, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <SentimentBadge label={item.sentiment} />
-          <button onClick={() => onBook(item)} style={S.actionBtn}>Book Now →</button>
+        <div style={{ marginTop: 14, display: "flex", gap: 8, alignItems: "center" }}>
+          <button
+            onClick={() => onFeedbackAnalysis(item)}
+            style={{
+              flex: 1, padding: "9px 6px", borderRadius: 10, border: "1px solid #3b82f6",
+              background: "rgba(59,130,246,0.12)", color: "#93c5fd", cursor: "pointer",
+              fontSize: 11, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
+              transition: "all 0.2s", fontFamily: "inherit"
+            }}
+          >
+            <FaChartPie size={12} color="#3b82f6" /> Feedback Analysis
+          </button>
+          <button onClick={() => onBook(item)} style={{ ...S.actionBtn, flex: 1, textAlign: "center", padding: "9px 6px", fontSize: 12 }}>
+            Book Now →
+          </button>
         </div>
       </div>
     </div>
   );
 }
+
 
 // ── Hotel Booking Modal ────────────────────────────────────────────────────────────
 
@@ -437,7 +451,7 @@ function BookingModal({ hotel, onClose }) {
 
 // ---------------- Enhanced Flight Card -----------------------------------------
 
-function FlightCard({ item, onViewDetails, onBook }) {
+function FlightCard({ item, onViewDetails, onBook, onFeedbackAnalysis }) {
   const meta = AIRLINE_META[item.airline] || { color: "#3b82f6", bg: "rgba(59,130,246,0.12)", icon: "plane" };
 
   return (
@@ -509,23 +523,31 @@ function FlightCard({ item, onViewDetails, onBook }) {
         </div>
 
         {/* Actions */}
-        <div style={{ display: "flex", gap: 10 }}>
-          <button onClick={() => onViewDetails(item)} style={{
-            flex: 1, padding: "10px", borderRadius: 10, border: "1px solid #334155",
-            background: "#0f172a", color: "#94a3b8", cursor: "pointer", fontSize: 12,
-            fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-            transition: "all 0.2s",
-          }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = "#3b82f6"; e.currentTarget.style.color = "#3b82f6"; }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = "#334155"; e.currentTarget.style.color = "#94a3b8"; }}
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <button
+            onClick={() => onFeedbackAnalysis(item)}
+            style={{
+              flex: 1, padding: "9px 6px", borderRadius: 10, border: "1px solid #3b82f6",
+              background: "rgba(59,130,246,0.12)", color: "#93c5fd", cursor: "pointer",
+              fontSize: 11, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
+              transition: "all 0.2s", fontFamily: "inherit"
+            }}
           >
-            <FaInfoCircle size={11} /> View Details
+            <FaChartPie size={12} color="#3b82f6" /> Feedback Analysis
+          </button>
+          <button onClick={() => onViewDetails(item)} style={{
+            padding: "9px 10px", borderRadius: 10, border: "1px solid #334155",
+            background: "#0f172a", color: "#94a3b8", cursor: "pointer", fontSize: 11,
+            fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "center", gap: 4,
+            transition: "all 0.2s", fontFamily: "inherit"
+          }}>
+            <FaInfoCircle size={11} /> Details
           </button>
           <button onClick={() => onBook(item)} style={{
-            flex: 1, padding: "10px", borderRadius: 10, border: "none",
+            flex: 1, padding: "9px 6px", borderRadius: 10, border: "none",
             background: `linear-gradient(to right, ${meta.color}, #8b5cf6)`,
             color: "white", cursor: "pointer", fontSize: 12, fontWeight: 700,
-            display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 4, fontFamily: "inherit"
           }}>
             <FaTicketAlt size={11} /> Book Now
           </button>
@@ -534,6 +556,7 @@ function FlightCard({ item, onViewDetails, onBook }) {
     </div>
   );
 }
+
 
 // ---------------- Flight Details Modal -----------------------------------------
 
@@ -1087,10 +1110,13 @@ export default function SearchResults() {
   const [bookingHotel, setBookingHotel] = useState(null);
   const [selectedFlight, setSelectedFlight] = useState(null);
   const [bookingFlight, setBookingFlight] = useState(null);
+  const [selectedAnalysisItem, setSelectedAnalysisItem] = useState(null);
+  const [analysisItemType, setAnalysisItemType] = useState("hotel");
   const [liveTracker, setLiveTracker] = useState([]);
   const [trackerLoading, setTrackerLoading] = useState(false);
   const [showTracker, setShowTracker] = useState(false);
   const [selectedHotelForCalendar, setSelectedHotelForCalendar] = useState(null);
+
 
 
 
@@ -1522,12 +1548,14 @@ export default function SearchResults() {
               ))}
               {activeTab==="hotels" && hotels.map(item => (
                 <HotelCard key={item.id} item={item} wishlist={wishlist} toggleWishlist={toggleWishlist}
-                  onBook={hotel => { setBookingHotel(hotel); setSelectedHotelForCalendar(hotel); }} />
+                  onBook={hotel => { setBookingHotel(hotel); setSelectedHotelForCalendar(hotel); }}
+                  onFeedbackAnalysis={hotel => { setSelectedAnalysisItem(hotel); setAnalysisItemType("hotel"); }} />
               ))}
               {activeTab==="flights" && flights.map(item => (
                 <FlightCard key={item.id} item={item}
                   onViewDetails={setSelectedFlight}
-                  onBook={setBookingFlight} />
+                  onBook={setBookingFlight}
+                  onFeedbackAnalysis={flight => { setSelectedAnalysisItem(flight); setAnalysisItemType("flight"); }} />
               ))}
             </div>
           )}
@@ -1538,6 +1566,7 @@ export default function SearchResults() {
       {bookingHotel   && <BookingModal hotel={bookingHotel} onClose={() => setBookingHotel(null)} />}
       {selectedFlight && <FlightDetailsModal flight={selectedFlight} onClose={() => setSelectedFlight(null)} onBook={f => { setSelectedFlight(null); setBookingFlight(f); }} />}
       {bookingFlight  && <FlightBookingModal flight={bookingFlight} passengers={passengers} onClose={() => setBookingFlight(null)} />}
+      {selectedAnalysisItem && <FeedbackAnalysisModal item={selectedAnalysisItem} itemType={analysisItemType} onClose={() => setSelectedAnalysisItem(null)} />}
     </div>
   );
 }
