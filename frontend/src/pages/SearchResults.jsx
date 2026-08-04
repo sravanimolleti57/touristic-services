@@ -1,3 +1,4 @@
+import axios from "axios";
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
@@ -195,27 +196,32 @@ function BookingModal({ hotel, onClose }) {
     });
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    const userObj = JSON.parse(localStorage.getItem("user")) || { email: "user@example.com" };
-    const userEmail = userObj.email || "user@example.com";
-    const storageKey = `bookedHotels_${userEmail}`;
-    const savedHotels = JSON.parse(localStorage.getItem(storageKey)) || [];
-    const newBooking = {
-      id: Date.now(),
+  const handleSubmit = async (e) => {
+  e.preventDefault();
+
+  try {
+    const user = JSON.parse(localStorage.getItem("user"));
+
+    await axios.post("http://127.0.0.1:5000/book-hotel", {
+      userEmail: user.email,
       hotelName: hotel.name,
       location: hotel.location,
-      price: hotel.price,
       checkIn: formData.checkIn,
       checkOut: formData.checkOut,
       guests: formData.guests,
       rooms: formData.rooms,
       roomType: formData.roomType,
       guestName: formData.fullName,
-    };
-    localStorage.setItem(storageKey, JSON.stringify([...savedHotels, newBooking]));
+      price: hotel.price,
+    });
+
     setSubmitted(true);
-  };
+
+  } catch (err) {
+    console.error(err);
+    alert("Hotel booking failed.");
+  }
+};
 
   const inputStyle = {
     width: "100%", background: "#0f172a", border: "1px solid #334155",
@@ -719,39 +725,64 @@ function FlightBookingModal({ flight, passengers: passengerCount, onClose }) {
     });
   };
 
-  const handleFlightSubmit = (e) => {
-    e.preventDefault();
-    const userObj = JSON.parse(localStorage.getItem("user")) || { email: "user@example.com" };
-    const userEmail = userObj.email || "user@example.com";
-    const storageKey = `bookedFlights_${userEmail}`;
-    const savedFlights = JSON.parse(localStorage.getItem(storageKey)) || [];
-    const newBooking = {
-      id: Date.now(),
-      airline: flight.airline,
-      flightNo: flight.flightNo,
-      departure: flight.departure,
-      arrival: flight.arrival,
-      price: flight.price,
-      passengersCount: formData.passengers.length,
-      seatPref: formData.seatPref,
-      mealPref: formData.mealPref,
-    };
-    localStorage.setItem(storageKey, JSON.stringify([...savedFlights, newBooking]));
-    setSubmitted(true);
-  };
-
-  const inputStyle = {
-    width: "100%", background: "#0f172a", border: "1px solid #334155",
-    borderRadius: 10, padding: "11px 14px", color: "white", fontSize: 14,
-    outline: "none", boxSizing: "border-box",
-  };
-  const labelStyle = { fontSize: 12, color: "#94a3b8", marginBottom: 6, display: "block", fontWeight: 600 };
-
-  const addons = [];
-  if (formData.addBaggage) addons.push({ label: "Extra Baggage (10 kg)", price: 1200 * formData.passengers.length });
-  if (formData.travelInsurance) addons.push({ label: "Travel Insurance", price: 499 * formData.passengers.length });
+    const addons = [];
+  if (formData.addBaggage) addons.push({ label: 'Extra Baggage (10 kg)', price: 1200 * formData.passengers.length });
+  if (formData.travelInsurance) addons.push({ label: 'Travel Insurance', price: 499 * formData.passengers.length });
   const addonTotal = addons.reduce((s, a) => s + a.price, 0);
   const grandTotal = totalPrice + addonTotal;
+
+const handleFlightSubmit = async (e) => {
+  e.preventDefault();
+
+  try {
+    const user = JSON.parse(localStorage.getItem("user"));
+
+    await axios.post("http://127.0.0.1:5000/book-flight", {
+      userEmail: user.email,
+      flightName: flight.airline,
+      flightNo: flight.flightNo,
+      from: flight.from,
+      to: flight.to,
+      departureDate: new Date().toISOString().split("T")[0],
+      departure: flight.departure,
+      arrival: flight.arrival,
+      passengers: formData.passengers.length,
+      seatPref: formData.seatPref,
+      mealPref: formData.mealPref,
+      price: grandTotal,
+    });
+
+    setSubmitted(true);
+
+  } catch (err) {
+    console.error(err);
+    alert("Flight booking failed.");
+  }
+};
+
+  const inputStyle = {
+  width: "100%",
+  background: "#0f172a",
+  border: "1px solid #334155",
+  borderRadius: 10,
+  padding: "11px 14px",
+  color: "white",
+  fontSize: 14,
+  outline: "none",
+  boxSizing: "border-box",
+};
+
+const labelStyle = {
+  fontSize: 12,
+  color: "#94a3b8",
+  marginBottom: 6,
+  display: "block",
+  fontWeight: 600,
+};
+
+
+
+
 
   if (submitted) {
     return (

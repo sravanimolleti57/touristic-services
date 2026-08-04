@@ -1,3 +1,4 @@
+import axios from "axios";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -255,11 +256,33 @@ function Home() {
     if (newsletterEmail) { setNewsletterSubmitted(true); setNewsletterEmail(""); }
   };
 
-  const handleContactSubmit = (e) => {
-    e.preventDefault();
+  const handleContactSubmit = async (e) => {
+  e.preventDefault();
+
+  try {
+    await axios.post("http://127.0.0.1:5000/contact", {
+      name: contactForm.name,
+      email: contactForm.email,
+      subject: contactForm.subject,
+      message: contactForm.message,
+    });
+
     setContactSubmitted(true);
-    setContactForm({ name: "", email: "", subject: "", message: "" });
-  };
+
+    setContactForm({
+      name: "",
+      email: "",
+      subject: "",
+      message: "",
+    });
+
+    alert("Message sent successfully!");
+
+  } catch (error) {
+    console.log(error);
+    alert("Failed to send message.");
+  }
+};
 
   /* ── Scroll to section helper ─────────────────────────────── */
   const scrollToSection = (id) => {
@@ -279,13 +302,17 @@ function Home() {
         </div>
 
         <ul className="nav-links">
-          <li className="active" onClick={() => navigate("/home")}>Home</li>
-          <li onClick={() => goToTab("places")}>Destinations</li>
-          <li onClick={() => goToTab("hotels")}>Hotels</li>
-          <li onClick={() => goToTab("flights")}>Flights</li>
-          <li onClick={() => navigate("/dashboard")}>Reviews</li>
-          <li onClick={() => scrollToSection("contact-section")}>Contact</li>
-        </ul>
+  <li className="active" onClick={() => navigate("/home")}>Home</li>
+  <li onClick={() => goToTab("places")}>Destinations</li>
+  <li onClick={() => goToTab("hotels")}>Hotels</li>
+  <li onClick={() => goToTab("flights")}>Flights</li>
+  <li onClick={() => navigate("/reviews")}>
+    <FaComments /> Reviews
+  </li>
+  <li onClick={() => navigate("/my-hotels")}>My Hotels</li>
+  <li onClick={() => navigate("/my-flights")}>My Flights</li>
+  <li onClick={() => scrollToSection("contact-section")}>Contact</li>
+</ul>
 
         <div className="nav-right">
           <div className="nav-icon-btn" title="Notifications">
@@ -308,16 +335,7 @@ function Home() {
                     <div style={{ fontSize: 11, color: "#64748b" }}>{user.email}</div>
                   </div>
                 </div>
-                <div style={{ background: "rgba(30,41,59,0.8)", borderRadius: 12, padding: "12px 14px", marginBottom: 12 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-                    <span style={{ fontSize: 12, color: "#64748b" }}>🏨 Hotels Booked</span>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: "#93c5fd" }}>{bookedHotelsCount}</span>
-                  </div>
-                  <div style={{ display: "flex", justifyContent: "space-between" }}>
-                    <span style={{ fontSize: 12, color: "#64748b" }}>✈️ Flights Booked</span>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: "#93c5fd" }}>{bookedFlightsCount}</span>
-                  </div>
-                </div>
+                
                 <button onClick={() => { localStorage.removeItem("user"); navigate("/"); }} style={{
                   width: "100%", padding: "10px", borderRadius: 10, border: "none",
                   background: "rgba(239,68,68,0.12)", color: "#ef4444",
@@ -758,7 +776,8 @@ function Home() {
                 <li onClick={() => goToTab("places")}>Destinations</li>
                 <li onClick={() => goToTab("hotels")}>Hotels</li>
                 <li onClick={() => goToTab("flights")}>Flights</li>
-                <li onClick={() => navigate("/dashboard")}>Reviews</li>
+                <li onClick={() => navigate("/my-hotels")}>My Hotels</li>
+<li onClick={() => navigate("/my-flights")}>My Flights</li>
               </ul>
             </div>
           </div>

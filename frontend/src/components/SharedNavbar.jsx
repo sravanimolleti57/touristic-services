@@ -1,3 +1,4 @@
+import axios from "axios";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -22,11 +23,26 @@ export default function SharedNavbar({ activeTab = "" }) {
   const [bookedFlightsCount, setBookedFlightsCount] = useState(0);
 
   useEffect(() => {
-    const savedHotels  = JSON.parse(localStorage.getItem(`bookedHotels_${userEmail}`))  || [];
-    const savedFlights = JSON.parse(localStorage.getItem(`bookedFlights_${userEmail}`)) || [];
-    setBookedHotelsCount(savedHotels.length);
-    setBookedFlightsCount(savedFlights.length);
-  }, [userEmail]);
+    fetchBookingCounts();
+}, [userEmail]);
+
+const fetchBookingCounts = async () => {
+    try {
+        const hotelResponse = await axios.get(
+            `http://127.0.0.1:5000/my-hotels/${userEmail}`
+        );
+
+        const flightResponse = await axios.get(
+            `http://127.0.0.1:5000/my-flights/${userEmail}`
+        );
+
+        setBookedHotelsCount(hotelResponse.data.length);
+        setBookedFlightsCount(flightResponse.data.length);
+
+    } catch (error) {
+        console.error(error);
+    }
+};
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 60);
@@ -37,17 +53,64 @@ export default function SharedNavbar({ activeTab = "" }) {
   const goToTab = (tab) => navigate(`/search?tab=${tab}`);
 
   const NAV_LINKS = [
-    { label: "Home",         key: "home",         action: () => navigate("/home"),       icon: <FaHome size={11} /> },
-    { label: "Destinations", key: "destinations",  action: () => goToTab("places"),      icon: <FaMapMarkerAlt size={11} /> },
-    { label: "Hotels",       key: "hotels",        action: () => goToTab("hotels"),      icon: <FaHotel size={11} /> },
-    { label: "Flights",      key: "flights",       action: () => goToTab("flights"),     icon: <FaPlane size={11} /> },
-    { label: "Reviews",      key: "reviews",       action: () => navigate("/dashboard"), icon: <FaComments size={11} /> },
-    { label: "Contact",      key: "contact",       action: () => {
+  {
+    label: "Home",
+    key: "home",
+    action: () => navigate("/home"),
+    icon: <FaHome size={11} />,
+  },
+  {
+    label: "Destinations",
+    key: "destinations",
+    action: () => goToTab("places"),
+    icon: <FaMapMarkerAlt size={11} />,
+  },
+  {
+    label: "Hotels",
+    key: "hotels",
+    action: () => goToTab("hotels"),
+    icon: <FaHotel size={11} />,
+  },
+  {
+    label: "Flights",
+    key: "flights",
+    action: () => goToTab("flights"),
+    icon: <FaPlane size={11} />,
+  },
+  {
+    label: "Dashboard",
+    key: "dashboard",
+    action: () => navigate("/dashboard"),
+  },
+  {
+    label: "Reviews",
+    key: "reviews",
+    action: () => navigate("/reviews"),
+    icon: <FaComments size={11} />,
+  },
+  {
+    label: "My Hotels",
+    key: "my-hotels",
+    action: () => navigate("/my-hotels"),
+    icon: <FaHotel size={11} />,
+  },
+  {
+    label: "My Flights",
+    key: "my-flights",
+    action: () => navigate("/my-flights"),
+    icon: <FaPlane size={11} />,
+  },
+  {
+    label: "Contact",
+    key: "contact",
+    action: () => {
       const el = document.getElementById("contact-section");
       if (el) el.scrollIntoView({ behavior: "smooth" });
       else navigate("/home");
-    }, icon: <FaEnvelope size={11} /> },
-  ];
+    },
+    icon: <FaEnvelope size={11} />,
+  },
+];
 
   return (
     <>
