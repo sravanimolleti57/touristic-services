@@ -1,3 +1,7 @@
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
 from transformers import pipeline
 from flask import Flask, request, jsonify
 from flask_cors import CORS
@@ -26,7 +30,7 @@ classifier = pipeline(
 print("Sentiment AI Loaded Successfully!")
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, origins="*", supports_credentials=True)
 
 
 
@@ -45,58 +49,76 @@ def home():
 
 @app.route("/register", methods=["POST"])
 def register():
+    try:
+        data = request.json
 
-    data = request.json
+        if not data:
+            return jsonify({"message": "Invalid request body."}), 400
 
-    name = data["name"]
-    email = data["email"]
-    password = data["password"]
+        name = data.get("name", "").strip()
+        email = data.get("email", "").strip()
+        password = data.get("password", "").strip()
 
-    existing = users.find_one({"email": email})
+        if not name or not email or not password:
+            return jsonify({"message": "All fields are required."}), 400
 
-    if existing:
+        existing = users.find_one({"email": email})
+
+        if existing:
+            return jsonify({
+                "message": "Email already registered."
+            }), 400
+
+        users.insert_one({
+            "name": name,
+            "email": email,
+            "password": password
+        })
+
         return jsonify({
-            "message": "Email already registered."
-        }), 400
-
-    users.insert_one({
-        "name": name,
-        "email": email,
-        "password": password
-    })
-
-    return jsonify({
-        "message": "Registration Successful!"
-    })
+            "message": "Registration Successful!"
+        })
+    except Exception as e:
+        print("Register error:", e)
+        return jsonify({"message": "Database connection failed. Please ensure MongoDB is running."}), 503
 
 
 # ---------------- LOGIN ---------------- #
 
 @app.route("/login", methods=["POST"])
 def login():
+    try:
+        data = request.json
 
-    data = request.json
+        if not data:
+            return jsonify({"message": "Invalid request body."}), 400
 
-    email = data["email"]
-    password = data["password"]
+        email = data.get("email", "").strip()
+        password = data.get("password", "").strip()
 
-    user = users.find_one({"email": email})
+        if not email or not password:
+            return jsonify({"message": "Email and password are required."}), 400
 
-    if not user:
+        user = users.find_one({"email": email})
+
+        if not user:
+            return jsonify({
+                "message": "Please register first."
+            }), 404
+
+        if user["password"] != password:
+            return jsonify({
+                "message": "Incorrect Password."
+            }), 401
+
         return jsonify({
-            "message": "Please register first."
-        }), 404
-
-    if user["password"] != password:
-        return jsonify({
-            "message": "Incorrect Password."
-        }), 401
-
-    return jsonify({
-        "message": "Login Successful!",
-        "name": user["name"],
-        "email": user["email"]
-    })
+            "message": "Login Successful!",
+            "name": user["name"],
+            "email": user["email"]
+        })
+    except Exception as e:
+        print("Login error:", e)
+        return jsonify({"message": "Database connection failed. Please ensure MongoDB is running."}), 503
 
 
 # ---------------- TEXT REVIEW ---------------- #

@@ -31,8 +31,8 @@ function generateAvailabilityData(type) {
   const now = new Date();
 
   // Deterministic "full" day offsets differ per type so calendars look distinct
-  const fullOffsets   = type === "hotels" ? [2, 5, 9, 14, 18, 22, 26] : [1, 4, 8, 13, 17, 21, 25];
-  const holidayOffsets = type === "hotels" ? [6, 12, 20, 28]           : [3, 10, 16, 24];
+  const fullOffsets = type === "hotels" ? [2, 5, 9, 14, 18, 22, 26] : [1, 4, 8, 13, 17, 21, 25];
+  const holidayOffsets = type === "hotels" ? [6, 12, 20, 28] : [3, 10, 16, 24];
 
   [-1, 0, 1, 2].forEach((monthDelta) => {
     const base = new Date(now.getFullYear(), now.getMonth() + monthDelta, 1);
@@ -211,31 +211,31 @@ function BookingModal({ hotel, onClose }) {
   };
 
   const handleSubmit = async (e) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  try {
-    const user = JSON.parse(localStorage.getItem("user"));
+    try {
+      const user = JSON.parse(localStorage.getItem("user"));
 
-    await axios.post("http://127.0.0.1:5000/book-hotel", {
-      userEmail: user.email,
-      hotelName: hotel.name,
-      location: hotel.location,
-      checkIn: formData.checkIn,
-      checkOut: formData.checkOut,
-      guests: formData.guests,
-      rooms: formData.rooms,
-      roomType: formData.roomType,
-      guestName: formData.fullName,
-      price: hotel.price,
-    });
+      await axios.post("http://127.0.0.1:5000/book-hotel", {
+        userEmail: user.email,
+        hotelName: hotel.name,
+        location: hotel.location,
+        checkIn: formData.checkIn,
+        checkOut: formData.checkOut,
+        guests: formData.guests,
+        rooms: formData.rooms,
+        roomType: formData.roomType,
+        guestName: formData.fullName,
+        price: hotel.price,
+      });
 
-    setSubmitted(true);
+      setSubmitted(true);
 
-  } catch (err) {
-    console.error(err);
-    alert("Hotel booking failed.");
-  }
-};
+    } catch (err) {
+      console.error(err);
+      alert("Hotel booking failed.");
+    }
+  };
 
   const inputStyle = {
     width: "100%", background: "#0f172a", border: "1px solid #334155",
@@ -748,60 +748,60 @@ function FlightBookingModal({ flight, passengers: passengerCount, onClose }) {
     });
   };
 
-    const addons = [];
+  const addons = [];
   if (formData.addBaggage) addons.push({ label: 'Extra Baggage (10 kg)', price: 1200 * formData.passengers.length });
   if (formData.travelInsurance) addons.push({ label: 'Travel Insurance', price: 499 * formData.passengers.length });
   const addonTotal = addons.reduce((s, a) => s + a.price, 0);
   const grandTotal = totalPrice + addonTotal;
 
-const handleFlightSubmit = async (e) => {
-  e.preventDefault();
+  const handleFlightSubmit = async (e) => {
+    e.preventDefault();
 
-  try {
-    const user = JSON.parse(localStorage.getItem("user"));
+    try {
+      const user = JSON.parse(localStorage.getItem("user"));
 
-    await axios.post("http://127.0.0.1:5000/book-flight", {
-      userEmail: user.email,
-      flightName: flight.airline,
-      flightNo: flight.flightNo,
-      from: flight.from,
-      to: flight.to,
-      departureDate: new Date().toISOString().split("T")[0],
-      departure: flight.departure,
-      arrival: flight.arrival,
-      passengers: formData.passengers.length,
-      seatPref: formData.seatPref,
-      mealPref: formData.mealPref,
-      price: grandTotal,
-    });
+      await axios.post("http://127.0.0.1:5000/book-flight", {
+        userEmail: user.email,
+        flightName: flight.airline,
+        flightNo: flight.flightNo,
+        from: flight.from,
+        to: flight.to,
+        departureDate: new Date().toISOString().split("T")[0],
+        departure: flight.departure,
+        arrival: flight.arrival,
+        passengers: formData.passengers.length,
+        seatPref: formData.seatPref,
+        mealPref: formData.mealPref,
+        price: grandTotal,
+      });
 
-    setSubmitted(true);
+      setSubmitted(true);
 
-  } catch (err) {
-    console.error(err);
-    alert("Flight booking failed.");
-  }
-};
+    } catch (err) {
+      console.error(err);
+      alert("Flight booking failed.");
+    }
+  };
 
   const inputStyle = {
-  width: "100%",
-  background: "#0f172a",
-  border: "1px solid #334155",
-  borderRadius: 10,
-  padding: "11px 14px",
-  color: "white",
-  fontSize: 14,
-  outline: "none",
-  boxSizing: "border-box",
-};
+    width: "100%",
+    background: "#0f172a",
+    border: "1px solid #334155",
+    borderRadius: 10,
+    padding: "11px 14px",
+    color: "white",
+    fontSize: 14,
+    outline: "none",
+    boxSizing: "border-box",
+  };
 
-const labelStyle = {
-  fontSize: 12,
-  color: "#94a3b8",
-  marginBottom: 6,
-  display: "block",
-  fontWeight: 600,
-};
+  const labelStyle = {
+    fontSize: 12,
+    color: "#94a3b8",
+    marginBottom: 6,
+    display: "block",
+    fontWeight: 600,
+  };
 
 
 
@@ -1192,7 +1192,7 @@ export default function SearchResults() {
   const flightCalendarReady = flightFrom.trim() && flightTo.trim() && flightDate;
 
   return (
-    <div className="sr-page" style={{ fontFamily:"'Inter','Segoe UI',system-ui,sans-serif" }}>
+    <div className="sr-page" style={{ fontFamily: "'Inter','Segoe UI',system-ui,sans-serif" }}>
       <SharedNavbar activeTab={activeTab === "places" ? "destinations" : activeTab} />
 
       <style>{`
@@ -1224,30 +1224,30 @@ export default function SearchResults() {
       `}</style>
 
       <div className="sr-main">
-        <div style={{ maxWidth:1360, margin:"0 auto", padding:"24px 36px 60px" }}>
+        <div style={{ maxWidth: 1360, margin: "0 auto", padding: "24px 36px 60px" }}>
 
           {/* Top bar: back + search */}
-          <div style={{ display:"flex", alignItems:"center", gap:14, marginBottom:28 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 28 }}>
             <button
               onClick={() => navigate("/home")}
               className="sr-btn-ghost sr-btn-sm"
-              style={{ whiteSpace:"nowrap", flexShrink:0 }}
+              style={{ whiteSpace: "nowrap", flexShrink: 0 }}
             >
               <FaArrowLeft size={11} /> Back
             </button>
             <div className="sr-search-wrap">
-              <FaSearch style={{ color:"#3b82f6", flexShrink:0 }} />
+              <FaSearch style={{ color: "#3b82f6", flexShrink: 0 }} />
               <input
                 value={query}
                 onChange={e => setQuery(e.target.value)}
                 placeholder={`Search ${activeTab}...`}
               />
-              {query && <FaTimes style={{ cursor:"pointer", color:"#64748b", flexShrink:0 }} onClick={() => setQuery("")} />}
+              {query && <FaTimes style={{ cursor: "pointer", color: "#64748b", flexShrink: 0 }} onClick={() => setQuery("")} />}
             </div>
           </div>
 
           {/* Tabs */}
-          <div className="sr-tabs" style={{ marginBottom:20 }}>
+          <div className="sr-tabs" style={{ marginBottom: 20 }}>
             {["places", "hotels", "flights"].map(tab => (
               <button key={tab} className={`sr-tab${activeTab === tab ? " active" : ""}`}
                 onClick={() => setActiveTab(tab)}
@@ -1263,18 +1263,18 @@ export default function SearchResults() {
           {/* Inline filter bar */}
           <div className="sr-filter-bar">
             <FaSlidersH size={13} color="#3b82f6" />
-            <span style={{ fontSize:12, color:"#64748b", fontWeight:700, textTransform:"uppercase", letterSpacing:1, marginRight:4 }}>Filters</span>
-            <div style={{ width:1, height:20, background:"rgba(148,163,184,0.12)", margin:"0 4px" }} />
+            <span style={{ fontSize: 12, color: "#64748b", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginRight: 4 }}>Filters</span>
+            <div style={{ width: 1, height: 20, background: "rgba(148,163,184,0.12)", margin: "0 4px" }} />
 
             {activeTab === "flights" ? (
               <>
-                {["All","Economy","Premium Economy","Business"].map(c => (
-                  <button key={c} className={`sr-filter-pill${flightClass===c?" active":""}`}
+                {["All", "Economy", "Premium Economy", "Business"].map(c => (
+                  <button key={c} className={`sr-filter-pill${flightClass === c ? " active" : ""}`}
                     onClick={() => setFlightClass(c)}>{c}
                   </button>
                 ))}
-                <div style={{ marginLeft:"auto", display:"flex", alignItems:"center", gap:8 }}>
-                  <span style={{ fontSize:12, color:"#64748b" }}>Sort:</span>
+                <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ fontSize: 12, color: "#64748b" }}>Sort:</span>
                   <select value={flightSort} onChange={e => setFlightSort(e.target.value)} className="sr-filter-select">
                     <option value="price">Lowest Price</option>
                     <option value="departure">Earliest Dep.</option>
@@ -1284,13 +1284,13 @@ export default function SearchResults() {
               </>
             ) : (
               <>
-                {[{ v:0, l:"All" },{ v:4, l:"4+ Stars" },{ v:4.5, l:"4.5+ Stars" },{ v:4.8, l:"4.8+ Stars" }].map(({ v, l }) => (
-                  <button key={v} className={`sr-filter-pill${minRating===v?" active":""}`}
+                {[{ v: 0, l: "All" }, { v: 4, l: "4+ Stars" }, { v: 4.5, l: "4.5+ Stars" }, { v: 4.8, l: "4.8+ Stars" }].map(({ v, l }) => (
+                  <button key={v} className={`sr-filter-pill${minRating === v ? " active" : ""}`}
                     onClick={() => setMinRating(v)}>{l}
                   </button>
                 ))}
-                <div style={{ marginLeft:"auto", display:"flex", alignItems:"center", gap:8 }}>
-                  <span style={{ fontSize:12, color:"#64748b" }}>Sort:</span>
+                <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ fontSize: 12, color: "#64748b" }}>Sort:</span>
                   <select value={sortBy} onChange={e => setSortBy(e.target.value)} className="sr-filter-select">
                     <option value="rating">Top Rated</option>
                     <option value="price">Price</option>
@@ -1304,53 +1304,53 @@ export default function SearchResults() {
           {activeTab === "flights" && (
             <>
               <div style={{
-                background:"rgba(15,23,42,0.72)", backdropFilter:"blur(20px)",
-                WebkitBackdropFilter:"blur(20px)",
-                border:"1px solid rgba(148,163,184,0.10)",
-                borderRadius:20, padding:"24px 28px", marginBottom:20,
+                background: "rgba(15,23,42,0.72)", backdropFilter: "blur(20px)",
+                WebkitBackdropFilter: "blur(20px)",
+                border: "1px solid rgba(148,163,184,0.10)",
+                borderRadius: 20, padding: "24px 28px", marginBottom: 20,
               }}>
-                <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:18 }}>
-                  <h3 style={{ margin:0, fontSize:17, fontWeight:800, color:"white", display:"flex", alignItems:"center", gap:10 }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
+                  <h3 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: "white", display: "flex", alignItems: "center", gap: 10 }}>
                     <FaPlane size={18} /> Search Flights
                   </h3>
                   <button onClick={loadLiveTracker} style={{
-                    padding:"8px 16px", borderRadius:10, border:"1px solid rgba(34,197,94,0.3)",
-                    background:"rgba(34,197,94,0.08)", color:"#22c55e",
-                    cursor:"pointer", fontSize:12, fontWeight:600, fontFamily:"inherit",
-                    display:"flex", alignItems:"center", gap:6,
+                    padding: "8px 16px", borderRadius: 10, border: "1px solid rgba(34,197,94,0.3)",
+                    background: "rgba(34,197,94,0.08)", color: "#22c55e",
+                    cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit",
+                    display: "flex", alignItems: "center", gap: 6,
                   }}>
                     <FaSatelliteDish size={10} /> Live Tracker
                   </button>
                 </div>
-                <div style={{ display:"flex", gap:12, flexWrap:"wrap" }}>
-                  {[{ label:"From", value:flightFrom, set:setFlightFrom, ph:"Delhi, Mumbai..." },
-                    { label:"To",   value:flightTo,   set:setFlightTo,   ph:"Goa, Bangalore..." }].map(({ label, value, set, ph }) => (
-                    <div key={label} style={{ flex:1, minWidth:130 }}>
-                      <div style={{ fontSize:10, color:"#64748b", marginBottom:4, textTransform:"uppercase", letterSpacing:1 }}>{label}</div>
-                      <div style={{ display:"flex", alignItems:"center", background:"rgba(5,11,24,0.7)", borderRadius:10, padding:"10px 14px", border:"1px solid rgba(148,163,184,0.12)" }}>
-                        <FaMapMarkerAlt size={11} color="#3b82f6" style={{ marginRight:8, flexShrink:0 }} />
+                <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                  {[{ label: "From", value: flightFrom, set: setFlightFrom, ph: "Delhi, Mumbai..." },
+                  { label: "To", value: flightTo, set: setFlightTo, ph: "Goa, Bangalore..." }].map(({ label, value, set, ph }) => (
+                    <div key={label} style={{ flex: 1, minWidth: 130 }}>
+                      <div style={{ fontSize: 10, color: "#64748b", marginBottom: 4, textTransform: "uppercase", letterSpacing: 1 }}>{label}</div>
+                      <div style={{ display: "flex", alignItems: "center", background: "rgba(5,11,24,0.7)", borderRadius: 10, padding: "10px 14px", border: "1px solid rgba(148,163,184,0.12)" }}>
+                        <FaMapMarkerAlt size={11} color="#3b82f6" style={{ marginRight: 8, flexShrink: 0 }} />
                         <input value={value} onChange={e => set(e.target.value)} placeholder={ph}
-                          style={{ background:"transparent", border:"none", outline:"none", color:"white", fontSize:13, width:"100%", fontFamily:"inherit" }} />
+                          style={{ background: "transparent", border: "none", outline: "none", color: "white", fontSize: 13, width: "100%", fontFamily: "inherit" }} />
                       </div>
                     </div>
                   ))}
-                  <div style={{ flex:1, minWidth:130 }}>
-                    <div style={{ fontSize:10, color:"#64748b", marginBottom:4, textTransform:"uppercase", letterSpacing:1 }}>Date</div>
-                    <div style={{ display:"flex", alignItems:"center", background:"rgba(5,11,24,0.7)", borderRadius:10, padding:"10px 14px", border:"1px solid rgba(148,163,184,0.12)" }}>
-                      <FaCalendarAlt size={11} color="#3b82f6" style={{ marginRight:8, flexShrink:0 }} />
+                  <div style={{ flex: 1, minWidth: 130 }}>
+                    <div style={{ fontSize: 10, color: "#64748b", marginBottom: 4, textTransform: "uppercase", letterSpacing: 1 }}>Date</div>
+                    <div style={{ display: "flex", alignItems: "center", background: "rgba(5,11,24,0.7)", borderRadius: 10, padding: "10px 14px", border: "1px solid rgba(148,163,184,0.12)" }}>
+                      <FaCalendarAlt size={11} color="#3b82f6" style={{ marginRight: 8, flexShrink: 0 }} />
                       <input type="date" value={flightDate} onChange={e => setFlightDate(e.target.value)}
-                        style={{ background:"transparent", border:"none", outline:"none", color:"white", fontSize:13, width:"100%", fontFamily:"inherit", colorScheme:"dark" }} />
+                        style={{ background: "transparent", border: "none", outline: "none", color: "white", fontSize: 13, width: "100%", fontFamily: "inherit", colorScheme: "dark" }} />
                     </div>
                   </div>
-                  <div style={{ flex:1, minWidth:110 }}>
-                    <div style={{ fontSize:10, color:"#64748b", marginBottom:4, textTransform:"uppercase", letterSpacing:1 }}>Passengers</div>
-                    <div style={{ display:"flex", alignItems:"center", background:"rgba(5,11,24,0.7)", borderRadius:10, padding:"10px 14px", border:"1px solid rgba(148,163,184,0.12)" }}>
-                      <FaUsers size={11} color="#3b82f6" style={{ marginRight:8, flexShrink:0 }} />
+                  <div style={{ flex: 1, minWidth: 110 }}>
+                    <div style={{ fontSize: 10, color: "#64748b", marginBottom: 4, textTransform: "uppercase", letterSpacing: 1 }}>Passengers</div>
+                    <div style={{ display: "flex", alignItems: "center", background: "rgba(5,11,24,0.7)", borderRadius: 10, padding: "10px 14px", border: "1px solid rgba(148,163,184,0.12)" }}>
+                      <FaUsers size={11} color="#3b82f6" style={{ marginRight: 8, flexShrink: 0 }} />
                       <input type="number" min={1} max={9} value={passengers} onChange={e => setPassengers(Number(e.target.value))}
-                        style={{ background:"transparent", border:"none", outline:"none", color:"white", fontSize:13, width:"100%", fontFamily:"inherit" }} />
+                        style={{ background: "transparent", border: "none", outline: "none", color: "white", fontSize: 13, width: "100%", fontFamily: "inherit" }} />
                     </div>
                   </div>
-                  <button onClick={handleSearch} className="sr-btn" style={{ alignSelf:"flex-end" }}>
+                  <button onClick={handleSearch} className="sr-btn" style={{ alignSelf: "flex-end" }}>
                     Search Flights
                   </button>
                 </div>
@@ -1359,52 +1359,52 @@ export default function SearchResults() {
               {/* Live Tracker Panel */}
               {showTracker && (
                 <div style={{
-                  background:"rgba(15,23,42,0.72)", backdropFilter:"blur(20px)",
-                  WebkitBackdropFilter:"blur(20px)",
-                  border:"1px solid rgba(34,197,94,0.25)",
-                  borderRadius:20, padding:"20px 24px", marginBottom:20,
+                  background: "rgba(15,23,42,0.72)", backdropFilter: "blur(20px)",
+                  WebkitBackdropFilter: "blur(20px)",
+                  border: "1px solid rgba(34,197,94,0.25)",
+                  borderRadius: 20, padding: "20px 24px", marginBottom: 20,
                 }}>
-                  <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:14 }}>
-                    <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                       <FaSatelliteDish size={13} color="#22c55e" />
-                      <span style={{ fontSize:14, fontWeight:700, color:"#22c55e" }}>Live Flight Tracker</span>
-                      <span style={{ fontSize:11, color:"#64748b" }}>via AviationStack API</span>
+                      <span style={{ fontSize: 14, fontWeight: 700, color: "#22c55e" }}>Live Flight Tracker</span>
+                      <span style={{ fontSize: 11, color: "#64748b" }}>via AviationStack API</span>
                     </div>
-                    <button onClick={() => setShowTracker(false)} style={{ background:"none", border:"none", color:"#64748b", cursor:"pointer", fontSize:16 }}><FaTimes /></button>
+                    <button onClick={() => setShowTracker(false)} style={{ background: "none", border: "none", color: "#64748b", cursor: "pointer", fontSize: 16 }}><FaTimes /></button>
                   </div>
                   {trackerLoading ? (
-                    <div style={{ textAlign:"center", padding:20, color:"#64748b", fontSize:13 }}>
-                      <div style={{ fontSize:28, marginBottom:8 }}><FaPlane size={28} /></div>Loading live flight data...
+                    <div style={{ textAlign: "center", padding: 20, color: "#64748b", fontSize: 13 }}>
+                      <div style={{ fontSize: 28, marginBottom: 8 }}><FaPlane size={28} /></div>Loading live flight data...
                     </div>
                   ) : (
-                    <div style={{ overflowX:"auto" }}>
-                      <table style={{ width:"100%", borderCollapse:"collapse", fontSize:12 }}>
+                    <div style={{ overflowX: "auto" }}>
+                      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
                         <thead>
-                          <tr style={{ borderBottom:"1px solid rgba(148,163,184,0.1)" }}>
-                            {["Flight","Airline","Route","Scheduled","Gate","Status","Delay"].map(h => (
-                              <th key={h} style={{ padding:"8px 10px", textAlign:"left", color:"#64748b", fontWeight:600, textTransform:"uppercase", fontSize:10, letterSpacing:1 }}>{h}</th>
+                          <tr style={{ borderBottom: "1px solid rgba(148,163,184,0.1)" }}>
+                            {["Flight", "Airline", "Route", "Scheduled", "Gate", "Status", "Delay"].map(h => (
+                              <th key={h} style={{ padding: "8px 10px", textAlign: "left", color: "#64748b", fontWeight: 600, textTransform: "uppercase", fontSize: 10, letterSpacing: 1 }}>{h}</th>
                             ))}
                           </tr>
                         </thead>
                         <tbody>
                           {liveTracker.map((fl, i) => (
-                            <tr key={i} className="sr-live-row" style={{ borderBottom:"1px solid rgba(148,163,184,0.05)" }}>
-                              <td style={{ padding:"10px", fontWeight:700, color:"white" }}>{fl.flightNo}</td>
-                              <td style={{ padding:"10px", color:"#94a3b8" }}>{fl.airline}</td>
-                              <td style={{ padding:"10px", color:"#94a3b8" }}>{fl.departure.iata} → {fl.arrival.iata}</td>
-                              <td style={{ padding:"10px", color:"white", fontWeight:600 }}>{fl.departure.scheduled}</td>
-                              <td style={{ padding:"10px", color:"#93c5fd", fontWeight:600 }}>{fl.departure.gate}</td>
-                              <td style={{ padding:"10px" }}>
+                            <tr key={i} className="sr-live-row" style={{ borderBottom: "1px solid rgba(148,163,184,0.05)" }}>
+                              <td style={{ padding: "10px", fontWeight: 700, color: "white" }}>{fl.flightNo}</td>
+                              <td style={{ padding: "10px", color: "#94a3b8" }}>{fl.airline}</td>
+                              <td style={{ padding: "10px", color: "#94a3b8" }}>{fl.departure.iata} → {fl.arrival.iata}</td>
+                              <td style={{ padding: "10px", color: "white", fontWeight: 600 }}>{fl.departure.scheduled}</td>
+                              <td style={{ padding: "10px", color: "#93c5fd", fontWeight: 600 }}>{fl.departure.gate}</td>
+                              <td style={{ padding: "10px" }}>
                                 <span style={{
-                                  fontSize:11, fontWeight:600, padding:"3px 10px", borderRadius:20,
-                                  color: statusColors[fl.status]||"#64748b",
-                                  background:(statusColors[fl.status]||"#64748b")+"18",
-                                  border:`1px solid ${(statusColors[fl.status]||"#64748b")}40`,
-                                  textTransform:"capitalize",
+                                  fontSize: 11, fontWeight: 600, padding: "3px 10px", borderRadius: 20,
+                                  color: statusColors[fl.status] || "#64748b",
+                                  background: (statusColors[fl.status] || "#64748b") + "18",
+                                  border: `1px solid ${(statusColors[fl.status] || "#64748b")}40`,
+                                  textTransform: "capitalize",
                                 }}>{fl.status}</span>
                               </td>
-                              <td style={{ padding:"10px", color:fl.departure.delay>0?"#ef4444":"#22c55e", fontWeight:600 }}>
-                                {fl.departure.delay>0?`+${fl.departure.delay}m`:"On Time"}
+                              <td style={{ padding: "10px", color: fl.departure.delay > 0 ? "#ef4444" : "#22c55e", fontWeight: 600 }}>
+                                {fl.departure.delay > 0 ? `+${fl.departure.delay}m` : "On Time"}
                               </td>
                             </tr>
                           ))}
@@ -1422,31 +1422,31 @@ export default function SearchResults() {
             selectedHotelForCalendar ? (
               <div className="sr-calendar-panel">
                 <div style={{
-                  background:"linear-gradient(135deg,rgba(139,92,246,0.10),rgba(15,23,42,0.80))",
-                  border:"1px solid rgba(139,92,246,0.20)",
-                  borderRadius:20, padding:"20px 24px",
-                  display:"flex", alignItems:"flex-start", gap:24, flexWrap:"wrap",
+                  background: "linear-gradient(135deg,rgba(139,92,246,0.10),rgba(15,23,42,0.80))",
+                  border: "1px solid rgba(139,92,246,0.20)",
+                  borderRadius: 20, padding: "20px 24px",
+                  display: "flex", alignItems: "flex-start", gap: 24, flexWrap: "wrap",
                 }}>
-                  <div style={{ flex:"0 0 auto", maxWidth:240 }}>
-                    <div style={{ display:"inline-flex", alignItems:"center", gap:7, background:"rgba(139,92,246,0.15)", border:"1px solid rgba(139,92,246,0.3)", borderRadius:20, padding:"4px 14px", marginBottom:12 }}>
+                  <div style={{ flex: "0 0 auto", maxWidth: 240 }}>
+                    <div style={{ display: "inline-flex", alignItems: "center", gap: 7, background: "rgba(139,92,246,0.15)", border: "1px solid rgba(139,92,246,0.3)", borderRadius: 20, padding: "4px 14px", marginBottom: 12 }}>
                       <FaBed size={14} />
-                      <span style={{ fontSize:11, fontWeight:700, color:"#c4b5fd", textTransform:"uppercase", letterSpacing:1 }}>Room Availability</span>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: "#c4b5fd", textTransform: "uppercase", letterSpacing: 1 }}>Room Availability</span>
                     </div>
-                    <h3 style={{ margin:"0 0 6px", fontSize:16, fontWeight:800, color:"white" }}>{selectedHotelForCalendar.name}</h3>
-                    <p style={{ margin:"0 0 16px", fontSize:12, color:"#64748b", lineHeight:1.6 }}>Check available dates before confirming your booking.</p>
-                    <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
-                      {[{ c:"#ef4444", label:"Fully Booked", sub:"No rooms available" }, { c:"#22c55e", label:"Holiday / Open", sub:"Great availability" }].map(({ c, label, sub }) => (
-                        <div key={label} style={{ display:"flex", alignItems:"center", gap:10, background:`${c}08`, border:`1px solid ${c}20`, borderRadius:10, padding:"8px 12px" }}>
-                          <span style={{ width:10, height:10, borderRadius:"50%", background:c, boxShadow:`0 0 6px ${c}99`, flexShrink:0 }} />
-                          <div><div style={{ fontSize:11, fontWeight:700, color:`${c}dd` }}>{label}</div><div style={{ fontSize:10, color:"#64748b" }}>{sub}</div></div>
+                    <h3 style={{ margin: "0 0 6px", fontSize: 16, fontWeight: 800, color: "white" }}>{selectedHotelForCalendar.name}</h3>
+                    <p style={{ margin: "0 0 16px", fontSize: 12, color: "#64748b", lineHeight: 1.6 }}>Check available dates before confirming your booking.</p>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                      {[{ c: "#ef4444", label: "Fully Booked", sub: "No rooms available" }, { c: "#22c55e", label: "Holiday / Open", sub: "Great availability" }].map(({ c, label, sub }) => (
+                        <div key={label} style={{ display: "flex", alignItems: "center", gap: 10, background: `${c}08`, border: `1px solid ${c}20`, borderRadius: 10, padding: "8px 12px" }}>
+                          <span style={{ width: 10, height: 10, borderRadius: "50%", background: c, boxShadow: `0 0 6px ${c}99`, flexShrink: 0 }} />
+                          <div><div style={{ fontSize: 11, fontWeight: 700, color: `${c}dd` }}>{label}</div><div style={{ fontSize: 10, color: "#64748b" }}>{sub}</div></div>
                         </div>
                       ))}
                     </div>
-                    <button onClick={() => setSelectedHotelForCalendar(null)} style={{ marginTop:14, fontSize:12, color:"#64748b", background:"none", border:"none", cursor:"pointer", padding:0, fontFamily:"inherit" }}>
+                    <button onClick={() => setSelectedHotelForCalendar(null)} style={{ marginTop: 14, fontSize: 12, color: "#64748b", background: "none", border: "none", cursor: "pointer", padding: 0, fontFamily: "inherit" }}>
                       <FaTimes size={11} style={{ marginRight: 4 }} /> Hide calendar
                     </button>
                   </div>
-                  <div style={{ flex:1, minWidth:280 }}>
+                  <div style={{ flex: 1, minWidth: 280 }}>
                     <CalendarWidget compact availabilityData={HOTEL_AVAILABILITY}
                       onDateSelect={date => setFlightDate(date.toISOString().split("T")[0])} />
                   </div>
@@ -1466,29 +1466,29 @@ export default function SearchResults() {
             flightCalendarReady ? (
               <div className="sr-calendar-panel">
                 <div style={{
-                  background:"linear-gradient(135deg,rgba(6,182,212,0.08),rgba(15,23,42,0.80))",
-                  border:"1px solid rgba(6,182,212,0.20)",
-                  borderRadius:20, padding:"20px 24px",
-                  display:"flex", alignItems:"flex-start", gap:24, flexWrap:"wrap",
+                  background: "linear-gradient(135deg,rgba(6,182,212,0.08),rgba(15,23,42,0.80))",
+                  border: "1px solid rgba(6,182,212,0.20)",
+                  borderRadius: 20, padding: "20px 24px",
+                  display: "flex", alignItems: "flex-start", gap: 24, flexWrap: "wrap",
                 }}>
-                  <div style={{ flex:"0 0 auto", maxWidth:240 }}>
-                    <div style={{ display:"inline-flex", alignItems:"center", gap:7, background:"rgba(6,182,212,0.12)", border:"1px solid rgba(6,182,212,0.3)", borderRadius:20, padding:"4px 14px", marginBottom:12 }}>
+                  <div style={{ flex: "0 0 auto", maxWidth: 240 }}>
+                    <div style={{ display: "inline-flex", alignItems: "center", gap: 7, background: "rgba(6,182,212,0.12)", border: "1px solid rgba(6,182,212,0.3)", borderRadius: 20, padding: "4px 14px", marginBottom: 12 }}>
                       <FaPlane size={14} />
-                      <span style={{ fontSize:11, fontWeight:700, color:"#67e8f9", textTransform:"uppercase", letterSpacing:1 }}>Seat Availability</span>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: "#67e8f9", textTransform: "uppercase", letterSpacing: 1 }}>Seat Availability</span>
                     </div>
-                    <h3 style={{ margin:"0 0 6px", fontSize:16, fontWeight:800, color:"white" }}>Flight Calendar</h3>
-                    <p style={{ margin:"0 0 6px", fontSize:12, color:"#64748b" }}>{flightFrom} → {flightTo}</p>
-                    <p style={{ margin:"0 0 16px", fontSize:12, color:"#64748b", lineHeight:1.6 }}>Pick a date to prefill your search.</p>
-                    <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
-                      {[{ c:"#ef4444", label:"Fully Booked", sub:"All seats taken" }, { c:"#22c55e", label:"Holiday / Open", sub:"Extra flights available" }].map(({ c, label, sub }) => (
-                        <div key={label} style={{ display:"flex", alignItems:"center", gap:10, background:`${c}08`, border:`1px solid ${c}20`, borderRadius:10, padding:"8px 12px" }}>
-                          <span style={{ width:10, height:10, borderRadius:"50%", background:c, boxShadow:`0 0 6px ${c}99`, flexShrink:0 }} />
-                          <div><div style={{ fontSize:11, fontWeight:700, color:`${c}dd` }}>{label}</div><div style={{ fontSize:10, color:"#64748b" }}>{sub}</div></div>
+                    <h3 style={{ margin: "0 0 6px", fontSize: 16, fontWeight: 800, color: "white" }}>Flight Calendar</h3>
+                    <p style={{ margin: "0 0 6px", fontSize: 12, color: "#64748b" }}>{flightFrom} → {flightTo}</p>
+                    <p style={{ margin: "0 0 16px", fontSize: 12, color: "#64748b", lineHeight: 1.6 }}>Pick a date to prefill your search.</p>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                      {[{ c: "#ef4444", label: "Fully Booked", sub: "All seats taken" }, { c: "#22c55e", label: "Holiday / Open", sub: "Extra flights available" }].map(({ c, label, sub }) => (
+                        <div key={label} style={{ display: "flex", alignItems: "center", gap: 10, background: `${c}08`, border: `1px solid ${c}20`, borderRadius: 10, padding: "8px 12px" }}>
+                          <span style={{ width: 10, height: 10, borderRadius: "50%", background: c, boxShadow: `0 0 6px ${c}99`, flexShrink: 0 }} />
+                          <div><div style={{ fontSize: 11, fontWeight: 700, color: `${c}dd` }}>{label}</div><div style={{ fontSize: 10, color: "#64748b" }}>{sub}</div></div>
                         </div>
                       ))}
                     </div>
                   </div>
-                  <div style={{ flex:1, minWidth:280 }}>
+                  <div style={{ flex: 1, minWidth: 280 }}>
                     <CalendarWidget compact availabilityData={FLIGHT_AVAILABILITY}
                       onDateSelect={date => setFlightDate(date.toISOString().split("T")[0])} />
                   </div>
@@ -1504,20 +1504,20 @@ export default function SearchResults() {
           )}
 
           {/* Results header */}
-          <div style={{ marginBottom:20, display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+          <div style={{ marginBottom: 20, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <div>
-              <h2 style={{ fontSize:22, fontWeight:800, margin:0, color:"white" }}>
-                {activeTab==="places" ? <><FaMapMarkerAlt size={18} style={{ marginRight: 8 }}/>Destinations</> : activeTab==="hotels" ? <><FaBed size={18} style={{ marginRight: 8 }}/>Hotels</> : <><FaPlane size={18} style={{ marginRight: 8 }}/>Flights</>}
+              <h2 style={{ fontSize: 22, fontWeight: 800, margin: 0, color: "white" }}>
+                {activeTab === "places" ? <><FaMapMarkerAlt size={18} style={{ marginRight: 8 }} />Destinations</> : activeTab === "hotels" ? <><FaBed size={18} style={{ marginRight: 8 }} />Hotels</> : <><FaPlane size={18} style={{ marginRight: 8 }} />Flights</>}
               </h2>
-              <p style={{ color:"#64748b", fontSize:13, marginTop:4 }}>
-                {loading ? "Searching..." : `${currentCount} result${currentCount!==1?"s":""} found`}
+              <p style={{ color: "#64748b", fontSize: 13, marginTop: 4 }}>
+                {loading ? "Searching..." : `${currentCount} result${currentCount !== 1 ? "s" : ""} found`}
                 {query && ` for "${query}"`}
               </p>
             </div>
             {!loading && currentCount > 0 && (
               <button
                 onClick={() => { setQuery(""); setMinRating(0); setFlightFrom(""); setFlightTo(""); setFlightClass("All"); }}
-                style={{ fontSize:12, color:"#64748b", background:"none", border:"none", cursor:"pointer", fontFamily:"inherit" }}
+                style={{ fontSize: 12, color: "#64748b", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit" }}
               >
                 Clear filters
               </button>
@@ -1526,14 +1526,14 @@ export default function SearchResults() {
 
           {/* Card grid / skeleton / empty */}
           {loading ? (
-            <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(300px,1fr))", gap:20 }}>
-              {[1,2,3,4,5,6].map(i => (
-                <div key={i} className="sr-skeleton" style={{ height:320 }} />
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(300px,1fr))", gap: 20 }}>
+              {[1, 2, 3, 4, 5, 6].map(i => (
+                <div key={i} className="sr-skeleton" style={{ height: 320 }} />
               ))}
             </div>
           ) : currentCount === 0 ? (
             <div className="sr-empty">
-                <div className="sr-empty-icon"><FaSearch size={48} /></div>
+              <div className="sr-empty-icon"><FaSearch size={48} /></div>
               <h3>No results found</h3>
               <p>Try a different search term or clear your filters.</p>
               <button className="sr-btn" onClick={() => { setQuery(""); setMinRating(0); setFlightFrom(""); setFlightTo(""); setFlightClass("All"); }}>
@@ -1541,17 +1541,17 @@ export default function SearchResults() {
               </button>
             </div>
           ) : (
-            <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(300px,1fr))", gap:20 }}>
-              {activeTab==="places" && places.map(item => (
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(300px,1fr))", gap: 20 }}>
+              {activeTab === "places" && places.map(item => (
                 <PlaceCard key={item.id} item={item} wishlist={wishlist} toggleWishlist={toggleWishlist}
                   onExplore={id => navigate(`/explore/${id}`)} />
               ))}
-              {activeTab==="hotels" && hotels.map(item => (
+              {activeTab === "hotels" && hotels.map(item => (
                 <HotelCard key={item.id} item={item} wishlist={wishlist} toggleWishlist={toggleWishlist}
                   onBook={hotel => { setBookingHotel(hotel); setSelectedHotelForCalendar(hotel); }}
                   onFeedbackAnalysis={hotel => { setSelectedAnalysisItem(hotel); setAnalysisItemType("hotel"); }} />
               ))}
-              {activeTab==="flights" && flights.map(item => (
+              {activeTab === "flights" && flights.map(item => (
                 <FlightCard key={item.id} item={item}
                   onViewDetails={setSelectedFlight}
                   onBook={setBookingFlight}
@@ -1563,26 +1563,26 @@ export default function SearchResults() {
       </div>
 
       {/* Ã¢â€â‚¬Ã¢â€â‚¬ Modals Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */}
-      {bookingHotel   && <BookingModal hotel={bookingHotel} onClose={() => setBookingHotel(null)} />}
+      {bookingHotel && <BookingModal hotel={bookingHotel} onClose={() => setBookingHotel(null)} />}
       {selectedFlight && <FlightDetailsModal flight={selectedFlight} onClose={() => setSelectedFlight(null)} onBook={f => { setSelectedFlight(null); setBookingFlight(f); }} />}
-      {bookingFlight  && <FlightBookingModal flight={bookingFlight} passengers={passengers} onClose={() => setBookingFlight(null)} />}
+      {bookingFlight && <FlightBookingModal flight={bookingFlight} passengers={passengers} onClose={() => setBookingFlight(null)} />}
       {selectedAnalysisItem && <FeedbackAnalysisModal item={selectedAnalysisItem} itemType={analysisItemType} onClose={() => setSelectedAnalysisItem(null)} />}
     </div>
   );
 }
 
 const S = {
-  card: { background:"rgba(15,23,42,0.72)", backdropFilter:"blur(20px)", WebkitBackdropFilter:"blur(20px)", borderRadius:20, overflow:"hidden", border:"1px solid rgba(148,163,184,0.10)", transition:"transform .3s cubic-bezier(.34,1.56,.64,1), border-color .3s, box-shadow .3s", className:"sr-card-item" },
-  cardImg: { width:"100%", height:190, objectFit:"cover", display:"block" },
-  cardBody: { padding:"16px 18px" },
-  cardTitle: { fontSize:16, fontWeight:700, color:"white", margin:0 },
-  ratingText: { fontSize:11, color:"#94a3b8" },
-  price: { fontSize:17, fontWeight:800, color:"#3b82f6" },
-  priceLabel: { fontSize:10, color:"#64748b" },
-  tag: { fontSize:11, padding:"3px 10px", borderRadius:20, background:"rgba(15,23,42,0.8)", color:"#94a3b8", border:"1px solid rgba(148,163,184,0.10)" },
-  amenity: { display:"flex", alignItems:"center", gap:4, fontSize:11, color:"#94a3b8", background:"rgba(15,23,42,0.8)", padding:"3px 10px", borderRadius:20, border:"1px solid rgba(148,163,184,0.10)" },
-  heartBtn: { position:"absolute", top:10, right:10, background:"rgba(0,0,0,0.50)", backdropFilter:"blur(8px)", border:"none", borderRadius:"50%", width:34, height:34, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer" },
-  catBadge: { position:"absolute", bottom:10, left:10, background:"rgba(0,0,0,0.65)", backdropFilter:"blur(8px)", color:"white", fontSize:10, padding:"4px 10px", borderRadius:20 },
-  actionBtn: { background:"linear-gradient(135deg,rgba(59,130,246,0.15),rgba(139,92,246,0.15))", border:"1px solid rgba(59,130,246,0.30)", color:"#60a5fa", padding:"8px 16px", borderRadius:10, cursor:"pointer", fontSize:12, fontWeight:700, transition:"all .2s", fontFamily:"inherit" },
-  flightBadge: { fontSize:11, color:"#94a3b8", background:"rgba(15,23,42,0.8)", padding:"3px 10px", borderRadius:20, border:"1px solid rgba(148,163,184,0.10)", display:"inline-flex", alignItems:"center", gap:4 },
+  card: { background: "rgba(15,23,42,0.72)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", borderRadius: 20, overflow: "hidden", border: "1px solid rgba(148,163,184,0.10)", transition: "transform .3s cubic-bezier(.34,1.56,.64,1), border-color .3s, box-shadow .3s", className: "sr-card-item" },
+  cardImg: { width: "100%", height: 190, objectFit: "cover", display: "block" },
+  cardBody: { padding: "16px 18px" },
+  cardTitle: { fontSize: 16, fontWeight: 700, color: "white", margin: 0 },
+  ratingText: { fontSize: 11, color: "#94a3b8" },
+  price: { fontSize: 17, fontWeight: 800, color: "#3b82f6" },
+  priceLabel: { fontSize: 10, color: "#64748b" },
+  tag: { fontSize: 11, padding: "3px 10px", borderRadius: 20, background: "rgba(15,23,42,0.8)", color: "#94a3b8", border: "1px solid rgba(148,163,184,0.10)" },
+  amenity: { display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: "#94a3b8", background: "rgba(15,23,42,0.8)", padding: "3px 10px", borderRadius: 20, border: "1px solid rgba(148,163,184,0.10)" },
+  heartBtn: { position: "absolute", top: 10, right: 10, background: "rgba(0,0,0,0.50)", backdropFilter: "blur(8px)", border: "none", borderRadius: "50%", width: 34, height: 34, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" },
+  catBadge: { position: "absolute", bottom: 10, left: 10, background: "rgba(0,0,0,0.65)", backdropFilter: "blur(8px)", color: "white", fontSize: 10, padding: "4px 10px", borderRadius: 20 },
+  actionBtn: { background: "linear-gradient(135deg,rgba(59,130,246,0.15),rgba(139,92,246,0.15))", border: "1px solid rgba(59,130,246,0.30)", color: "#60a5fa", padding: "8px 16px", borderRadius: 10, cursor: "pointer", fontSize: 12, fontWeight: 700, transition: "all .2s", fontFamily: "inherit" },
+  flightBadge: { fontSize: 11, color: "#94a3b8", background: "rgba(15,23,42,0.8)", padding: "3px 10px", borderRadius: 20, border: "1px solid rgba(148,163,184,0.10)", display: "inline-flex", alignItems: "center", gap: 4 },
 };
