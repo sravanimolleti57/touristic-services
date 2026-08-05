@@ -302,17 +302,15 @@ function Home() {
         </div>
 
         <ul className="nav-links">
-  <li className="active" onClick={() => navigate("/home")}>Home</li>
-  <li onClick={() => goToTab("places")}>Destinations</li>
-  <li onClick={() => goToTab("hotels")}>Hotels</li>
-  <li onClick={() => goToTab("flights")}>Flights</li>
-  <li onClick={() => navigate("/reviews")}>
-    <FaComments /> Reviews
-  </li>
-  <li onClick={() => navigate("/my-hotels")}>My Hotels</li>
-  <li onClick={() => navigate("/my-flights")}>My Flights</li>
-  <li onClick={() => scrollToSection("contact-section")}>Contact</li>
-</ul>
+          <li className="active" onClick={() => navigate("/home")}>Home</li>
+          <li onClick={() => goToTab("places")}>Destinations</li>
+          <li onClick={() => goToTab("hotels")}>Hotels</li>
+          <li onClick={() => goToTab("flights")}>Flights</li>
+          <li onClick={() => navigate("/reviews")}>
+            <FaComments /> Reviews
+          </li>
+          <li onClick={() => navigate("/contact")}>Contact</li>
+        </ul>
 
         <div className="nav-right">
           <div className="nav-icon-btn" title="Notifications">
@@ -776,8 +774,8 @@ function Home() {
                 <li onClick={() => goToTab("places")}>Destinations</li>
                 <li onClick={() => goToTab("hotels")}>Hotels</li>
                 <li onClick={() => goToTab("flights")}>Flights</li>
-                <li onClick={() => navigate("/my-hotels")}>My Hotels</li>
-<li onClick={() => navigate("/my-flights")}>My Flights</li>
+                <li onClick={() => navigate("/reviews")}>Reviews</li>
+                <li onClick={() => navigate("/contact")}>Contact Us</li>
               </ul>
             </div>
           </div>
