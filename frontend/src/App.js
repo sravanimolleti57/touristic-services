@@ -12,6 +12,7 @@ import MyHotels from "./pages/MyHotels";
 import MyFlights from "./pages/MyFlights";
 
 import ProfileCard from "./components/ProfileCard";
+import Contact from "./pages/Contact";
 
 function App() {
   return (
@@ -35,8 +36,9 @@ function App() {
         {/* Reviews */}
         <Route path="/reviews" element={<Reviews />} />
 
-        {/* Profile */}
+        {/* Profile & Contact */}
         <Route path="/profile" element={<ProfileCard />} />
+        <Route path="/contact" element={<Contact />} />
 
         {/* Fallback Route */}
         <Route path="*" element={<Login />} />
