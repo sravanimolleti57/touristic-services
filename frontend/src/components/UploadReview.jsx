@@ -1,22 +1,16 @@
 import { useState } from "react";
 import axios from "axios";
-import { FaHotel, FaMicrophone, FaVideo, FaCheckCircle, FaStar } from "react-icons/fa";
+import { FaHotel, FaMicrophone, FaVideo, FaCheckCircle, FaStar, FaPaperPlane } from "react-icons/fa";
+import { HOTELS_LIST } from "../data/hotels";
 
-const HOSTEL_OPTIONS = [
-  "Zostel Jaipur",
-  "GoStops Rishikesh",
-  "The Hosteller Goa",
-  "Moustache Hostel Manali",
-  "Lost Hostels Hampi",
-  "Backpackers Hostel Delhi",
-  "The Roadhouse Hostel Kerala",
-  "Madpackers Udaipur",
-  "Custom Hostel (Enter manually)"
+const HOTEL_OPTIONS = [
+  ...HOTELS_LIST.map(h => h.name),
+  "Custom Hotel (Enter manually)"
 ];
 
-export default function UploadReview({ onAnalysisComplete }) {
-  const [selectedHostel, setSelectedHostel] = useState(HOSTEL_OPTIONS[0]);
-  const [customHostel, setCustomHostel] = useState("");
+export default function UploadReview({ selectedHotelName, onHotelSelect, onAnalysisComplete }) {
+  const [selectedHotel, setSelectedHotel] = useState(selectedHotelName || HOTEL_OPTIONS[0]);
+  const [customHotel, setCustomHotel] = useState("");
   const [rating, setRating] = useState("5");
   const [textReview, setTextReview] = useState("");
   const [audioFile, setAudioFile] = useState(null);
@@ -25,12 +19,19 @@ export default function UploadReview({ onAnalysisComplete }) {
   const [successMsg, setSuccessMsg] = useState("");
 
   const user = JSON.parse(localStorage.getItem("user") || "{}");
+  const activeHotelName = selectedHotel === "Custom Hotel (Enter manually)" ? customHotel : selectedHotel;
 
-  const hostelName = selectedHostel === "Custom Hostel (Enter manually)" ? customHostel : selectedHostel;
+  const handleHotelChange = (e) => {
+    const val = e.target.value;
+    setSelectedHotel(val);
+    if (onHotelSelect && val !== "Custom Hotel (Enter manually)") {
+      onHotelSelect(val);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!hostelName.trim()) { alert("Please select or enter a hostel name."); return; }
+    if (!activeHotelName.trim()) { alert("Please select or enter a hotel name."); return; }
     if (!textReview.trim() && !audioFile && !videoFile) { alert("Please enter text or upload an audio/video review."); return; }
 
     try {
@@ -39,7 +40,7 @@ export default function UploadReview({ onAnalysisComplete }) {
 
       const formData = new FormData();
       formData.append("email", user?.email || "guest@user.com");
-      formData.append("hostelName", hostelName);
+      formData.append("hostelName", activeHotelName); // Preserves backend API contract
       formData.append("rating", rating);
       if (textReview.trim()) formData.append("text", textReview);
       if (audioFile) formData.append("audio", audioFile);
@@ -49,204 +50,169 @@ export default function UploadReview({ onAnalysisComplete }) {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
-      setSuccessMsg(`Review for "${hostelName}" successfully saved to backend database!`);
+      setSuccessMsg(`Review for "${activeHotelName}" successfully saved to backend database!`);
       setTextReview("");
       setAudioFile(null);
       setVideoFile(null);
 
-      if (onAnalysisComplete) onAnalysisComplete();
+      if (onAnalysisComplete) onAnalysisComplete(activeHotelName);
     } catch (err) {
-      console.warn("Backend submit error, using local storage fallback:", err);
-      setSuccessMsg(`Review for "${hostelName}" saved in local session database!`);
+      console.warn("Backend submit error, using local session fallback:", err);
+      setSuccessMsg(`Review for "${activeHotelName}" saved in local session database!`);
       setTextReview("");
       setAudioFile(null);
       setVideoFile(null);
-      if (onAnalysisComplete) onAnalysisComplete();
+      if (onAnalysisComplete) onAnalysisComplete(activeHotelName);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div style={{
-      background: "#FFFFFF",
-      padding: 28,
-      borderRadius: 16,
-      color: "#111827",
-      border: "1px solid #E5E7EB",
-      boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
-      fontFamily: "'Inter','Segoe UI',system-ui,sans-serif",
-    }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-        <FaHotel size={20} color="#2563EB" />
-        <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: "#111827" }}>Submit Hostel Review</h2>
+    <div className="glass-panel p-6 rounded-2xl border border-slate-800 shadow-2xl space-y-5 text-slate-100">
+      {/* Header */}
+      <div className="flex items-center gap-3 pb-3 border-b border-slate-800/80">
+        <div className="p-2.5 rounded-xl bg-sky-500/10 text-sky-400 border border-sky-500/20 shadow-sm">
+          <FaHotel className="text-xl" />
+        </div>
+        <div>
+          <h2 className="text-lg font-extrabold text-white tracking-tight">Submit Hotel Review</h2>
+          <p className="text-xs text-slate-400 mt-0.5">
+            Share text, audio, or video feedback. Live AI sentiment analytics updates automatically.
+          </p>
+        </div>
       </div>
 
-      <p style={{ color: "#6B7280", fontSize: 14, marginBottom: 24, marginTop: 4 }}>
-        Select your hostel and provide text, audio, or video reviews. Reviews are directly stored in the backend database.
-      </p>
-
       {successMsg && (
-        <div style={{
-          background: "rgba(22,163,74,0.06)",
-          border: "1px solid rgba(22,163,74,0.25)",
-          color: "#16A34A",
-          padding: 14,
-          borderRadius: 12,
-          marginBottom: 20,
-          display: "flex",
-          alignItems: "center",
-          gap: 10,
-          fontSize: 14,
-          fontWeight: 600,
-        }}>
-          <FaCheckCircle size={16} />
+        <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold flex items-center gap-2 animate-fade-in">
+          <FaCheckCircle className="text-base flex-shrink-0" />
           <span>{successMsg}</span>
         </div>
       )}
 
-      <form onSubmit={handleSubmit}>
-        {/* Hostel Selection */}
-        <div style={{ marginBottom: 18 }}>
-          <label style={labelStyle}>Select Hostel *</label>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Hotel Selector */}
+        <div>
+          <label className="block text-xs font-extrabold text-slate-400 uppercase tracking-wider mb-1.5">
+            Select Target Hotel *
+          </label>
           <select
-            value={selectedHostel}
-            onChange={(e) => setSelectedHostel(e.target.value)}
-            style={inputStyle}
+            value={selectedHotel}
+            onChange={handleHotelChange}
+            className="w-full px-4 py-3 rounded-xl bg-slate-900/90 text-white border border-slate-700/80 text-sm font-semibold outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-all cursor-pointer"
           >
-            {HOSTEL_OPTIONS.map((h) => (
-              <option key={h} value={h} style={{ background: "#FFFFFF", color: "#111827" }}>
+            {HOTEL_OPTIONS.map((h) => (
+              <option key={h} value={h} className="bg-slate-900 text-white">
                 {h}
               </option>
             ))}
           </select>
         </div>
 
-        {selectedHostel === "Custom Hostel (Enter manually)" && (
-          <div style={{ marginBottom: 18 }}>
-            <label style={labelStyle}>Custom Hostel Name *</label>
+        {selectedHotel === "Custom Hotel (Enter manually)" && (
+          <div>
+            <label className="block text-xs font-extrabold text-slate-400 uppercase tracking-wider mb-1.5">
+              Custom Hotel Name *
+            </label>
             <input
               type="text"
-              placeholder="e.g. Backpacker Haven Goa"
-              value={customHostel}
-              onChange={(e) => setCustomHostel(e.target.value)}
-              style={inputStyle}
+              placeholder="e.g. Grand Resort Goa"
+              value={customHotel}
+              onChange={(e) => {
+                setCustomHotel(e.target.value);
+                if (onHotelSelect) onHotelSelect(e.target.value);
+              }}
+              className="w-full px-4 py-3 rounded-xl bg-slate-900/90 text-white border border-slate-700/80 text-sm font-medium outline-none focus:border-sky-500 transition-all"
               required
             />
           </div>
         )}
 
-        {/* Rating Selection */}
-        <div style={{ marginBottom: 18 }}>
-          <label style={labelStyle}>Overall Rating</label>
-          <div style={{ display: "flex", gap: 10 }}>
+        {/* Rating Selector */}
+        <div>
+          <label className="block text-xs font-extrabold text-slate-400 uppercase tracking-wider mb-1.5">
+            Rating Score
+          </label>
+          <div className="grid grid-cols-5 gap-2">
             {["5", "4", "3", "2", "1"].map((num) => (
               <button
                 key={num}
                 type="button"
                 onClick={() => setRating(num)}
-                style={{
-                  flex: 1,
-                  padding: "10px",
-                  borderRadius: 10,
-                  border: rating === num ? "2px solid #F59E0B" : "1px solid #E5E7EB",
-                  background: rating === num ? "rgba(245,158,11,0.08)" : "#F9FAFB",
-                  color: rating === num ? "#D97706" : "#9CA3AF",
-                  fontWeight: 700,
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 4,
-                  transition: "all 0.2s",
-                  fontFamily: "inherit",
-                }}
+                className={`py-2.5 rounded-xl border text-xs font-extrabold flex items-center justify-center gap-1 transition-all ${
+                  rating === num
+                    ? "bg-amber-500/20 border-amber-500 text-amber-300 shadow-md shadow-amber-500/10 scale-[1.02]"
+                    : "bg-slate-900/60 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700"
+                }`}
               >
-                {num} <FaStar size={11} />
+                <span>{num}</span>
+                <FaStar className="text-[11px]" />
               </button>
             ))}
           </div>
         </div>
 
-        {/* Text Review */}
-        <div style={{ marginBottom: 18 }}>
-          <label style={labelStyle}>Text Review</label>
+        {/* Text Review Input */}
+        <div>
+          <label className="block text-xs font-extrabold text-slate-400 uppercase tracking-wider mb-1.5">
+            Your Detailed Review
+          </label>
           <textarea
             rows={4}
-            placeholder="Share details about your hostel experience..."
+            placeholder="Share details about cleanliness, staff behavior, room comfort, WiFi, location..."
             value={textReview}
             onChange={(e) => setTextReview(e.target.value)}
-            style={{ ...inputStyle, resize: "none" }}
+            className="w-full p-4 rounded-xl bg-slate-900/90 text-white border border-slate-700/80 text-sm outline-none focus:border-sky-500 transition-all resize-none leading-relaxed"
           />
         </div>
 
-        {/* Media Upload Buttons */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 24 }}>
+        {/* Media Attachments */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
           {/* Audio Upload */}
-          <div style={mediaUploadBox}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, color: "#2563EB", fontWeight: 700, fontSize: 13, marginBottom: 8 }}>
-              <FaMicrophone /> Audio Review
+          <div className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800 space-y-2">
+            <div className="flex items-center gap-2 text-xs font-bold text-sky-400">
+              <FaMicrophone /> <span>Audio Review Attachment</span>
             </div>
             <input
               type="file"
               accept="audio/*"
               id="audio-upload"
               onChange={(e) => setAudioFile(e.target.files[0])}
-              style={{ display: "none" }}
+              className="hidden"
             />
             <label
               htmlFor="audio-upload"
-              style={{
-                display: "block",
-                padding: "10px 14px",
-                background: audioFile ? "rgba(37,99,235,0.08)" : "#F9FAFB",
-                border: audioFile ? "1px solid rgba(37,99,235,0.3)" : "1px dashed #D1D5DB",
-                borderRadius: 10,
-                color: audioFile ? "#2563EB" : "#9CA3AF",
-                fontSize: 12,
-                cursor: "pointer",
-                textAlign: "center",
-                whiteSpace: "nowrap",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                transition: "all 0.2s",
-              }}
+              className={`block w-full py-2.5 px-3 rounded-lg border text-center text-xs font-medium truncate cursor-pointer transition-all ${
+                audioFile
+                  ? "bg-sky-500/15 border-sky-500/40 text-sky-300"
+                  : "bg-slate-800/80 border-dashed border-slate-700 text-slate-400 hover:border-slate-600 hover:text-slate-200"
+              }`}
             >
-              {audioFile ? `🎤 ${audioFile.name}` : "Upload Audio File"}
+              {audioFile ? `🎤 ${audioFile.name}` : "Upload Audio Recording"}
             </label>
           </div>
 
           {/* Video Upload */}
-          <div style={mediaUploadBox}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, color: "#7C3AED", fontWeight: 700, fontSize: 13, marginBottom: 8 }}>
-              <FaVideo /> Video Review
+          <div className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800 space-y-2">
+            <div className="flex items-center gap-2 text-xs font-bold text-purple-400">
+              <FaVideo /> <span>Video Review Attachment</span>
             </div>
             <input
               type="file"
               accept="video/*"
               id="video-upload"
               onChange={(e) => setVideoFile(e.target.files[0])}
-              style={{ display: "none" }}
+              className="hidden"
             />
             <label
               htmlFor="video-upload"
-              style={{
-                display: "block",
-                padding: "10px 14px",
-                background: videoFile ? "rgba(124,58,237,0.08)" : "#F9FAFB",
-                border: videoFile ? "1px solid rgba(124,58,237,0.3)" : "1px dashed #D1D5DB",
-                borderRadius: 10,
-                color: videoFile ? "#7C3AED" : "#9CA3AF",
-                fontSize: 12,
-                cursor: "pointer",
-                textAlign: "center",
-                whiteSpace: "nowrap",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                transition: "all 0.2s",
-              }}
+              className={`block w-full py-2.5 px-3 rounded-lg border text-center text-xs font-medium truncate cursor-pointer transition-all ${
+                videoFile
+                  ? "bg-purple-500/15 border-purple-500/40 text-purple-300"
+                  : "bg-slate-800/80 border-dashed border-slate-700 text-slate-400 hover:border-slate-600 hover:text-slate-200"
+              }`}
             >
-              {videoFile ? `📹 ${videoFile.name}` : "Upload Video File"}
+              {videoFile ? `📹 ${videoFile.name}` : "Upload Video Clips"}
             </label>
           </div>
         </div>
@@ -255,55 +221,16 @@ export default function UploadReview({ onAnalysisComplete }) {
         <button
           type="submit"
           disabled={loading}
-          style={{
-            width: "100%",
-            padding: "14px",
-            background: loading ? "#E5E7EB" : "linear-gradient(135deg,#2563EB,#3B82F6)",
-            color: loading ? "#9CA3AF" : "white",
-            border: "none",
-            borderRadius: 12,
-            cursor: loading ? "wait" : "pointer",
-            fontWeight: 700,
-            fontSize: 15,
-            boxShadow: loading ? "none" : "0 4px 14px rgba(37,99,235,0.25)",
-            transition: "all 0.2s",
-            fontFamily: "inherit",
-          }}
+          className={`w-full py-3.5 px-4 rounded-xl text-sm font-extrabold flex items-center justify-center gap-2 shadow-lg transition-all ${
+            loading
+              ? "bg-slate-800 text-slate-500 cursor-wait"
+              : "bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white shadow-sky-500/25 active:scale-[0.99]"
+          }`}
         >
-          {loading ? "Saving Review to Backend..." : "Submit Hostel Review"}
+          <FaPaperPlane className="text-xs" />
+          <span>{loading ? "Processing AI Analysis..." : "Submit Hotel Review"}</span>
         </button>
       </form>
     </div>
   );
 }
-
-const inputStyle = {
-  width: "100%",
-  padding: "12px 14px",
-  borderRadius: 10,
-  background: "#FFFFFF",
-  color: "#111827",
-  border: "1px solid #E5E7EB",
-  outline: "none",
-  boxSizing: "border-box",
-  fontSize: 14,
-  fontFamily: "'Inter','Segoe UI',system-ui,sans-serif",
-  transition: "border-color 0.2s",
-};
-
-const labelStyle = {
-  display: "block",
-  fontSize: 12,
-  fontWeight: 700,
-  color: "#374151",
-  marginBottom: 7,
-  textTransform: "uppercase",
-  letterSpacing: 0.5,
-};
-
-const mediaUploadBox = {
-  background: "#F9FAFB",
-  padding: 14,
-  borderRadius: 12,
-  border: "1px solid #E5E7EB",
-};

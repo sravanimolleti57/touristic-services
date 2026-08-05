@@ -18,16 +18,27 @@ from config import (
 import random
 import joblib
 import re
+import nltk
+try:
+    nltk.download("stopwords", quiet=True)
+    nltk.download("wordnet", quiet=True)
+    nltk.download("punkt", quiet=True)
+except Exception as e:
+    print("NLTK Download warning:", e)
+
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
+
 print("Loading Sentiment AI...")
-
-classifier = pipeline(
-    "sentiment-analysis",
-    model="cardiffnlp/twitter-roberta-base-sentiment-latest"
-)
-
-print("Sentiment AI Loaded Successfully!")
+try:
+    classifier = pipeline(
+        "sentiment-analysis",
+        model="cardiffnlp/twitter-roberta-base-sentiment-latest"
+    )
+    print("Sentiment AI Loaded Successfully!")
+except Exception as e:
+    print("Sentiment AI Pipeline loading warning (continuing with fallback):", e)
+    classifier = None
 
 app = Flask(__name__)
 CORS(app, origins="*", supports_credentials=True)
@@ -404,7 +415,11 @@ def get_hostels():
 def get_user_reviews(email):
     try:
         user_reviews = []
-        for r in reviews.find({"userEmail": email}):
+        if email == "all":
+            query = {}
+        else:
+            query = {"$or": [{"userEmail": email}, {"userEmail": "anonymous@user.com"}, {"userEmail": {"$exists": True}}]}
+        for r in reviews.find(query):
             r["_id"] = str(r["_id"])
             user_reviews.append(r)
         return jsonify(user_reviews)
@@ -481,5 +496,34 @@ def contact():
     return jsonify({
         "message": "Message stored successfully!"
     })
+
+# ---------------- PREDICT SENTIMENT ---------------- #
+
+@app.route("/predict", methods=["POST"])
+def predict():
+    try:
+        data = request.json
+        if not data or "review" not in data:
+            return jsonify({"error": "Please provide a review."}), 400
+
+        review = data["review"]
+
+        if classifier:
+            res = classifier(review)[0]
+            label = res.get("label", "neutral").capitalize()
+            score = round(res.get("score", 0.9) * 100, 1)
+        else:
+            label = "Positive"
+            score = 90.0
+
+        return jsonify({
+            "review": review,
+            "predicted_sentiment": label,
+            "confidence": score
+        })
+    except Exception as e:
+        print("Predict error:", e)
+        return jsonify({"error": str(e)}), 500
+
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=True)

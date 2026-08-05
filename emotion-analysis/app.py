@@ -2,6 +2,14 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import joblib
 import re
+import nltk
+try:
+    nltk.download("stopwords", quiet=True)
+    nltk.download("wordnet", quiet=True)
+    nltk.download("omw-1.4", quiet=True)
+except Exception as e:
+    print("NLTK download warning:", e)
+
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
 
@@ -17,7 +25,10 @@ model = joblib.load(os.path.join(BASE_DIR, "models", "model.pkl"))
 vectorizer = joblib.load(os.path.join(BASE_DIR, "models", "vectorizer.pkl"))
 
 # Initialize preprocessing tools
-stop_words = set(stopwords.words("english"))
+try:
+    stop_words = set(stopwords.words("english"))
+except Exception:
+    stop_words = set()
 lemmatizer = WordNetLemmatizer()
 
 # Text preprocessing function

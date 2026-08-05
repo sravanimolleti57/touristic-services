@@ -1,0 +1,57 @@
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+
+import Login from "./pages/Login";
+import Register from "./pages/Register";
+import Home from "./pages/Home";
+import SearchResults from "./pages/SearchResults";
+import DestinationDetails from "./pages/DestinationDetails";
+import HotelDetails from "./pages/HotelDetails";
+
+import Reviews from "./pages/Reviews";
+import Booking from "./pages/Booking";
+import MyHotels from "./pages/MyHotels";
+import MyFlights from "./pages/MyFlights";
+
+import Profile from "./pages/Profile";
+import Contact from "./pages/Contact";
+import UserDashboard from "./pages/UserDashboard";
+
+function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+
+        {/* Authentication */}
+        <Route path="/" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+
+        {/* Main Pages */}
+        <Route path="/home" element={<Home />} />
+        <Route path="/search" element={<SearchResults />} />
+        <Route path="/explore/:placeId" element={<DestinationDetails />} />
+        <Route path="/hotel/:hotelId" element={<HotelDetails />} />
+        <Route path="/hotel-details/:hotelId" element={<HotelDetails />} />
+
+        {/* Booking */}
+        <Route path="/booking" element={<Booking />} />
+        <Route path="/my-hotels" element={<MyHotels />} />
+        <Route path="/my-flights" element={<MyFlights />} />
+
+        {/* Reviews & Dashboard */}
+        <Route path="/reviews" element={<Reviews />} />
+        <Route path="/dashboard" element={<UserDashboard />} />
+        <Route path="/Dashboard" element={<UserDashboard />} />
+
+        {/* Profile & Contact */}
+        <Route path="/profile" element={<Profile />} />
+        <Route path="/contact" element={<Contact />} />
+
+        {/* Fallback Route */}
+        <Route path="*" element={<Login />} />
+
+      </Routes>
+    </BrowserRouter>
+  );
+}
+
+export default App;

@@ -3,7 +3,8 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   FaBell, FaPlane, FaHome, FaHotel,
-  FaMapMarkerAlt, FaComments, FaEnvelope
+  FaMapMarkerAlt, FaComments, FaEnvelope,
+  FaSuitcase, FaRobot, FaBars, FaTimes
 } from "react-icons/fa";
 
 /**
@@ -45,24 +46,15 @@ export default function SharedNavbar({ activeTab = "" }) {
 
   const goToTab = (tab) => navigate(`/search?tab=${tab}`);
 
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
   const NAV_LINKS = [
     { label: "Home", key: "home", action: () => navigate("/home"), icon: <FaHome size={11} /> },
     { label: "Destinations", key: "destinations", action: () => goToTab("places"), icon: <FaMapMarkerAlt size={11} /> },
     { label: "Hotels", key: "hotels", action: () => goToTab("hotels"), icon: <FaHotel size={11} /> },
     { label: "Flights", key: "flights", action: () => goToTab("flights"), icon: <FaPlane size={11} /> },
-    { label: "Dashboard", key: "dashboard", action: () => navigate("/dashboard") },
     { label: "Reviews", key: "reviews", action: () => navigate("/reviews"), icon: <FaComments size={11} /> },
-    { label: "My Hotels", key: "my-hotels", action: () => navigate("/my-hotels"), icon: <FaHotel size={11} /> },
-    { label: "My Flights", key: "my-flights", action: () => navigate("/my-flights"), icon: <FaPlane size={11} /> },
-    {
-      label: "Contact", key: "contact",
-      action: () => {
-        const el = document.getElementById("contact-section");
-        if (el) el.scrollIntoView({ behavior: "smooth" });
-        else navigate("/home");
-      },
-      icon: <FaEnvelope size={11} />,
-    },
+    { label: "Contact", key: "contact", action: () => navigate("/contact"), icon: <FaEnvelope size={11} /> },
   ];
 
   return (
@@ -230,8 +222,54 @@ export default function SharedNavbar({ activeTab = "" }) {
               </div>
             )}
           </div>
+          {/* Mobile hamburger menu toggle */}
+          <div
+            className="sr-mobile-menu-btn"
+            onClick={() => setMobileMenuOpen(m => !m)}
+            style={{
+              width: 40, height: 40, borderRadius: "50%",
+              background: "#FFFFFF", border: "1px solid #E5E7EB",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              cursor: "pointer", color: "#6B7280", fontSize: 16,
+              transition: "all 0.2s", boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+            }}
+          >
+            {mobileMenuOpen ? <FaTimes /> : <FaBars />}
+          </div>
         </div>
       </nav>
+
+      {/* Mobile Drawer Menu */}
+      {mobileMenuOpen && (
+        <div style={{
+          position: "fixed", top: 70, left: 0, right: 0,
+          background: "#FFFFFF", borderBottom: "1px solid #E5E7EB",
+          padding: "16px 24px", zIndex: 999, boxShadow: "0 12px 30px rgba(0,0,0,0.08)",
+          animation: "sr-fadeInUp 0.2s ease",
+          fontFamily: "'Inter','Segoe UI',system-ui,sans-serif",
+        }}>
+          <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 8 }}>
+            {NAV_LINKS.map(({ label, key, action }) => {
+              const isActive = activeTab === key;
+              return (
+                <li
+                  key={key}
+                  onClick={() => { action(); setMobileMenuOpen(false); }}
+                  style={{
+                    padding: "12px 16px", borderRadius: 10, cursor: "pointer",
+                    fontSize: 14, fontWeight: 700,
+                    color: isActive ? "#2563EB" : "#374151",
+                    background: isActive ? "rgba(37,99,235,0.08)" : "#F9FAFB",
+                    display: "flex", alignItems: "center", justifyContent: "space-between",
+                  }}
+                >
+                  {label}
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
 
       {/* Click outside to close profile */}
       {showProfile && (
@@ -241,10 +279,12 @@ export default function SharedNavbar({ activeTab = "" }) {
         />
       )}
 
-      {/* Responsive nav-links hide on mobile */}
+      {/* Responsive styles */}
       <style>{`
+        .sr-mobile-menu-btn { display: none !important; }
         @media (max-width:900px) {
           .sr-nav-links { display:none !important; }
+          .sr-mobile-menu-btn { display: flex !important; }
         }
       `}</style>
     </>
