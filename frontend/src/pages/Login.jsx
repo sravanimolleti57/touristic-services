@@ -13,38 +13,10 @@ import axios from "axios";
 
 function Orbs() {
   const orbs = [
-    {
-      w: 420,
-      h: 420,
-      top: "-10%",
-      left: "-8%",
-      c: "rgba(59,130,246,0.12)",
-      delay: "0s",
-    },
-    {
-      w: 320,
-      h: 320,
-      top: "55%",
-      right: "-6%",
-      c: "rgba(139,92,246,0.10)",
-      delay: "-3s",
-    },
-    {
-      w: 200,
-      h: 200,
-      top: "30%",
-      left: "40%",
-      c: "rgba(6,182,212,0.07)",
-      delay: "-1.5s",
-    },
-    {
-      w: 180,
-      h: 180,
-      bottom: "5%",
-      left: "15%",
-      c: "rgba(59,130,246,0.08)",
-      delay: "-2s",
-    },
+    { w: 500, h: 500, top: "-15%", left: "-10%", c: "rgba(37,99,235,0.06)", delay: "0s" },
+    { w: 350, h: 350, top: "60%", right: "-8%", c: "rgba(14,165,233,0.05)", delay: "-3s" },
+    { w: 220, h: 220, top: "35%", left: "42%", c: "rgba(99,102,241,0.04)", delay: "-1.5s" },
+    { w: 180, h: 180, bottom: "5%", left: "15%", c: "rgba(37,99,235,0.04)", delay: "-2s" },
   ];
 
   return (
@@ -80,7 +52,7 @@ function FloatingIcon({ icon, style }) {
       style={{
         position: "absolute",
         fontSize: 22,
-        opacity: 0.12,
+        opacity: 0.08,
         pointerEvents: "none",
         animation: "lp-float 8s ease-in-out infinite",
         ...style,
@@ -126,10 +98,7 @@ function Login() {
     try {
       const response = await axios.post(
         "http://127.0.0.1:5000/login",
-        {
-          email,
-          password,
-        }
+        { email, password }
       );
 
       localStorage.setItem(
@@ -141,19 +110,15 @@ function Login() {
         })
       );
 
-      
-
       navigate("/home");
     } catch (err) {
-      setError(
-        err.response?.data?.message ||
-          "Login Failed"
-      );
+      setError(err.response?.data?.message || "Login Failed");
     } finally {
       setLoading(false);
     }
   };
-    /* ───────────── Register Function ───────────── */
+
+  /* ───────────── Register Function ───────────── */
 
   const handleRegister = async () => {
     setError("");
@@ -166,28 +131,15 @@ function Login() {
     setLoading(true);
 
     try {
-      const response = await axios.post(
-        "http://127.0.0.1:5000/register",
-        {
-          name,
-          email,
-          password,
-        }
-      );
-
-      
+      await axios.post("http://127.0.0.1:5000/register", { name, email, password });
 
       setName("");
       setEmail("");
       setPassword("");
-
       setIsRegister(false);
       setError("");
     } catch (err) {
-      setError(
-        err.response?.data?.message ||
-          "Registration Failed"
-      );
+      setError(err.response?.data?.message || "Registration Failed");
     } finally {
       setLoading(false);
     }
@@ -197,12 +149,7 @@ function Login() {
 
   const handleKeyDown = (e) => {
     if (e.key !== "Enter") return;
-
-    if (isRegister) {
-      handleRegister();
-    } else {
-      handleLogin();
-    }
+    if (isRegister) { handleRegister(); } else { handleLogin(); }
   };
 
   /* ───────────── Shared Input Style ───────────── */
@@ -211,17 +158,11 @@ function Login() {
     display: "flex",
     alignItems: "center",
     gap: 10,
-    background: "rgba(15,23,42,0.65)",
-    border: `1px solid ${
-      focused
-        ? "#3b82f6"
-        : "rgba(148,163,184,0.15)"
-    }`,
-    borderRadius: 14,
-    padding: "14px 18px",
-    boxShadow: focused
-      ? "0 0 0 3px rgba(59,130,246,0.15)"
-      : "none",
+    background: "#FFFFFF",
+    border: `1.5px solid ${focused ? "#2563EB" : "#E5E7EB"}`,
+    borderRadius: 12,
+    padding: "13px 16px",
+    boxShadow: focused ? "0 0 0 3px rgba(37,99,235,0.10)" : "0 1px 3px rgba(0,0,0,0.05)",
     transition: "all .25s",
   });
 
@@ -232,12 +173,10 @@ function Login() {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        background:
-          "linear-gradient(135deg,#050b18 0%,#0a1128 50%,#0f172a 100%)",
+        background: "linear-gradient(135deg,#EFF6FF 0%,#F8FAFC 50%,#F0F9FF 100%)",
         position: "relative",
         overflow: "hidden",
-        fontFamily:
-          "'Inter','Segoe UI',system-ui,sans-serif",
+        fontFamily: "'Inter','Segoe UI',system-ui,sans-serif",
         padding: 20,
       }}
     >
@@ -246,23 +185,14 @@ function Login() {
           0%,100%{transform:translateY(0)}
           50%{transform:translateY(-12px)}
         }
-
         @keyframes lp-fadeUp{
-          from{
-            opacity:0;
-            transform:translateY(30px);
-          }
-          to{
-            opacity:1;
-            transform:translateY(0);
-          }
+          from{opacity:0;transform:translateY(30px);}
+          to{opacity:1;transform:translateY(0);}
         }
-
         @keyframes lp-spin{
           from{transform:rotate(0deg);}
           to{transform:rotate(360deg);}
         }
-
         @keyframes lp-pulse{
           0%,100%{opacity:1;}
           50%{opacity:.5;}
@@ -271,52 +201,28 @@ function Login() {
 
       <Orbs />
 
-      <FloatingIcon
-        icon="✈️"
-        style={{ top: "8%", left: "6%" }}
-      />
-      <FloatingIcon
-        icon="🏝️"
-        style={{ top: "70%", left: "5%" }}
-      />
-      <FloatingIcon
-        icon="🗺️"
-        style={{ top: "15%", right: "8%" }}
-      />
-      <FloatingIcon
-        icon="🏔️"
-        style={{ top: "80%", right: "8%" }}
-      />
-      <FloatingIcon
-        icon="🌍"
-        style={{ top: "45%", left: "3%" }}
-      />
+      <FloatingIcon icon="✈️" style={{ top: "8%", left: "6%" }} />
+      <FloatingIcon icon="🏝️" style={{ top: "70%", left: "5%" }} />
+      <FloatingIcon icon="🗺️" style={{ top: "15%", right: "8%" }} />
+      <FloatingIcon icon="🏔️" style={{ top: "80%", right: "8%" }} />
+      <FloatingIcon icon="🌍" style={{ top: "45%", left: "3%" }} />
 
       <div
         style={{
           width: "100%",
           maxWidth: 420,
-          background: "rgba(15,23,42,.72)",
-          backdropFilter: "blur(30px)",
-          border:
-            "1px solid rgba(148,163,184,.15)",
+          background: "#FFFFFF",
+          border: "1px solid #E5E7EB",
           borderRadius: 28,
           padding: "40px 36px",
           animation: "lp-fadeUp .6s ease",
-          boxShadow:
-            "0 32px 80px rgba(0,0,0,.6)",
+          boxShadow: "0 8px 40px rgba(0,0,0,0.08), 0 2px 8px rgba(0,0,0,0.04)",
           position: "relative",
           zIndex: 10,
         }}
       >
-              {/* Logo */}
-
-        <div
-          style={{
-            textAlign: "center",
-            marginBottom: 28,
-          }}
-        >
+        {/* Logo */}
+        <div style={{ textAlign: "center", marginBottom: 28 }}>
           <div
             style={{
               width: 56,
@@ -326,9 +232,9 @@ function Login() {
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              background:
-                "linear-gradient(135deg,#3b82f6,#8b5cf6)",
+              background: "linear-gradient(135deg,#2563EB,#3B82F6)",
               fontSize: 26,
+              boxShadow: "0 4px 14px rgba(37,99,235,0.25)",
             }}
           >
             ✈️
@@ -338,8 +244,7 @@ function Login() {
             style={{
               fontSize: 26,
               fontWeight: 900,
-              background:
-                "linear-gradient(135deg,#3b82f6,#8b5cf6,#06b6d4)",
+              background: "linear-gradient(135deg,#2563EB,#0EA5E9,#6366F1)",
               WebkitBackgroundClip: "text",
               WebkitTextFillColor: "transparent",
             }}
@@ -347,60 +252,58 @@ function Login() {
             TravelAI
           </div>
 
-          <div
-            style={{
-              color: "#94a3b8",
-              marginTop: 5,
-            }}
-          >
+          <div style={{ color: "#6B7280", marginTop: 5, fontSize: 14 }}>
             AI Touristic Services
           </div>
         </div>
 
         {/* Login/Register Tabs */}
-
         <div
           style={{
             display: "flex",
-            background: "rgba(255,255,255,.05)",
+            background: "#F3F4F6",
             borderRadius: 12,
             overflow: "hidden",
             marginBottom: 25,
+            padding: 4,
+            gap: 4,
           }}
         >
           <button
-            onClick={() => {
-              setIsRegister(false);
-              setError("");
-            }}
+            onClick={() => { setIsRegister(false); setError(""); }}
             style={{
               flex: 1,
-              padding: 12,
+              padding: "10px 12px",
               border: "none",
               cursor: "pointer",
-              color: isRegister ? "#94a3b8" : "white",
-              background: !isRegister
-                ? "linear-gradient(135deg,#3b82f6,#8b5cf6)"
-                : "transparent",
+              color: !isRegister ? "#2563EB" : "#6B7280",
+              background: !isRegister ? "#FFFFFF" : "transparent",
+              borderRadius: 10,
+              fontWeight: 700,
+              fontSize: 14,
+              transition: "all 0.2s",
+              boxShadow: !isRegister ? "0 1px 4px rgba(0,0,0,0.08)" : "none",
+              fontFamily: "inherit",
             }}
           >
             Login
           </button>
 
           <button
-            onClick={() => {
-              setIsRegister(true);
-              setError("");
-            }}
+            onClick={() => { setIsRegister(true); setError(""); }}
             style={{
               flex: 1,
-              padding: 12,
+              padding: "10px 12px",
               border: "none",
               cursor: "pointer",
-              color: isRegister ? "white" : "#94a3b8",
-              background: isRegister
-                ? "linear-gradient(135deg,#3b82f6,#8b5cf6)"
-                : "transparent",
+              color: isRegister ? "#2563EB" : "#6B7280",
+              background: isRegister ? "#FFFFFF" : "transparent",
+              borderRadius: 10,
+              fontWeight: 700,
+              fontSize: 14,
+              transition: "all 0.2s",
+              boxShadow: isRegister ? "0 1px 4px rgba(0,0,0,0.08)" : "none",
+              fontFamily: "inherit",
             }}
           >
             Register
@@ -408,66 +311,34 @@ function Login() {
         </div>
 
         {/* Heading */}
-
         <div style={{ marginBottom: 20 }}>
-          <h2
-            style={{
-              color: "white",
-              margin: 0,
-              fontSize: 24,
-              fontWeight: 700,
-            }}
-          >
-            {isRegister
-              ? "Create Account 🚀"
-              : "Welcome Back ✈️"}
+          <h2 style={{ color: "#111827", margin: 0, fontSize: 22, fontWeight: 800 }}>
+            {isRegister ? "Create Account 🚀" : "Welcome Back ✈️"}
           </h2>
-
-          <p
-            style={{
-              color: "#94a3b8",
-              marginTop: 6,
-              fontSize: 14,
-            }}
-          >
+          <p style={{ color: "#6B7280", marginTop: 6, fontSize: 14, margin: "6px 0 0" }}>
             {isRegister
               ? "Register to explore AI Touristic Services."
-              : "Sign in to continue."}
+              : "Sign in to continue your journey."}
           </p>
         </div>
 
         {/* Name */}
-
         {isRegister && (
-          <div style={{ marginBottom: 15 }}>
-            <label
-              style={{
-                color: "#94a3b8",
-                fontSize: 13,
-                display: "block",
-                marginBottom: 8,
-              }}
-            >
+          <div style={{ marginBottom: 14 }}>
+            <label style={{ color: "#374151", fontSize: 13, fontWeight: 600, display: "block", marginBottom: 7 }}>
               Full Name
             </label>
-
             <div style={inputBox(nameFocus)}>
               <input
                 type="text"
                 placeholder="Enter your name"
                 value={name}
-                onChange={(e) =>
-                  setName(e.target.value)
-                }
+                onChange={(e) => setName(e.target.value)}
                 onFocus={() => setNameFocus(true)}
                 onBlur={() => setNameFocus(false)}
                 style={{
-                  flex: 1,
-                  border: "none",
-                  outline: "none",
-                  background: "transparent",
-                  color: "white",
-                  fontSize: 14,
+                  flex: 1, border: "none", outline: "none",
+                  background: "transparent", color: "#111827", fontSize: 14,
                 }}
               />
             </div>
@@ -475,209 +346,147 @@ function Login() {
         )}
 
         {/* Email */}
-
-        <div style={{ marginBottom: 15 }}>
-          <label
-            style={{
-              color: "#94a3b8",
-              fontSize: 13,
-              display: "block",
-              marginBottom: 8,
-            }}
-          >
+        <div style={{ marginBottom: 14 }}>
+          <label style={{ color: "#374151", fontSize: 13, fontWeight: 600, display: "block", marginBottom: 7 }}>
             Email Address
           </label>
-
           <div style={inputBox(emailFocus)}>
-            <FaEnvelope
-              color={
-                emailFocus ? "#3b82f6" : "#64748b"
-              }
-            />
-
+            <FaEnvelope color={emailFocus ? "#2563EB" : "#9CA3AF"} />
             <input
               type="email"
               placeholder="yourname@gmail.com"
               value={email}
-              onChange={(e) =>
-                setEmail(e.target.value)
-              }
+              onChange={(e) => setEmail(e.target.value)}
               onFocus={() => setEmailFocus(true)}
               onBlur={() => setEmailFocus(false)}
               onKeyDown={handleKeyDown}
               style={{
-                flex: 1,
-                border: "none",
-                outline: "none",
-                background: "transparent",
-                color: "white",
+                flex: 1, border: "none", outline: "none",
+                background: "transparent", color: "#111827", fontSize: 14,
               }}
             />
           </div>
         </div>
 
         {/* Password */}
-
         <div style={{ marginBottom: 20 }}>
-          <label
-            style={{
-              color: "#94a3b8",
-              fontSize: 13,
-              display: "block",
-              marginBottom: 8,
-            }}
-          >
+          <label style={{ color: "#374151", fontSize: 13, fontWeight: 600, display: "block", marginBottom: 7 }}>
             Password
           </label>
-
           <div style={inputBox(pwFocus)}>
-            <FaLock
-              color={
-                pwFocus ? "#3b82f6" : "#64748b"
-              }
-            />
-
+            <FaLock color={pwFocus ? "#2563EB" : "#9CA3AF"} />
             <input
               type={showPw ? "text" : "password"}
               placeholder="Enter Password"
               value={password}
-              onChange={(e) =>
-                setPassword(e.target.value)
-              }
+              onChange={(e) => setPassword(e.target.value)}
               onFocus={() => setPwFocus(true)}
               onBlur={() => setPwFocus(false)}
               onKeyDown={handleKeyDown}
               style={{
-                flex: 1,
-                border: "none",
-                outline: "none",
-                background: "transparent",
-                color: "white",
+                flex: 1, border: "none", outline: "none",
+                background: "transparent", color: "#111827", fontSize: 14,
               }}
             />
-
-            <span
-              onClick={() => setShowPw(!showPw)}
-              style={{
-                cursor: "pointer",
-                color: "#94a3b8",
-              }}
-            >
-              {showPw ? (
-                <FaEyeSlash />
-              ) : (
-                <FaEye />
-              )}
+            <span onClick={() => setShowPw(!showPw)} style={{ cursor: "pointer", color: "#9CA3AF" }}>
+              {showPw ? <FaEyeSlash /> : <FaEye />}
             </span>
           </div>
         </div>
 
         {/* Error */}
-
         {error && (
           <div
             style={{
-              background:
-                "rgba(239,68,68,.1)",
-              color: "#fca5a5",
-              padding: 12,
+              background: "rgba(220,38,38,.06)",
+              border: "1px solid rgba(220,38,38,.2)",
+              color: "#DC2626",
+              padding: "11px 14px",
               borderRadius: 10,
-              marginBottom: 18,
+              marginBottom: 16,
               fontSize: 13,
+              fontWeight: 600,
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
             }}
           >
             ⚠️ {error}
           </div>
         )}
-                {/* Button */}
 
+        {/* Button */}
         <button
           onClick={async () => {
-            if (isRegister) {
-              await handleRegister();
-            } else {
-              await handleLogin();
-            }
+            if (isRegister) { await handleRegister(); } else { await handleLogin(); }
           }}
           disabled={loading}
           style={{
             width: "100%",
-            padding: 15,
+            padding: "14px",
             border: "none",
-            borderRadius: 14,
-            background:
-              "linear-gradient(135deg,#3b82f6,#8b5cf6)",
-            color: "white",
+            borderRadius: 12,
+            background: loading
+              ? "#E5E7EB"
+              : "linear-gradient(135deg,#2563EB,#3B82F6)",
+            color: loading ? "#9CA3AF" : "white",
             fontSize: 15,
             fontWeight: 700,
             cursor: loading ? "not-allowed" : "pointer",
-            opacity: loading ? 0.7 : 1,
             transition: ".3s",
+            boxShadow: loading ? "none" : "0 4px 14px rgba(37,99,235,0.25)",
+            fontFamily: "inherit",
           }}
         >
-          {loading
-            ? "Please Wait..."
-            : isRegister
-            ? "Register 🚀"
-            : "Sign In ✈️"}
+          {loading ? "Please Wait..." : isRegister ? "Register 🚀" : "Sign In ✈️"}
         </button>
 
         {/* AI Badge */}
-
         <div
           style={{
             marginTop: 20,
-            padding: 12,
-            background: "rgba(59,130,246,.08)",
+            padding: "11px 14px",
+            background: "rgba(37,99,235,.05)",
+            border: "1px solid rgba(37,99,235,.12)",
             borderRadius: 12,
             display: "flex",
             alignItems: "center",
             gap: 10,
           }}
         >
-          <FaBrain color="#3b82f6" />
-
-          <span
-            style={{
-              color: "#94a3b8",
-              fontSize: 12,
-            }}
-          >
+          <FaBrain color="#2563EB" />
+          <span style={{ color: "#6B7280", fontSize: 12 }}>
             AI Powered • 50,000+ Reviews Analysed
           </span>
         </div>
 
         {/* Features */}
-
         <div
           style={{
-            marginTop: 22,
+            marginTop: 18,
             display: "flex",
             flexWrap: "wrap",
             justifyContent: "center",
             gap: 8,
           }}
         >
-          {[
-            "120+ Destinations",
-            "800+ Hotels",
-            "AI Sentiment Analysis",
-          ].map((item) => (
+          {["120+ Destinations", "800+ Hotels", "AI Sentiment Analysis"].map((item) => (
             <span
               key={item}
               style={{
-                padding: "6px 10px",
+                padding: "5px 10px",
                 borderRadius: 20,
-                background: "rgba(30,41,59,.8)",
-                color: "#94a3b8",
+                background: "#F3F4F6",
+                border: "1px solid #E5E7EB",
+                color: "#6B7280",
                 fontSize: 11,
+                fontWeight: 600,
               }}
             >
               {item}
             </span>
           ))}
         </div>
-
       </div>
     </div>
   );

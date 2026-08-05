@@ -1,10 +1,13 @@
 import joblib
+import os
 import re
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
 
-model = joblib.load("models/model.pkl")
-vectorizer = joblib.load("models/vectorizer.pkl")
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+model = joblib.load(os.path.join(BASE_DIR, "models", "model.pkl"))
+vectorizer = joblib.load(os.path.join(BASE_DIR, "models", "vectorizer.pkl"))
 
 stop_words = set(stopwords.words("english"))
 # Keep important sentiment words

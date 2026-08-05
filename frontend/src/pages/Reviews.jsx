@@ -9,9 +9,7 @@ export default function Reviews() {
 
   const [reviews, setReviews] = useState([]);
 
-  useEffect(() => {
-    loadReviews();
-  }, []);
+  useEffect(() => { loadReviews(); }, []);
 
   const loadReviews = async () => {
     try {
@@ -19,81 +17,57 @@ export default function Reviews() {
       setReviews(res.data);
     } catch (err) {
       console.log("Error loading reviews from backend:", err);
-      // Mock existing saved reviews if backend is empty/offline
       setReviews([
-        {
-          hostelName: "Zostel Jaipur",
-          text: "Amazing backpacker vibe! Met great travellers, super clean dorms.",
-          type: "Text, Audio",
-          rating: "5",
-          createdAt: new Date().toISOString(),
-        },
-        {
-          hostelName: "The Hosteller Goa",
-          text: "Great location near Anjuna beach. Loved the pool area and fast WiFi.",
-          type: "Text, Video",
-          rating: "5",
-          createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
-        },
+        { hostelName: "Zostel Jaipur", text: "Amazing backpacker vibe! Met great travellers, super clean dorms.", type: "Text, Audio", rating: "5", createdAt: new Date().toISOString() },
+        { hostelName: "The Hosteller Goa", text: "Great location near Anjuna beach. Loved the pool area and fast WiFi.", type: "Text, Video", rating: "5", createdAt: new Date(Date.now() - 86400000 * 2).toISOString() },
       ]);
     }
   };
 
   return (
     <>
-      <SharedNavbar />
+      <SharedNavbar activeTab="reviews" />
 
-      <div
-        style={{
-          background: "#0f172a",
-          minHeight: "100vh",
-          padding: "110px 40px 60px",
-          color: "white",
-        }}
-      >
+      <div style={{
+        background: "#F8FAFC",
+        minHeight: "100vh",
+        padding: "100px 40px 60px",
+        color: "#111827",
+        fontFamily: "'Inter','Segoe UI',system-ui,sans-serif",
+      }}>
         <div style={{ maxWidth: 1000, margin: "0 auto" }}>
-          <h1 style={{ fontSize: 32, fontWeight: 800, marginBottom: 8 }}>
-            🏡 Hostel Reviews & Submissions
-          </h1>
-
-          <p
-            style={{
-              color: "#94a3b8",
-              marginBottom: 32,
-              fontSize: 16,
-            }}
-          >
-            Submit your hostel experience with text, audio, or video attachments. All reviews are stored in the backend database.
-          </p>
+          {/* Header */}
+          <div style={{ marginBottom: 28 }}>
+            <h1 style={{ fontSize: 30, fontWeight: 900, marginBottom: 6, color: "#111827" }}>
+              🏡 Hostel Reviews & Submissions
+            </h1>
+            <p style={{ color: "#6B7280", fontSize: 15, margin: 0, lineHeight: 1.6 }}>
+              Submit your hostel experience with text, audio, or video attachments. All reviews are stored in the backend database.
+            </p>
+          </div>
 
           <UploadReview onAnalysisComplete={loadReviews} />
 
           {/* Stored Hostel Reviews Table */}
-          <div
-            style={{
-              background: "#1e293b",
-              marginTop: 40,
-              borderRadius: 18,
-              padding: 28,
-              border: "1px solid #334155",
-            }}
-          >
-            <h2 style={{ fontSize: 20, fontWeight: 800, margin: 0, marginBottom: 6 }}>
+          <div style={{
+            background: "#FFFFFF",
+            marginTop: 32,
+            borderRadius: 16,
+            padding: "28px",
+            border: "1px solid #E5E7EB",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+          }}>
+            <h2 style={{ fontSize: 18, fontWeight: 800, margin: 0, marginBottom: 4, color: "#111827" }}>
               Submitted Hostel Reviews
             </h2>
-            <p style={{ color: "#94a3b8", fontSize: 13, margin: 0, marginBottom: 20 }}>
+            <p style={{ color: "#9CA3AF", fontSize: 13, margin: 0, marginBottom: 20 }}>
               Reviews stored in backend database for hostels
             </p>
 
             <div style={{ overflowX: "auto" }}>
-              <table
-                style={{
-                  width: "100%",
-                  borderCollapse: "collapse",
-                }}
-              >
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
-                  <tr style={{ background: "#0f172a", color: "#93c5fd" }}>
+                  <tr style={{ background: "#F9FAFB" }}>
                     <th style={th}>Hostel Name</th>
                     <th style={th}>Review Type</th>
                     <th style={th}>Review Snippet</th>
@@ -105,46 +79,38 @@ export default function Reviews() {
                 <tbody>
                   {reviews.length === 0 ? (
                     <tr>
-                      <td
-                        colSpan="5"
-                        style={{
-                          padding: 24,
-                          textAlign: "center",
-                          color: "#94a3b8",
-                        }}
-                      >
+                      <td colSpan="5" style={{ padding: 32, textAlign: "center", color: "#9CA3AF", fontSize: 14 }}>
                         No hostel reviews submitted yet. Use the form above to add one!
                       </td>
                     </tr>
                   ) : (
                     reviews.map((r, index) => (
-                      <tr key={index} style={{ borderBottom: "1px solid #334155" }}>
-                        <td style={{ ...td, fontWeight: 700, color: "white" }}>
+                      <tr key={index} style={{ borderBottom: "1px solid #F3F4F6" }}>
+                        <td style={{ ...td, fontWeight: 700, color: "#111827" }}>
                           {r.hostelName || "General Hostel"}
                         </td>
                         <td style={td}>
-                          <span
-                            style={{
-                              background: "rgba(59, 130, 246, 0.15)",
-                              color: "#93c5fd",
-                              padding: "4px 10px",
-                              borderRadius: 20,
-                              fontSize: 12,
-                              fontWeight: 600,
-                            }}
-                          >
+                          <span style={{
+                            background: "rgba(37,99,235,0.08)",
+                            color: "#2563EB",
+                            padding: "3px 10px",
+                            borderRadius: 20,
+                            fontSize: 12,
+                            fontWeight: 600,
+                            border: "1px solid rgba(37,99,235,0.15)",
+                          }}>
                             {r.type || "Text"}
                           </span>
                         </td>
-                        <td style={{ ...td, color: "#cbd5e1", maxWidth: 300 }}>
-                          {r.text ? `"${r.text}"` : r.audioName ? `Audio File: ${r.audioName}` : r.videoName ? `Video File: ${r.videoName}` : "Media Review"}
+                        <td style={{ ...td, color: "#6B7280", maxWidth: 300 }}>
+                          {r.text ? `"${r.text.slice(0, 60)}${r.text.length > 60 ? '…' : ''}"` : r.audioName ? `Audio File: ${r.audioName}` : r.videoName ? `Video File: ${r.videoName}` : "Media Review"}
                         </td>
                         <td style={td}>
-                          <span style={{ color: "#f59e0b", fontWeight: 700 }}>
-                            {r.rating || "5"} ★
+                          <span style={{ color: "#F59E0B", fontWeight: 800, fontSize: 14 }}>
+                            {"★".repeat(parseInt(r.rating || "5"))} {r.rating || "5"}
                           </span>
                         </td>
-                        <td style={{ ...td, color: "#94a3b8", fontSize: 13 }}>
+                        <td style={{ ...td, color: "#9CA3AF", fontSize: 12 }}>
                           {r.createdAt ? new Date(r.createdAt).toLocaleDateString() : "Recently"}
                         </td>
                       </tr>
@@ -162,14 +128,17 @@ export default function Reviews() {
 
 const th = {
   textAlign: "left",
-  padding: "14px 16px",
-  fontSize: 12,
+  padding: "12px 16px",
+  fontSize: 11,
   textTransform: "uppercase",
   letterSpacing: 1,
-  fontWeight: 700,
+  fontWeight: 800,
+  color: "#6B7280",
+  borderBottom: "1px solid #E5E7EB",
 };
 
 const td = {
-  padding: "16px",
-  fontSize: 14,
+  padding: "14px 16px",
+  fontSize: 13,
+  color: "#374151",
 };

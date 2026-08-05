@@ -185,7 +185,7 @@ function Stars({ count }) {
   return (
     <span className="review-stars">
       {Array.from({ length: 5 }, (_, i) => (
-        <FaStar key={i} color={i < count ? "#f59e0b" : "#334155"} />
+        <FaStar key={i} color={i < count ? "#f59e0b" : "#E5E7EB"} />
       ))}
     </span>
   );
@@ -331,14 +331,14 @@ function Home() {
                     {(user.email || "T")[0].toUpperCase()}
                   </div>
                   <div>
-                    <div style={{ fontWeight: 700, fontSize: 14, color: "white" }}>{user.name || user.email?.split("@")[0] || "Traveler"}</div>
-                    <div style={{ fontSize: 11, color: "#64748b" }}>{user.email}</div>
+                    <div style={{ fontWeight: 700, fontSize: 14, color: "#111827" }}>{user.name || user.email?.split("@")[0] || "Traveler"}</div>
+                    <div style={{ fontSize: 11, color: "#6B7280" }}>{user.email}</div>
                   </div>
                 </div>
                 
                 <button onClick={() => { localStorage.removeItem("user"); navigate("/"); }} style={{
-                  width: "100%", padding: "10px", borderRadius: 10, border: "none",
-                  background: "rgba(239,68,68,0.12)", color: "#ef4444",
+                  width: "100%", padding: "10px", borderRadius: 10, border: "1px solid rgba(220,38,38,0.15)",
+                  background: "rgba(220,38,38,0.05)", color: "#DC2626",
                   cursor: "pointer", fontWeight: 700, fontSize: 13, fontFamily: "inherit",
                 }}>Sign Out</button>
               </div>
@@ -369,7 +369,7 @@ function Home() {
             </h1>
 
             <p className="hero-subtitle">
-              Discover breathtaking destinations powered by <strong style={{ color: "#93c5fd" }}>AI emotion analysis</strong>,
+              Discover breathtaking destinations powered by <strong style={{ color: "#2563EB" }}>AI emotion analysis</strong>,
               real traveler sentiment scores, and intelligent recommendations tailored just for you.
             </p>
 
@@ -417,7 +417,7 @@ function Home() {
               <div style={{ marginBottom: 20 }}>
                 <div className="hp-section-tag"><FaBrain /> Live Intelligence</div>
                 <h2 className="hp-section-title" style={{ fontSize: 28 }}>AI Travel Intelligence</h2>
-                <p style={{ color: "#94a3b8", fontSize: 14, lineHeight: 1.7, margin: "8px 0 0" }}>
+                <p style={{ color: "#6B7280", fontSize: 14, lineHeight: 1.7, margin: "8px 0 0" }}>
                   Real-time insights powered by our deep learning sentiment engine, analyzing 50K+ verified reviews.
                 </p>
               </div>
@@ -427,34 +427,34 @@ function Home() {
 
                 <div style={{ marginTop: 24, display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
                   {[
-                    { icon: <FaGlobe size={16} color="#3b82f6" />, value: "120+", label: "Destinations" },
-                    { icon: <FaHotel size={16} color="#8b5cf6" />, value: "800+", label: "Hotels" },
-                    { icon: <FaBrain size={16} color="#06b6d4" />, value: "50K+", label: "Reviews" },
+                    { icon: <FaGlobe size={16} color="#2563EB" />, value: "120+", label: "Destinations" },
+                    { icon: <FaHotel size={16} color="#7C3AED" />, value: "800+", label: "Hotels" },
+                    { icon: <FaBrain size={16} color="#0EA5E9" />, value: "50K+", label: "Reviews" },
                   ].map(item => (
                     <div key={item.label} style={{
-                      background: "rgba(15,23,42,0.7)", border: "1px solid rgba(148,163,184,0.1)",
+                      background: "#F9FAFB", border: "1px solid #E5E7EB",
                       borderRadius: 16, padding: "16px",
                     }}>
                       <div style={{ marginBottom: 8 }}>{item.icon}</div>
-                      <div style={{ fontSize: 24, fontWeight: 900, color: "white" }}>{item.value}</div>
-                      <div style={{ fontSize: 11, color: "#64748b", marginTop: 2 }}>{item.label}</div>
+                      <div style={{ fontSize: 24, fontWeight: 900, color: "#111827" }}>{item.value}</div>
+                      <div style={{ fontSize: 11, color: "#6B7280", marginTop: 2 }}>{item.label}</div>
                     </div>
                   ))}
                 </div>
 
                 {/* Top Rated Widget */}
-                <div style={{ marginTop: 20, background: "rgba(15,23,42,0.5)", border: "1px solid rgba(148,163,184,0.06)", borderRadius: 14, padding: "14px 16px" }}>
-                  <div style={{ fontSize: 11, color: "#64748b", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 }}>⭐ Top Rated</div>
+                <div style={{ marginTop: 20, background: "#F9FAFB", border: "1px solid #E5E7EB", borderRadius: 14, padding: "14px 16px" }}>
+                  <div style={{ fontSize: 11, color: "#6B7280", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 }}>⭐ Top Rated</div>
                   {TOP_RATED.map((r) => (
                     <div key={r.name} onClick={() => goToTab(r.type === "Hotel" ? "hotels" : "places")} style={{
                       marginBottom: 8, cursor: "pointer", padding: "8px 10px", borderRadius: 8,
                       transition: "background 0.2s",
                     }}
-                      onMouseEnter={e => e.currentTarget.style.background = "rgba(148,163,184,0.06)"}
+                      onMouseEnter={e => e.currentTarget.style.background = "#F3F4F6"}
                       onMouseLeave={e => e.currentTarget.style.background = "transparent"}
                     >
-                      <div style={{ fontSize: 13, fontWeight: 600, color: "white" }}>{r.name}</div>
-                      <div style={{ fontSize: 11, color: "#64748b" }}>{r.location} · {r.type} · <span style={{ color: "#22c55e" }}>😊 {r.sentiment}</span></div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: "#111827" }}>{r.name}</div>
+                      <div style={{ fontSize: 11, color: "#6B7280" }}>{r.location} · {r.type} · <span style={{ color: "#16A34A" }}>😊 {r.sentiment}</span></div>
                     </div>
                   ))}
                 </div>
@@ -466,7 +466,7 @@ function Home() {
               <div style={{ marginBottom: 14 }}>
                 <div className="hp-section-tag">🗓 Trip Planner</div>
                 <h2 className="hp-section-title" style={{ fontSize: 28 }}>Plan Your Travel Date</h2>
-                <p style={{ color: "#94a3b8", fontSize: 14, lineHeight: 1.7, margin: "8px 0 0" }}>
+                <p style={{ color: "#6B7280", fontSize: 14, lineHeight: 1.7, margin: "8px 0 0" }}>
                   Pick a date to search flights and hotels with AI-powered pricing insights.
                 </p>
               </div>
@@ -476,13 +476,13 @@ function Home() {
               {selectedTravelDate && (
                 <div style={{
                   marginTop: 16,
-                  background: "linear-gradient(135deg, rgba(15,23,42,0.97), rgba(8,15,30,0.99))",
-                  border: "1px solid rgba(59,130,246,0.25)",
+                  background: "#F0F7FF",
+                  border: "1px solid rgba(37,99,235,0.2)",
                   borderRadius: 16, padding: 18,
-                  boxShadow: "0 16px 40px rgba(0,0,0,0.5)",
+                  boxShadow: "0 4px 16px rgba(0,0,0,0.06)",
                 }}>
-                  <div style={{ fontSize: 10, color: "#3b82f6", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.2, marginBottom: 4 }}>Selected Date</div>
-                  <div style={{ fontSize: 16, fontWeight: 800, margin: "0 0 14px", color: "white" }}>
+                  <div style={{ fontSize: 10, color: "#2563EB", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.2, marginBottom: 4 }}>Selected Date</div>
+                  <div style={{ fontSize: 16, fontWeight: 800, margin: "0 0 14px", color: "#111827" }}>
                     📅 {new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(selectedTravelDate)}
                   </div>
                   <div style={{ display: "flex", gap: 10 }}>
