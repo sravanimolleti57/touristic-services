@@ -23,9 +23,7 @@ export default function FeedbackAnalysisModal({ item, itemType = "hotel", onClos
   const user = JSON.parse(localStorage.getItem("user") || "{}");
   const email = user?.email || "guest@user.com";
 
-  useEffect(() => {
-    loadRealHotelReviews();
-  }, [title]);
+  useEffect(() => { loadRealHotelReviews(); }, [title]);
 
   const loadRealHotelReviews = async () => {
     setLoading(true);
@@ -33,14 +31,11 @@ export default function FeedbackAnalysisModal({ item, itemType = "hotel", onClos
 
     try {
       const res = await axios.get(`http://127.0.0.1:5000/reviews/${email}`);
-      if (Array.isArray(res.data) && res.data.length > 0) {
-        allRevs = res.data;
-      }
+      if (Array.isArray(res.data) && res.data.length > 0) allRevs = res.data;
     } catch (err) {
       console.warn("Backend reviews endpoint warning, checking fallback dataset:", err);
     }
 
-    // Default real sample pool if backend has no reviews for this hotel yet
     if (allRevs.length === 0) {
       allRevs = [
         { hostelName: "The Leela Palace", user: "Anand R.", text: "Royal luxury experience! Exceptional service, stunning architecture, and pristine pool area.", type: "Text, Audio", rating: "5", createdAt: new Date().toISOString() },
@@ -52,7 +47,6 @@ export default function FeedbackAnalysisModal({ item, itemType = "hotel", onClos
       ];
     }
 
-    // Filter reviews strictly for this selected hotel or item name
     const matchedRevs = allRevs.filter(r => {
       const nameInRev = (r.hostelName || r.hotelName || "").toLowerCase();
       const targetName = title.toLowerCase();
@@ -62,7 +56,6 @@ export default function FeedbackAnalysisModal({ item, itemType = "hotel", onClos
     const finalRevs = matchedRevs.length > 0 ? matchedRevs : allRevs;
     setHotelReviews(finalRevs);
 
-    // Predict emotion using existing emotion-analysis endpoint http://127.0.0.1:5001/predict
     try {
       const promises = finalRevs.map(async (rev) => {
         const text = rev.text || rev.review || "";
@@ -91,37 +84,37 @@ export default function FeedbackAnalysisModal({ item, itemType = "hotel", onClos
     }
   };
 
-  // Compute live real analytics using the shared single source of truth engine
-  const analytics = useMemo(() => {
-    return analyzeReviewText(hotelReviews, sentiments);
-  }, [hotelReviews, sentiments]);
+  const analytics = useMemo(() => analyzeReviewText(hotelReviews, sentiments), [hotelReviews, sentiments]);
 
-  // Category dimensions derived from real sentiment data
   const categoryDimensions = useMemo(() => {
     const posPct = analytics.emotionPieData.find(d => d.name.toLowerCase().includes("pos"))?.value || 85;
     return isFlight
       ? [
-          { name: "Punctuality & Schedule", score: Math.min(99, posPct + 2), color: "#38bdf8" },
-          { name: "Cabin Comfort", score: Math.min(98, posPct - 3), color: "#c084fc" },
-          { name: "Crew Hospitality", score: Math.min(100, posPct + 4), color: "#10b981" },
-          { name: "In-Flight Services", score: Math.min(95, posPct - 5), color: "#f59e0b" },
+          { name: "Punctuality & Schedule", score: Math.min(99, posPct + 2), color: "#2563EB" },
+          { name: "Cabin Comfort",           score: Math.min(98, posPct - 3), color: "#7C3AED" },
+          { name: "Crew Hospitality",        score: Math.min(100, posPct + 4), color: "#059669" },
+          { name: "In-Flight Services",      score: Math.min(95, posPct - 5), color: "#D97706" },
         ]
       : [
-          { name: "Cleanliness & Hygiene", score: Math.min(99, posPct + 3), color: "#10b981" },
-          { name: "Location & Transport", score: Math.min(98, posPct + 1), color: "#38bdf8" },
-          { name: "Staff Hospitality", score: Math.min(100, posPct + 4), color: "#c084fc" },
-          { name: "Value & Amenities", score: Math.min(95, posPct - 4), color: "#f59e0b" },
+          { name: "Cleanliness & Hygiene",  score: Math.min(99, posPct + 3), color: "#059669" },
+          { name: "Location & Transport",   score: Math.min(98, posPct + 1), color: "#2563EB" },
+          { name: "Staff Hospitality",      score: Math.min(100, posPct + 4), color: "#7C3AED" },
+          { name: "Value & Amenities",      score: Math.min(95, posPct - 4), color: "#D97706" },
         ];
   }, [analytics, isFlight]);
 
   return (
     <div style={styles.overlay} onClick={onClose}>
       <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
-        {/* Modal Header */}
+
+        {/* Header */}
         <div style={styles.header}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
             <div style={styles.iconWrap}>
-              {isFlight ? <FaPlane size={20} color="#38bdf8" /> : <FaHotel size={20} color="#c084fc" />}
+              {isFlight
+                ? <FaPlane size={20} color="#2563EB" />
+                : <FaHotel size={20} color="#7C3AED" />
+              }
             </div>
             <div>
               <div style={styles.categoryBadge}>
@@ -131,60 +124,60 @@ export default function FeedbackAnalysisModal({ item, itemType = "hotel", onClos
               {subtitle && <p style={styles.subtitle}>{subtitle}</p>}
             </div>
           </div>
-          <button style={styles.closeBtn} onClick={onClose}>
+          <button style={styles.closeBtn} onClick={onClose}
+            onMouseEnter={e => { e.currentTarget.style.background = "#F3F4F6"; e.currentTarget.style.color = "#111827"; }}
+            onMouseLeave={e => { e.currentTarget.style.background = "#F9FAFB"; e.currentTarget.style.color = "#6B7280"; }}
+          >
             <FaTimes />
           </button>
         </div>
 
         {loading ? (
           <div style={styles.loadingBox}>
-            <FaBrain size={36} style={{ color: "#38bdf8", animation: "spin 1s linear infinite" }} />
-            <p style={{ marginTop: 12, color: "#94a3b8", fontSize: 14 }}>
+            <FaBrain size={36} style={{ color: "#2563EB", animation: "spin 1s linear infinite" }} />
+            <p style={{ marginTop: 12, color: "#6B7280", fontSize: 14 }}>
               Processing real guest review sentiment analysis...
             </p>
           </div>
         ) : (
           <div style={styles.body}>
+
             {/* Score Banner */}
             <div style={styles.scoreBanner}>
               <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
                 <div style={styles.scoreBadge}>
-                  <span style={{ fontSize: 26, fontWeight: 900, color: "#10b981" }}>{analytics.avgRating}</span>
-                  <span style={{ fontSize: 12, color: "#94a3b8" }}>/ 5.0</span>
+                  <span style={{ fontSize: 26, fontWeight: 900, color: "#059669" }}>{analytics.avgRating}</span>
+                  <span style={{ fontSize: 12, color: "#6B7280" }}>/ 5.0</span>
                 </div>
                 <div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 5, color: "#fbbf24" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 5, color: "#F59E0B" }}>
                     <FaStar /><FaStar /><FaStar /><FaStar /><FaStar />
-                    <span style={{ fontSize: 13, fontWeight: 700, color: "#ffffff", marginLeft: 4 }}>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: "#111827", marginLeft: 4 }}>
                       Overall Guest Score ({analytics.overallScore}% Index)
                     </span>
                   </div>
-                  <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 4 }}>
+                  <div style={{ fontSize: 12, color: "#6B7280", marginTop: 4 }}>
                     Based on <strong>{analytics.totalReviews}</strong> verified user reviews in database
                   </div>
                 </div>
               </div>
 
               <div style={styles.confidencePill}>
-                <FaShieldAlt size={14} color="#10b981" />
+                <FaShieldAlt size={14} color="#059669" />
                 <div>
-                  <div style={{ fontSize: 10, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 1 }}>
-                    AI Confidence
-                  </div>
-                  <div style={{ fontSize: 16, fontWeight: 900, color: "#10b981" }}>
-                    {analytics.confidence}%
-                  </div>
+                  <div style={{ fontSize: 10, color: "#6B7280", textTransform: "uppercase", letterSpacing: 1 }}>AI Confidence</div>
+                  <div style={{ fontSize: 16, fontWeight: 900, color: "#059669" }}>{analytics.confidence}%</div>
                 </div>
               </div>
             </div>
 
-            {/* AI Generated Summary */}
+            {/* AI Summary */}
             {analytics.aiSummary && (
               <div style={styles.aiSummaryCard}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, color: "#c084fc", fontWeight: 700, fontSize: 12, marginBottom: 6 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, color: "#7C3AED", fontWeight: 700, fontSize: 12, marginBottom: 6 }}>
                   <FaBrain /> <span>AI Experience Summary</span>
                 </div>
-                <p style={{ fontSize: 13, color: "#e2e8f0", margin: 0, lineHeight: 1.5 }}>
+                <p style={{ fontSize: 13, color: "#374151", margin: 0, lineHeight: 1.6 }}>
                   "{analytics.aiSummary}"
                 </p>
               </div>
@@ -195,24 +188,26 @@ export default function FeedbackAnalysisModal({ item, itemType = "hotel", onClos
               <button
                 style={{
                   ...styles.tabBtn,
-                  background: activeTab === "pie" ? "#0284c7" : "#1e293b",
-                  color: activeTab === "pie" ? "white" : "#94a3b8",
-                  borderColor: activeTab === "pie" ? "#38bdf8" : "rgba(255,255,255,0.1)",
+                  background: activeTab === "pie" ? "linear-gradient(135deg,#2563EB,#3B82F6)" : "#F3F4F6",
+                  color: activeTab === "pie" ? "#FFFFFF" : "#6B7280",
+                  border: activeTab === "pie" ? "1px solid transparent" : "1px solid #E5E7EB",
+                  boxShadow: activeTab === "pie" ? "0 4px 12px rgba(37,99,235,0.25)" : "none",
                 }}
                 onClick={() => setActiveTab("pie")}
               >
-                <FaChartPie style={{ marginRight: 6 }} /> Sentiment Distribution (Pie Chart)
+                <FaChartPie style={{ marginRight: 6 }} /> Sentiment Distribution
               </button>
               <button
                 style={{
                   ...styles.tabBtn,
-                  background: activeTab === "bar" ? "#0284c7" : "#1e293b",
-                  color: activeTab === "bar" ? "white" : "#94a3b8",
-                  borderColor: activeTab === "bar" ? "#38bdf8" : "rgba(255,255,255,0.1)",
+                  background: activeTab === "bar" ? "linear-gradient(135deg,#2563EB,#3B82F6)" : "#F3F4F6",
+                  color: activeTab === "bar" ? "#FFFFFF" : "#6B7280",
+                  border: activeTab === "bar" ? "1px solid transparent" : "1px solid #E5E7EB",
+                  boxShadow: activeTab === "bar" ? "0 4px 12px rgba(37,99,235,0.25)" : "none",
                 }}
                 onClick={() => setActiveTab("bar")}
               >
-                Category Dimensions (Bar Chart)
+                Category Dimensions
               </button>
             </div>
 
@@ -231,15 +226,14 @@ export default function FeedbackAnalysisModal({ item, itemType = "hotel", onClos
                         label={({ name, value }) => `${name}: ${value}%`}
                       >
                         {analytics.emotionPieData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
+                          <Cell key={`cell-${index}`} fill={entry.color} stroke="#FFFFFF" strokeWidth={2} />
                         ))}
                       </Pie>
                       <Tooltip
                         contentStyle={{
-                          background: "#0f172a",
-                          borderColor: "#334155",
-                          borderRadius: 8,
-                          color: "#ffffff",
+                          background: "#FFFFFF", borderColor: "#E5E7EB",
+                          borderRadius: 10, color: "#111827",
+                          boxShadow: "0 4px 16px rgba(0,0,0,0.08)",
                         }}
                       />
                       <Legend verticalAlign="bottom" height={36} />
@@ -250,15 +244,14 @@ export default function FeedbackAnalysisModal({ item, itemType = "hotel", onClos
                 <div style={{ width: "100%", height: 250 }}>
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={categoryDimensions} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                      <XAxis dataKey="name" stroke="#94a3b8" tick={{ fontSize: 11 }} />
-                      <YAxis stroke="#94a3b8" domain={[0, 100]} />
+                      <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
+                      <XAxis dataKey="name" stroke="#9CA3AF" tick={{ fontSize: 11, fill: "#6B7280" }} />
+                      <YAxis stroke="#9CA3AF" domain={[0, 100]} tick={{ fill: "#6B7280" }} />
                       <Tooltip
                         contentStyle={{
-                          background: "#0f172a",
-                          borderColor: "#334155",
-                          borderRadius: 8,
-                          color: "#ffffff",
+                          background: "#FFFFFF", borderColor: "#E5E7EB",
+                          borderRadius: 10, color: "#111827",
+                          boxShadow: "0 4px 16px rgba(0,0,0,0.08)",
                         }}
                       />
                       <Bar dataKey="score" radius={[6, 6, 0, 0]}>
@@ -272,16 +265,21 @@ export default function FeedbackAnalysisModal({ item, itemType = "hotel", onClos
               )}
             </div>
 
-            {/* Most Mentioned Keywords */}
+            {/* Keywords */}
             {analytics.keywords.length > 0 && (
               <div style={{ marginTop: 20 }}>
-                <h4 style={{ fontSize: 11, textTransform: "uppercase", color: "#94a3b8", letterSpacing: 1.5, marginBottom: 8, fontWeight: 700, display: "flex", alignItems: "center", gap: 6 }}>
-                  <FaHashtag style={{ color: "#38bdf8" }} /> Most Mentioned Keywords
+                <h4 style={{ fontSize: 11, textTransform: "uppercase", color: "#6B7280", letterSpacing: "1.5px", marginBottom: 8, fontWeight: 700, display: "flex", alignItems: "center", gap: 6 }}>
+                  <FaHashtag style={{ color: "#2563EB" }} /> Most Mentioned Keywords
                 </h4>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                   {analytics.keywords.map((kw, i) => (
-                    <span key={i} style={{ background: "#1e293b", color: "#e2e8f0", border: "1px solid rgba(255,255,255,0.1)", padding: "4px 12px", borderRadius: 12, fontSize: 12, display: "flex", alignItems: "center", gap: 6 }}>
-                      {kw.label} <strong style={{ color: "#38bdf8" }}>{kw.count}</strong>
+                    <span key={i} style={{
+                      background: "#F3F4F6", color: "#374151",
+                      border: "1px solid #E5E7EB",
+                      padding: "4px 12px", borderRadius: 12, fontSize: 12,
+                      display: "flex", alignItems: "center", gap: 6,
+                    }}>
+                      {kw.label} <strong style={{ color: "#2563EB" }}>{kw.count}</strong>
                     </span>
                   ))}
                 </div>
@@ -290,14 +288,14 @@ export default function FeedbackAnalysisModal({ item, itemType = "hotel", onClos
 
             {/* Category Progress Bars */}
             <div style={{ marginTop: 20 }}>
-              <h4 style={{ fontSize: 11, textTransform: "uppercase", color: "#94a3b8", letterSpacing: 1.5, marginBottom: 10, fontWeight: 700 }}>
+              <h4 style={{ fontSize: 11, textTransform: "uppercase", color: "#6B7280", letterSpacing: "1.5px", marginBottom: 10, fontWeight: 700 }}>
                 Experience Performance Dimensions
               </h4>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                 {categoryDimensions.map((cat, idx) => (
                   <div key={idx} style={styles.catCard}>
                     <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 6 }}>
-                      <span style={{ color: "#f8fafc", fontWeight: 600 }}>{cat.name}</span>
+                      <span style={{ color: "#374151", fontWeight: 600 }}>{cat.name}</span>
                       <span style={{ color: cat.color, fontWeight: 800 }}>{cat.score}%</span>
                     </div>
                     <div style={styles.track}>
@@ -308,16 +306,16 @@ export default function FeedbackAnalysisModal({ item, itemType = "hotel", onClos
               </div>
             </div>
 
-            {/* Highlights (Pros & Cons) */}
+            {/* Pros & Cons */}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 20 }}>
               <div style={styles.highlightCardPositive}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, color: "#10b981", fontWeight: 700, fontSize: 13, marginBottom: 10 }}>
-                  <FaThumbsUp /> Top Pros & Guest Praise
+                <div style={{ display: "flex", alignItems: "center", gap: 8, color: "#059669", fontWeight: 700, fontSize: 13, marginBottom: 10 }}>
+                  <FaThumbsUp /> Top Pros &amp; Guest Praise
                 </div>
                 <ul style={styles.list}>
                   {analytics.pros.map((pos, idx) => (
                     <li key={idx} style={styles.listItem}>
-                      <FaCheckCircle color="#10b981" size={12} style={{ flexShrink: 0, marginTop: 2 }} />
+                      <FaCheckCircle color="#059669" size={12} style={{ flexShrink: 0, marginTop: 2 }} />
                       <span>{pos}</span>
                     </li>
                   ))}
@@ -325,25 +323,28 @@ export default function FeedbackAnalysisModal({ item, itemType = "hotel", onClos
               </div>
 
               <div style={styles.highlightCardNegative}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, color: "#ef4444", fontWeight: 700, fontSize: 13, marginBottom: 10 }}>
-                  <FaThumbsDown /> Common Cons & Improvement Areas
+                <div style={{ display: "flex", alignItems: "center", gap: 8, color: "#DC2626", fontWeight: 700, fontSize: 13, marginBottom: 10 }}>
+                  <FaThumbsDown /> Common Cons &amp; Improvement Areas
                 </div>
                 <ul style={styles.list}>
                   {analytics.cons.length > 0 ? (
                     analytics.cons.map((neg, idx) => (
                       <li key={idx} style={styles.listItem}>
-                        <span style={{ color: "#ef4444", fontWeight: 800, fontSize: 12 }}>•</span>
+                        <span style={{ color: "#DC2626", fontWeight: 800, fontSize: 12 }}>•</span>
                         <span>{neg}</span>
                       </li>
                     ))
                   ) : (
-                    <li style={{ ...styles.listItem, color: "#94a3b8", fontStyle: "italic" }}>No negative issues reported</li>
+                    <li style={{ ...styles.listItem, color: "#9CA3AF", fontStyle: "italic" }}>No negative issues reported</li>
                   )}
                 </ul>
               </div>
             </div>
+
           </div>
         )}
+
+        <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
       </div>
     </div>
   );
@@ -351,113 +352,101 @@ export default function FeedbackAnalysisModal({ item, itemType = "hotel", onClos
 
 const styles = {
   overlay: {
-    position: "fixed",
-    top: 0, left: 0, right: 0, bottom: 0,
-    background: "rgba(6, 9, 19, 0.75)",
-    backdropFilter: "blur(8px)",
+    position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
+    background: "rgba(15,23,42,0.45)",
+    backdropFilter: "blur(6px)",
     display: "flex", alignItems: "center", justifyContent: "center",
-    zIndex: 99999,
-    padding: 20,
+    zIndex: 99999, padding: 20,
   },
   modal: {
-    background: "#0f172a",
-    border: "1px solid rgba(255, 255, 255, 0.1)",
+    background: "#FFFFFF",
+    border: "1px solid #E5E7EB",
     borderRadius: 24,
-    width: "100%",
-    maxWidth: 780,
-    maxHeight: "90vh",
-    overflowY: "auto",
-    color: "#f8fafc",
-    boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.7)",
+    width: "100%", maxWidth: 780,
+    maxHeight: "90vh", overflowY: "auto",
+    color: "#111827",
+    boxShadow: "0 25px 60px rgba(15,23,42,0.20)",
     padding: 28,
   },
   header: {
     display: "flex", alignItems: "flex-start", justifyContent: "space-between",
-    paddingBottom: 16,
-    borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
+    paddingBottom: 16, borderBottom: "1px solid #E5E7EB",
   },
   iconWrap: {
     width: 48, height: 48, borderRadius: 14,
-    background: "#1e293b",
-    border: "1px solid rgba(255, 255, 255, 0.1)",
+    background: "#F3F4F6",
+    border: "1px solid #E5E7EB",
     display: "flex", alignItems: "center", justifyContent: "center",
   },
   categoryBadge: {
-    fontSize: 10, fontWeight: 800, color: "#38bdf8",
-    letterSpacing: 1.5, marginBottom: 4,
+    fontSize: 10, fontWeight: 800, color: "#2563EB",
+    letterSpacing: "1.5px", marginBottom: 4,
   },
-  title: { margin: 0, fontSize: 20, fontWeight: 800, color: "#ffffff" },
-  subtitle: { margin: 0, marginTop: 2, fontSize: 13, color: "#94a3b8" },
+  title: { margin: 0, fontSize: 20, fontWeight: 800, color: "#111827" },
+  subtitle: { margin: 0, marginTop: 2, fontSize: 13, color: "#6B7280" },
   closeBtn: {
-    background: "#1e293b",
-    border: "1px solid rgba(255, 255, 255, 0.1)",
-    color: "#94a3b8",
+    background: "#F9FAFB",
+    border: "1px solid #E5E7EB",
+    color: "#6B7280",
     width: 36, height: 36, borderRadius: "50%",
     display: "flex", alignItems: "center", justifyContent: "center",
-    cursor: "pointer", fontSize: 14, transition: "all 0.2s",
+    cursor: "pointer", fontSize: 14, transition: "all 0.2s", flexShrink: 0,
   },
   loadingBox: { padding: "60px 0", textAlign: "center" },
   body: { paddingTop: 16 },
   scoreBanner: {
-    background: "#1e293b",
-    border: "1px solid rgba(255, 255, 255, 0.1)",
-    borderRadius: 16,
-    padding: 16,
+    background: "#F8FAFC",
+    border: "1px solid #E5E7EB",
+    borderRadius: 16, padding: 16,
     display: "flex", alignItems: "center", justifyContent: "space-between",
     marginBottom: 16,
   },
   scoreBadge: {
     display: "flex", alignItems: "baseline", gap: 4,
-    background: "rgba(16,185,129,0.15)",
-    border: "1px solid rgba(16,185,129,0.3)",
+    background: "rgba(5,150,105,0.08)",
+    border: "1px solid rgba(5,150,105,0.2)",
     padding: "6px 14px", borderRadius: 12,
   },
   confidencePill: {
     display: "flex", alignItems: "center", gap: 10,
-    background: "rgba(16,185,129,0.12)",
-    border: "1px solid rgba(16,185,129,0.25)",
+    background: "rgba(5,150,105,0.08)",
+    border: "1px solid rgba(5,150,105,0.2)",
     padding: "8px 14px", borderRadius: 12,
   },
   aiSummaryCard: {
-    background: "linear-gradient(135deg, rgba(192,132,252,0.1) 0%, rgba(15,23,42,0.9) 100%)",
-    border: "1px solid rgba(192,132,252,0.25)",
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
+    background: "rgba(99,102,241,0.05)",
+    border: "1px solid rgba(99,102,241,0.2)",
+    borderRadius: 16, padding: 16, marginBottom: 16,
   },
   tabContainer: { display: "flex", gap: 10, marginBottom: 16 },
   tabBtn: {
     flex: 1, padding: "10px", borderRadius: 10,
-    border: "1px solid rgba(255, 255, 255, 0.1)",
     cursor: "pointer", fontSize: 12, fontWeight: 700,
     display: "flex", alignItems: "center", justifyContent: "center",
     transition: "all 0.2s", fontFamily: "inherit",
   },
   chartBox: {
-    background: "#1e293b",
-    border: "1px solid rgba(255, 255, 255, 0.1)",
+    background: "#F9FAFB",
+    border: "1px solid #E5E7EB",
     borderRadius: 16, padding: 16,
   },
   catCard: {
-    background: "#1e293b",
-    border: "1px solid rgba(255, 255, 255, 0.1)",
+    background: "#F9FAFB",
+    border: "1px solid #E5E7EB",
     borderRadius: 12, padding: 12,
   },
-  track: {
-    width: "100%", height: 6,
-    background: "#0f172a", borderRadius: 3, overflow: "hidden",
-  },
+  track: { width: "100%", height: 6, background: "#E5E7EB", borderRadius: 3, overflow: "hidden" },
   fill: { height: "100%", borderRadius: 3, transition: "width 0.6s ease-out" },
   highlightCardPositive: {
-    background: "rgba(16,185,129,0.08)",
-    border: "1px solid rgba(16,185,129,0.2)",
+    background: "rgba(5,150,105,0.06)",
+    border: "1px solid rgba(5,150,105,0.2)",
     borderRadius: 14, padding: 16,
   },
   highlightCardNegative: {
-    background: "rgba(239,68,68,0.08)",
-    border: "1px solid rgba(239,68,68,0.2)",
+    background: "rgba(220,38,38,0.05)",
+    border: "1px solid rgba(220,38,38,0.15)",
     borderRadius: 14, padding: 16,
   },
   list: { listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 8 },
-  listItem: { fontSize: 12, color: "#cbd5e1", display: "flex", alignItems: "flex-start", gap: 8, lineHeight: 1.4 },
+  listItem: { fontSize: 12, color: "#374151", display: "flex", alignItems: "flex-start", gap: 8, lineHeight: 1.5 },
 };

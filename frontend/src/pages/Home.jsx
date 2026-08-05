@@ -662,69 +662,6 @@ function Home() {
         </div>
       </section>
 
-      {/* ═══════════════════════════════════════════════════════
-          18. CONTACT SECTION
-          ═══════════════════════════════════════════════════════ */}
-      <section className="hp-section animate-on-scroll" id="contact-section">
-        <div className="hp-container">
-          <div className="hp-section-header">
-            <div>
-              <div className="hp-section-tag"><FaEnvelope /> Get in Touch</div>
-              <h2 className="hp-section-title">Contact Us</h2>
-              <p className="hp-section-subtitle" style={{ marginBottom: 0 }}>
-                Have questions? Our team is here to help 24/7.
-              </p>
-            </div>
-          </div>
-
-          <div className="contact-grid">
-            <div className="contact-info-list">
-              <div className="contact-info-item">
-                <div className="contact-info-icon"><FaEnvelope /></div>
-                <div className="contact-info-text">
-                  <h4>Email</h4>
-                  <p>support@travelai.com</p>
-                </div>
-              </div>
-              <div className="contact-info-item">
-                <div className="contact-info-icon"><FaPhone /></div>
-                <div className="contact-info-text">
-                  <h4>Phone</h4>
-                  <p>+91 98765 43210</p>
-                </div>
-              </div>
-              <div className="contact-info-item">
-                <div className="contact-info-icon"><FaLocationArrow /></div>
-                <div className="contact-info-text">
-                  <h4>Address</h4>
-                  <p>123 AI Tower, Tech City, Bangalore 560001</p>
-                </div>
-              </div>
-            </div>
-
-            {contactSubmitted ? (
-              <div className="glass-card" style={{ padding: 40, textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-                <div style={{ fontSize: 48, marginBottom: 16 }}>✅</div>
-                <h3 style={{ margin: "0 0 8px", fontSize: 20 }}>Message Sent!</h3>
-                <p style={{ color: "#94a3b8", fontSize: 14 }}>We'll get back to you within 24 hours.</p>
-                <button className="btn-secondary btn-sm" style={{ marginTop: 16 }} onClick={() => setContactSubmitted(false)}>Send another</button>
-              </div>
-            ) : (
-              <form className="contact-form" onSubmit={handleContactSubmit}>
-                <div className="contact-form-row">
-                  <input type="text" placeholder="Your Name" value={contactForm.name} onChange={e => setContactForm({ ...contactForm, name: e.target.value })} required />
-                  <input type="email" placeholder="Your Email" value={contactForm.email} onChange={e => setContactForm({ ...contactForm, email: e.target.value })} required />
-                </div>
-                <input type="text" placeholder="Subject" value={contactForm.subject} onChange={e => setContactForm({ ...contactForm, subject: e.target.value })} required />
-                <textarea rows={5} placeholder="Your message..." value={contactForm.message} onChange={e => setContactForm({ ...contactForm, message: e.target.value })} required style={{ resize: "vertical" }} />
-                <button type="submit" className="btn-primary" style={{ justifyContent: "center" }}>
-                  <FaPaperPlane size={14} /> Send Message
-                </button>
-              </form>
-            )}
-          </div>
-        </div>
-      </section>
 
       {/* ═══════════════════════════════════════════════════════
           19. FOOTER

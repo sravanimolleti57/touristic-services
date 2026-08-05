@@ -3,17 +3,10 @@ import { FaSearch } from "react-icons/fa";
 
 export default function SearchBar({ value, onChange, placeholder = "Search destinations, hotels, or flights..." }) {
   return (
-    <div style={{
-      position: "relative",
-      maxWidth: 600,
-      width: "100%"
-    }}>
+    <div style={{ position: "relative", maxWidth: 600, width: "100%" }}>
       <FaSearch style={{
-        position: "absolute",
-        left: 16,
-        top: "50%",
-        transform: "translateY(-50%)",
-        color: "#94a3b8"
+        position: "absolute", left: 16, top: "50%",
+        transform: "translateY(-50%)", color: "#9CA3AF", pointerEvents: "none",
       }} />
       <input
         type="text"
@@ -22,13 +15,24 @@ export default function SearchBar({ value, onChange, placeholder = "Search desti
         placeholder={placeholder}
         style={{
           width: "100%",
-          padding: "14px 20px 14px 48px",
-          background: "rgba(30, 41, 59, 0.8)",
-          border: "1px solid rgba(255, 255, 255, 0.15)",
+          padding: "13px 20px 13px 46px",
+          background: "#FFFFFF",
+          border: "1px solid #DCE5F2",
           borderRadius: 12,
-          color: "#fff",
+          color: "#111827",
           fontSize: "1rem",
-          outline: "none"
+          outline: "none",
+          boxSizing: "border-box",
+          fontFamily: "inherit",
+          transition: "border-color 0.2s, box-shadow 0.2s",
+        }}
+        onFocus={e => {
+          e.target.style.borderColor = "#2563EB";
+          e.target.style.boxShadow = "0 0 0 3px rgba(37,99,235,0.10)";
+        }}
+        onBlur={e => {
+          e.target.style.borderColor = "#DCE5F2";
+          e.target.style.boxShadow = "none";
         }}
       />
     </div>

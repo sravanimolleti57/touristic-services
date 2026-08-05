@@ -10,18 +10,26 @@ export default function AISummary({ summary = "" }) {
       initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: 0.35 }}
-      className="p-5 rounded-2xl bg-gradient-to-br from-indigo-950/40 via-slate-900 to-slate-950 border border-indigo-500/30 backdrop-blur-md shadow-xl relative overflow-hidden"
+      style={{
+        padding: 18, borderRadius: 14,
+        background: "rgba(99,102,241,0.05)",
+        border: "1px solid rgba(99,102,241,0.2)",
+        position: "relative", overflow: "hidden",
+      }}
     >
-      <div className="flex items-center gap-2 mb-2">
-        <FaBrain className="text-indigo-400 text-base animate-pulse" />
-        <h4 className="text-sm uppercase tracking-wider font-bold text-indigo-300">
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+        <FaBrain style={{ color: "#6366F1", fontSize: 14 }} />
+        <h4 style={{ margin: 0, fontSize: 11, textTransform: "uppercase", letterSpacing: "0.5px", fontWeight: 800, color: "#6366F1" }}>
           AI Experience Summary
         </h4>
       </div>
 
-      <div className="relative pt-1">
-        <FaQuoteLeft className="text-indigo-500/20 text-3xl absolute -top-2 -left-1 pointer-events-none" />
-        <p className="text-xs text-slate-300 leading-relaxed pl-5 font-normal">
+      <div style={{ position: "relative", paddingLeft: 20 }}>
+        <FaQuoteLeft style={{
+          color: "rgba(99,102,241,0.15)", fontSize: 28,
+          position: "absolute", top: -2, left: -2, pointerEvents: "none",
+        }} />
+        <p style={{ margin: 0, fontSize: 12, color: "#374151", lineHeight: 1.65 }}>
           {summary}
         </p>
       </div>

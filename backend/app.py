@@ -36,7 +36,7 @@ try:
         model="cardiffnlp/twitter-roberta-base-sentiment-latest"
     )
     print("Sentiment AI Loaded Successfully!")
-except Exception as e:
+except BaseException as e:
     print("Sentiment AI Pipeline loading warning (continuing with fallback):", e)
     classifier = None
 
@@ -271,6 +271,190 @@ def cancel_flight(booking_id):
     return jsonify({
         "message": "Flight booking cancelled successfully!"
     })
+
+
+# ───────────────── AVIATIONSTACK PROXY ──────────────────────────── #
+# All three endpoints proxy calls through Flask so:
+#   • The API key never leaves the server
+#   • CORS is handled cleanly (no browser→external-API issues)
+#   • Free-tier HTTP-only restriction is satisfied
+# Falls back to deterministic simulated data when key is empty.
+
+import requests as _requests
+
+_AVIATION_BASE = "http://api.aviationstack.com/v1"
+
+# Shared Indian airport/airline seed for simulated fallback
+_SIM_FLIGHTS = [
+    {"flightNo":"AI-101","airline":"Air India","from":"Delhi","fromIata":"DEL","to":"Mumbai","toIata":"BOM","departure":"06:00","arrival":"08:10","duration":"2h 10m","stops":"Non-stop","terminal":{"dep":"T3","arr":"T2"},"gate":{"dep":"G12","arr":"G7"},"status":"scheduled","delay":0},
+    {"flightNo":"6E-201","airline":"IndiGo","from":"Delhi","fromIata":"DEL","to":"Mumbai","toIata":"BOM","departure":"08:30","arrival":"10:45","duration":"2h 15m","stops":"Non-stop","terminal":{"dep":"T1","arr":"T1"},"gate":{"dep":"G5","arr":"G3"},"status":"active","delay":0},
+    {"flightNo":"UK-963","airline":"Vistara","from":"Delhi","fromIata":"DEL","to":"Mumbai","toIata":"BOM","departure":"10:00","arrival":"12:15","duration":"2h 15m","stops":"Non-stop","terminal":{"dep":"T3","arr":"T2"},"gate":{"dep":"G22","arr":"G9"},"status":"scheduled","delay":0},
+    {"flightNo":"AI-803","airline":"Air India","from":"Delhi","fromIata":"DEL","to":"Bangalore","toIata":"BLR","departure":"07:45","arrival":"10:30","duration":"2h 45m","stops":"Non-stop","terminal":{"dep":"T3","arr":"T1"},"gate":{"dep":"G18","arr":"G4"},"status":"scheduled","delay":0},
+    {"flightNo":"6E-305","airline":"IndiGo","from":"Delhi","fromIata":"DEL","to":"Bangalore","toIata":"BLR","departure":"14:20","arrival":"17:15","duration":"2h 55m","stops":"Non-stop","terminal":{"dep":"T1","arr":"T1"},"gate":{"dep":"G7","arr":"G6"},"status":"delayed","delay":25},
+    {"flightNo":"UK-827","airline":"Vistara","from":"Delhi","fromIata":"DEL","to":"Kolkata","toIata":"CCU","departure":"09:15","arrival":"11:30","duration":"2h 15m","stops":"Non-stop","terminal":{"dep":"T3","arr":"T1"},"gate":{"dep":"G14","arr":"G2"},"status":"scheduled","delay":0},
+    {"flightNo":"SG-141","airline":"SpiceJet","from":"Delhi","fromIata":"DEL","to":"Goa","toIata":"GOI","departure":"06:30","arrival":"09:10","duration":"2h 40m","stops":"Non-stop","terminal":{"dep":"T1D","arr":"T1"},"gate":{"dep":"G2","arr":"G11"},"status":"landed","delay":0},
+    {"flightNo":"UK-955","airline":"Vistara","from":"Mumbai","fromIata":"BOM","to":"Goa","toIata":"GOI","departure":"11:15","arrival":"12:30","duration":"1h 15m","stops":"Non-stop","terminal":{"dep":"T2","arr":"T1"},"gate":{"dep":"G31","arr":"G8"},"status":"scheduled","delay":0},
+    {"flightNo":"6E-508","airline":"IndiGo","from":"Mumbai","fromIata":"BOM","to":"Goa","toIata":"GOI","departure":"15:00","arrival":"16:10","duration":"1h 10m","stops":"Non-stop","terminal":{"dep":"T1","arr":"T1"},"gate":{"dep":"G9","arr":"G5"},"status":"active","delay":0},
+    {"flightNo":"AI-617","airline":"Air India","from":"Mumbai","fromIata":"BOM","to":"Delhi","toIata":"DEL","departure":"16:45","arrival":"18:55","duration":"2h 10m","stops":"Non-stop","terminal":{"dep":"T2","arr":"T3"},"gate":{"dep":"G16","arr":"G20"},"status":"scheduled","delay":0},
+    {"flightNo":"6E-702","airline":"IndiGo","from":"Bangalore","fromIata":"BLR","to":"Hyderabad","toIata":"HYD","departure":"09:30","arrival":"10:45","duration":"1h 15m","stops":"Non-stop","terminal":{"dep":"T1","arr":"T1"},"gate":{"dep":"G3","arr":"G1"},"status":"scheduled","delay":0},
+    {"flightNo":"AI-501","airline":"Air India","from":"Bangalore","fromIata":"BLR","to":"Delhi","toIata":"DEL","departure":"12:00","arrival":"14:40","duration":"2h 40m","stops":"Non-stop","terminal":{"dep":"T1","arr":"T3"},"gate":{"dep":"G8","arr":"G15"},"status":"active","delay":0},
+]
+
+def _call_aviationstack(endpoint, params):
+    """
+    Calls AviationStack API. Returns (data_list, source_str).
+    Falls back to simulated data if key is missing or on any error.
+    """
+    key = os.getenv("AVIATIONSTACK_KEY", "").strip()
+    if not key:
+        return _simulated_flights(params), "simulated"
+
+    try:
+        query = {"access_key": key, "limit": params.get("limit", 20)}
+        if params.get("dep_iata"):
+            query["dep_iata"] = params["dep_iata"]
+        if params.get("arr_iata"):
+            query["arr_iata"] = params["arr_iata"]
+        if params.get("flight_iata"):
+            query["flight_iata"] = params["flight_iata"]
+
+        resp = _requests.get(
+            f"{_AVIATION_BASE}/{endpoint}",
+            params=query,
+            timeout=10
+        )
+
+        if resp.status_code == 429:
+            print("AviationStack rate limit hit, using simulated data")
+            return _simulated_flights(params), "simulated"
+
+        resp.raise_for_status()
+        body = resp.json()
+
+        if body.get("error"):
+            print("AviationStack API error:", body["error"])
+            return _simulated_flights(params), "simulated"
+
+        raw = body.get("data") or []
+        normalized = [_normalize_flight(f) for f in raw]
+        return normalized, "live"
+
+    except Exception as e:
+        print(f"AviationStack request failed ({e}), using simulated data")
+        return _simulated_flights(params), "simulated"
+
+
+def _normalize_flight(f):
+    """Normalize an AviationStack flight object into our standard schema."""
+    dep = f.get("departure") or {}
+    arr = f.get("arrival") or {}
+    return {
+        "flightNo": (f.get("flight") or {}).get("iata") or "—",
+        "airline":  (f.get("airline") or {}).get("name") or "Unknown",
+        "from":     dep.get("airport") or "—",
+        "fromIata": dep.get("iata") or "—",
+        "to":       arr.get("airport") or "—",
+        "toIata":   arr.get("iata") or "—",
+        "departure": (dep.get("estimated") or dep.get("scheduled") or "—")[-8:-3] if (dep.get("estimated") or dep.get("scheduled")) else "—",
+        "arrival":   (arr.get("estimated") or arr.get("scheduled") or "—")[-8:-3] if (arr.get("estimated") or arr.get("scheduled")) else "—",
+        "scheduledDep": dep.get("scheduled") or "—",
+        "scheduledArr": arr.get("scheduled") or "—",
+        "estimatedDep": dep.get("estimated") or "—",
+        "estimatedArr": arr.get("estimated") or "—",
+        "actualDep":    dep.get("actual") or None,
+        "actualArr":    arr.get("actual") or None,
+        "terminal":  {"dep": dep.get("terminal") or "—", "arr": arr.get("terminal") or "—"},
+        "gate":      {"dep": dep.get("gate") or "—",     "arr": arr.get("gate") or "—"},
+        "status":    f.get("flight_status") or "unknown",
+        "delay":     dep.get("delay") or 0,
+        "stops":     "Non-stop",
+        "duration":  "—",
+    }
+
+
+def _simulated_flights(params):
+    """Return deterministic simulated flights filtered by dep/arr IATA."""
+    import random as _rand
+    dep = (params.get("dep_iata") or "").upper()
+    arr = (params.get("arr_iata") or "").upper()
+    flight_no = (params.get("flight_iata") or "").upper()
+
+    results = list(_SIM_FLIGHTS)
+
+    if flight_no:
+        results = [f for f in results if flight_no.replace("-","") in f["flightNo"].replace("-","")]
+    else:
+        if dep:
+            results = [f for f in results if f["fromIata"] == dep]
+        if arr:
+            results = [f for f in results if f["toIata"] == arr]
+
+    # Randomise status slightly for realism (but keep delays consistent)
+    statuses = ["scheduled", "active", "landed", "delayed"]
+    _rand.seed(42)
+    for fl in results:
+        if fl["status"] not in ("delayed", "landed"):
+            fl["status"] = _rand.choice(statuses[:3])
+
+    limit = params.get("limit", 20)
+    return results[:limit] if results else _SIM_FLIGHTS[:limit]
+
+
+@app.route("/api/flights/search", methods=["GET"])
+def api_flights_search():
+    """
+    Search flights by departure/arrival airport IATA codes.
+    Query params: dep_iata, arr_iata, date (unused by AviationStack free), limit
+    """
+    try:
+        params = {
+            "dep_iata": request.args.get("dep_iata", "").upper() or None,
+            "arr_iata": request.args.get("arr_iata", "").upper() or None,
+            "limit":    int(request.args.get("limit", 20)),
+        }
+        data, source = _call_aviationstack("flights", params)
+        return jsonify({"success": True, "data": data, "source": source, "count": len(data)})
+    except Exception as e:
+        print("Flight search error:", e)
+        return jsonify({"success": False, "error": str(e), "data": [], "source": "error"}), 500
+
+
+@app.route("/api/flights/status", methods=["GET"])
+def api_flights_status():
+    """
+    Get live status for a specific flight by IATA flight number.
+    Query params: flight_iata (e.g. AI101)
+    """
+    try:
+        flight_iata = request.args.get("flight_iata", "").upper()
+        if not flight_iata:
+            return jsonify({"success": False, "error": "flight_iata is required"}), 400
+
+        params = {"flight_iata": flight_iata, "limit": 1}
+        data, source = _call_aviationstack("flights", params)
+        flight = data[0] if data else None
+        return jsonify({"success": True, "data": flight, "source": source})
+    except Exception as e:
+        print("Flight status error:", e)
+        return jsonify({"success": False, "error": str(e), "data": None, "source": "error"}), 500
+
+
+@app.route("/api/flights/live", methods=["GET"])
+def api_flights_live():
+    """
+    Live departure board — returns up to 15 current flights.
+    Query params: dep_iata (optional), limit (optional)
+    """
+    try:
+        params = {
+            "dep_iata": request.args.get("dep_iata", "").upper() or None,
+            "limit":    int(request.args.get("limit", 15)),
+        }
+        data, source = _call_aviationstack("flights", params)
+        return jsonify({"success": True, "data": data[:15], "source": source, "count": len(data[:15])})
+    except Exception as e:
+        print("Live flights error:", e)
+        return jsonify({"success": False, "error": str(e), "data": [], "source": "error"}), 500
 # ---------------- GET PROFILE ---------------- #
 
 @app.route("/profile/<email>", methods=["GET"])

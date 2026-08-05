@@ -13,50 +13,54 @@ export default function ReviewAnalytics({ reviews = [] }) {
 
   if (loading) {
     return (
-      <div className="p-6 rounded-2xl bg-slate-900/90 border border-slate-800 text-slate-300 flex flex-col items-center justify-center min-h-[280px] gap-3">
-        <FaSpinner className="text-3xl text-sky-400 animate-spin" />
-        <span className="text-xs font-medium text-slate-400">Computing Emotion Pie Chart...</span>
+      <div style={{
+        padding: 24, borderRadius: 16, minHeight: 280,
+        background: "#FFFFFF", border: "1px solid #E5E7EB",
+        display: "flex", flexDirection: "column", alignItems: "center",
+        justifyContent: "center", gap: 12,
+        boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+      }}>
+        <FaSpinner style={{ fontSize: 28, color: "#2563EB", animation: "spin 1s linear infinite" }} />
+        <span style={{ fontSize: 12, color: "#6B7280", fontWeight: 500 }}>Computing Emotion Pie Chart...</span>
+        <style>{`@keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }`}</style>
       </div>
     );
   }
 
   if (!reviews || reviews.length === 0) {
     return (
-      <div className="p-6 rounded-2xl bg-slate-900/90 border border-slate-800 text-slate-400 text-center flex flex-col items-center gap-2">
-        <FaExclamationCircle className="text-2xl text-slate-500 mb-1" />
-        <h4 className="text-sm font-bold text-slate-300">No Review Analytics Available</h4>
-        <p className="text-[11px] text-slate-400">Submit a hotel review to generate the Emotion Pie Chart and statistics.</p>
+      <div style={{
+        padding: 24, borderRadius: 16, textAlign: "center",
+        background: "#FFFFFF", border: "1px solid #E5E7EB",
+        display: "flex", flexDirection: "column", alignItems: "center", gap: 8,
+        boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+      }}>
+        <FaExclamationCircle style={{ fontSize: 22, color: "#D1D5DB", marginBottom: 4 }} />
+        <h4 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: "#374151" }}>No Review Analytics Available</h4>
+        <p style={{ margin: 0, fontSize: 12, color: "#9CA3AF" }}>
+          Submit a hotel review to generate the Emotion Pie Chart and statistics.
+        </p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4 text-slate-100 font-sans">
+    <div style={{
+      display: "flex", flexDirection: "column", gap: 16,
+      color: "#111827", fontFamily: "'Inter','Segoe UI',system-ui,sans-serif",
+    }}>
       {/* Dashboard Title */}
-      <div className="flex items-center gap-2 px-1">
-        <FaChartPie className="text-sky-400 text-base" />
-        <h3 className="text-base font-extrabold tracking-tight text-white">
+      <div style={{ display: "flex", alignItems: "center", gap: 8, paddingLeft: 4 }}>
+        <FaChartPie style={{ color: "#2563EB", fontSize: 15 }} />
+        <h3 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: "#111827", letterSpacing: "-0.01em" }}>
           Analytics Dashboard
         </h3>
       </div>
 
-      {/* 1. Large Animated Pie Chart Centerpiece */}
-      <EmotionChart
-        data={analytics.emotionPieData}
-        avgRating={analytics.avgRating}
-        totalReviews={analytics.totalReviews}
-      />
-
-      {/* 2. AI Summary Card */}
+      <EmotionChart data={analytics.emotionPieData} avgRating={analytics.avgRating} totalReviews={analytics.totalReviews} />
       <AISummary summary={analytics.aiSummary} />
-
-      {/* 3. Small Cards Grid */}
       <StatisticsCard stats={analytics} />
-
-      {/* 4. Most Mentioned Keywords */}
       <KeywordCloud keywords={analytics.keywords} />
-
-      {/* 5. Pros and Cons (Happy Customers & Improvement Areas) */}
       <ProsConsCard pros={analytics.pros} cons={analytics.cons} />
     </div>
   );

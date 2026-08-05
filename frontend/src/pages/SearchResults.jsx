@@ -14,7 +14,7 @@ import {
 } from "react-icons/fa";
 
 import { PLACES } from "../data/destinations";
-import { FLIGHTS, AIRLINE_META, fetchLiveFlights } from "../data/flights";
+import { FLIGHTS, AIRLINE_META, fetchLiveFlights, searchFlights, getFlightStatus } from "../data/flights";
 import CalendarWidget from "../components/CalendarWidget";
 import SharedNavbar from "../components/SharedNavbar";
 import FeedbackAnalysisModal from "../components/FeedbackAnalysisModal";
@@ -143,7 +143,7 @@ function HotelCard({ item, wishlist, toggleWishlist, onBook, onFeedbackAnalysis 
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
           <div>
             <h3 style={S.cardTitle}>{item.name}</h3>
-            <div style={{ display: "flex", alignItems: "center", gap: 4, color: "#94a3b8", fontSize: 12, marginTop: 3 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 4, color: "#64748B", fontSize: 12, marginTop: 3 }}>
               <FaMapMarkerAlt size={10} /> {item.location}
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4 }}>
@@ -164,8 +164,8 @@ function HotelCard({ item, wishlist, toggleWishlist, onBook, onFeedbackAnalysis 
           <button
             onClick={() => onFeedbackAnalysis(item)}
             style={{
-              flex: 1, padding: "9px 6px", borderRadius: 10, border: "1px solid #3b82f6",
-              background: "rgba(59,130,246,0.12)", color: "#93c5fd", cursor: "pointer",
+              flex: 1, padding: "9px 6px", borderRadius: 10, border: "1px solid rgba(37,99,235,0.25)",
+              background: "rgba(37,99,235,0.07)", color: "#2563EB", cursor: "pointer",
               fontSize: 11, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
               transition: "all 0.2s", fontFamily: "inherit"
             }}
@@ -238,11 +238,12 @@ function BookingModal({ hotel, onClose }) {
   };
 
   const inputStyle = {
-    width: "100%", background: "#0f172a", border: "1px solid #334155",
-    borderRadius: 10, padding: "11px 14px", color: "white", fontSize: 14,
+    width: "100%", background: "#FFFFFF", border: "1px solid #DCE5F2",
+    borderRadius: 10, padding: "11px 14px", color: "#111827", fontSize: 14,
     outline: "none", boxSizing: "border-box", transition: "border-color 0.2s",
+    fontFamily: "inherit",
   };
-  const labelStyle = { fontSize: 12, color: "#94a3b8", marginBottom: 6, display: "block", fontWeight: 600 };
+  const labelStyle = { fontSize: 12, color: "#6B7280", marginBottom: 6, display: "block", fontWeight: 600 };
   const iconWrap = { position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "#3b82f6", fontSize: 13 };
 
   if (submitted) {
@@ -251,16 +252,16 @@ function BookingModal({ hotel, onClose }) {
         <div style={MS.modal} onClick={e => e.stopPropagation()}>
           <div style={{ textAlign: "center", padding: "40px 20px" }}>
             <FaCheckCircle size={56} color="#22c55e" />
-            <h2 style={{ color: "white", marginTop: 18, fontSize: 24, fontWeight: 800 }}>Booking Confirmed!</h2>
-            <p style={{ color: "#94a3b8", fontSize: 14, marginTop: 8, lineHeight: 1.7 }}>
-              Your reservation at <strong style={{ color: "#3b82f6" }}>{hotel.name}</strong> has been submitted successfully.
+            <h2 style={{ color: "#111827", marginTop: 18, fontSize: 24, fontWeight: 800 }}>Booking Confirmed!</h2>
+            <p style={{ color: "#6B7280", fontSize: 14, marginTop: 8, lineHeight: 1.7 }}>
+              Your reservation at <strong style={{ color: "#2563EB" }}>{hotel.name}</strong> has been submitted successfully.
             </p>
-            <div style={{ background: "#0f172a", borderRadius: 14, padding: 20, marginTop: 20, textAlign: "left", border: "1px solid #334155" }}>
+            <div style={{ background: "#F8FAFC", borderRadius: 14, padding: 20, marginTop: 20, textAlign: "left", border: "1px solid #E5E7EB" }}>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                <div><div style={{ fontSize: 11, color: "#64748b", textTransform: "uppercase" }}>Guest</div><div style={{ color: "white", fontSize: 14, fontWeight: 600, marginTop: 2 }}>{formData.fullName}</div></div>
-                <div><div style={{ fontSize: 11, color: "#64748b", textTransform: "uppercase" }}>Room Type</div><div style={{ color: "white", fontSize: 14, fontWeight: 600, marginTop: 2 }}>{formData.roomType}</div></div>
-                <div><div style={{ fontSize: 11, color: "#64748b", textTransform: "uppercase" }}>Check-in</div><div style={{ color: "white", fontSize: 14, fontWeight: 600, marginTop: 2 }}>{formData.checkIn || "—"}</div></div>
-                <div><div style={{ fontSize: 11, color: "#64748b", textTransform: "uppercase" }}>Check-out</div><div style={{ color: "white", fontSize: 14, fontWeight: 600, marginTop: 2 }}>{formData.checkOut || "—"}</div></div>
+                <div><div style={{ fontSize: 11, color: "#9CA3AF", textTransform: "uppercase" }}>Guest</div><div style={{ color: "#111827", fontSize: 14, fontWeight: 600, marginTop: 2 }}>{formData.fullName}</div></div>
+                <div><div style={{ fontSize: 11, color: "#9CA3AF", textTransform: "uppercase" }}>Room Type</div><div style={{ color: "#111827", fontSize: 14, fontWeight: 600, marginTop: 2 }}>{formData.roomType}</div></div>
+                <div><div style={{ fontSize: 11, color: "#9CA3AF", textTransform: "uppercase" }}>Check-in</div><div style={{ color: "#111827", fontSize: 14, fontWeight: 600, marginTop: 2 }}>{formData.checkIn || "—"}</div></div>
+                <div><div style={{ fontSize: 11, color: "#9CA3AF", textTransform: "uppercase" }}>Check-out</div><div style={{ color: "#111827", fontSize: 14, fontWeight: 600, marginTop: 2 }}>{formData.checkOut || "—"}</div></div>
               </div>
             </div>
             <button onClick={onClose} style={{ marginTop: 24, padding: "12px 36px", borderRadius: 10, border: "none", background: "linear-gradient(to right, #3b82f6, #8b5cf6)", color: "white", fontWeight: 700, cursor: "pointer", fontSize: 14 }}>
@@ -277,21 +278,21 @@ function BookingModal({ hotel, onClose }) {
       <div style={MS.modal} onClick={e => e.stopPropagation()}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
           <div>
-            <div style={{ fontSize: 11, color: "#93c5fd", fontWeight: 700, textTransform: "uppercase", letterSpacing: 2, marginBottom: 6 }}>Hotel Booking</div>
-            <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: "white" }}>{hotel.name}</h2>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 6, color: "#94a3b8", fontSize: 13 }}>
+            <div style={{ fontSize: 11, color: "#2563EB", fontWeight: 700, textTransform: "uppercase", letterSpacing: 2, marginBottom: 6 }}>Hotel Booking</div>
+            <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: "#111827" }}>{hotel.name}</h2>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 6, color: "#6B7280", fontSize: 13 }}>
               <FaMapMarkerAlt size={11} /> {hotel.location}
-              <span style={{ margin: "0 4px", color: "#334155" }}>·</span>
-              <span style={{ color: "#3b82f6", fontWeight: 700 }}>{hotel.price}</span>
+              <span style={{ margin: "0 4px", color: "#D1D5DB" }}>·</span>
+              <span style={{ color: "#2563EB", fontWeight: 700 }}>{hotel.price}</span>
             </div>
           </div>
-          <button onClick={onClose} style={{ background: "#334155", border: "none", borderRadius: "50%", width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#94a3b8", fontSize: 16, flexShrink: 0 }}>
+          <button onClick={onClose} style={{ background: "#F3F4F6", border: "1px solid #E5E7EB", borderRadius: "50%", width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#6B7280", fontSize: 16, flexShrink: 0 }}>
             <FaTimes />
           </button>
         </div>
 
         <form onSubmit={handleSubmit}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: "#93c5fd", marginBottom: 14, textTransform: "uppercase", letterSpacing: 1 }}>Personal Details</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "#2563EB", marginBottom: 14, textTransform: "uppercase", letterSpacing: 1 }}>Personal Details</div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 20 }}>
             <div>
               <label style={labelStyle}>Full Name *</label>
@@ -316,15 +317,15 @@ function BookingModal({ hotel, onClose }) {
             </div>
           </div>
 
-          <div style={{ fontSize: 13, fontWeight: 700, color: "#93c5fd", marginBottom: 14, textTransform: "uppercase", letterSpacing: 1 }}>Stay Details</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "#2563EB", marginBottom: 14, textTransform: "uppercase", letterSpacing: 1 }}>Stay Details</div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 20 }}>
             <div>
               <label style={labelStyle}>Check-in Date *</label>
-              <input required type="date" min={today} value={formData.checkIn} onChange={e => update("checkIn", e.target.value)} style={{ ...inputStyle, colorScheme: "dark" }} />
+              <input required type="date" min={today} value={formData.checkIn} onChange={e => update("checkIn", e.target.value)} style={{ ...inputStyle, colorScheme: "light" }} />
             </div>
             <div>
               <label style={labelStyle}>Check-out Date *</label>
-              <input required type="date" min={formData.checkIn || today} value={formData.checkOut} onChange={e => update("checkOut", e.target.value)} style={{ ...inputStyle, colorScheme: "dark" }} />
+              <input required type="date" min={formData.checkIn || today} value={formData.checkOut} onChange={e => update("checkOut", e.target.value)} style={{ ...inputStyle, colorScheme: "light" }} />
             </div>
             <div>
               <label style={labelStyle}>Guests</label>
@@ -351,15 +352,15 @@ function BookingModal({ hotel, onClose }) {
             </div>
           </div>
 
-          <div style={{ fontSize: 13, fontWeight: 700, color: "#93c5fd", marginBottom: 14, textTransform: "uppercase", letterSpacing: 1 }}>Payment Details</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "#2563EB", marginBottom: 14, textTransform: "uppercase", letterSpacing: 1 }}>Payment Details</div>
           <div style={{ display: "flex", gap: 10, marginBottom: 18 }}>
             {[{ key: "card", label: "Card / Debit Card" }, { key: "upi", label: "UPI" }].map(m => (
 
               <button key={m.key} type="button" onClick={() => update("paymentMethod", m.key)} style={{
-                flex: 1, padding: "12px 10px", borderRadius: 10, border: formData.paymentMethod === m.key ? "2px solid #3b82f6" : "1px solid #334155",
-                background: formData.paymentMethod === m.key ? "rgba(59,130,246,0.12)" : "#0f172a",
-                color: formData.paymentMethod === m.key ? "#93c5fd" : "#94a3b8",
-                fontWeight: 600, fontSize: 13, cursor: "pointer", transition: "all 0.2s",
+                flex: 1, padding: "12px 10px", borderRadius: 10, border: formData.paymentMethod === m.key ? "2px solid #2563EB" : "1px solid #E5E7EB",
+                background: formData.paymentMethod === m.key ? "rgba(37,99,235,0.08)" : "#F9FAFB",
+                color: formData.paymentMethod === m.key ? "#2563EB" : "#6B7280",
+                fontWeight: 600, fontSize: 13, cursor: "pointer", transition: "all 0.2s", fontFamily: "inherit",
               }}>{m.label}</button>
             ))}
           </div>
@@ -406,18 +407,18 @@ function BookingModal({ hotel, onClose }) {
             </div>
           )}
 
-          <div style={{ background: "#0f172a", borderRadius: 12, padding: 16, marginBottom: 20, border: "1px solid #334155", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div style={{ background: "#F8FAFC", borderRadius: 12, padding: 16, marginBottom: 20, border: "1px solid #E5E7EB", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div>
-              <div style={{ fontSize: 12, color: "#64748b", textTransform: "uppercase" }}>Total Amount</div>
-              <div style={{ fontSize: 22, fontWeight: 900, color: "#22c55e", marginTop: 2 }}>{hotel.price}</div>
+              <div style={{ fontSize: 12, color: "#9CA3AF", textTransform: "uppercase" }}>Total Amount</div>
+              <div style={{ fontSize: 22, fontWeight: 900, color: "#059669", marginTop: 2 }}>{hotel.price}</div>
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, color: "#64748b", fontSize: 11 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, color: "#9CA3AF", fontSize: 11 }}>
               <FaLock size={10} /> Secure Payment
             </div>
           </div>
 
           <div style={{ marginBottom: 20 }}>
-            <label style={{ display: "flex", alignItems: "flex-start", gap: 10, cursor: "pointer", fontSize: 13, color: "#94a3b8", lineHeight: 1.5 }}>
+            <label style={{ display: "flex", alignItems: "flex-start", gap: 10, cursor: "pointer", fontSize: 13, color: "#6B7280", lineHeight: 1.5 }}>
               <input type="checkbox" checked={termsAccepted} onChange={e => setTermsAccepted(e.target.checked)} style={{ accentColor: "#3b82f6", marginTop: 3, width: 16, height: 16, flexShrink: 0, cursor: "pointer" }} />
               <span>
                 I agree to the{" "}
@@ -428,19 +429,19 @@ function BookingModal({ hotel, onClose }) {
               </span>
             </label>
             {showTerms && (
-              <div style={{ marginTop: 12, background: "#0f172a", border: "1px solid #334155", borderRadius: 12, padding: 18, maxHeight: 180, overflowY: "auto", fontSize: 12, color: "#94a3b8", lineHeight: 1.8 }}>
-                <div style={{ fontWeight: 700, color: "#93c5fd", marginBottom: 10, fontSize: 13 }}>Hotel Booking Terms & Conditions</div>
+              <div style={{ marginTop: 12, background: "#F8FAFC", border: "1px solid #E5E7EB", borderRadius: 12, padding: 18, maxHeight: 180, overflowY: "auto", fontSize: 12, color: "#6B7280", lineHeight: 1.8 }}>
+                <div style={{ fontWeight: 700, color: "#2563EB", marginBottom: 10, fontSize: 13 }}>Hotel Booking Terms & Conditions</div>
                 <ol style={{ paddingLeft: 18, margin: 0 }}>
-                  <li style={{ marginBottom: 8 }}><strong style={{ color: "#cbd5e1" }}>Booking Confirmation:</strong> All bookings are subject to availability. A confirmation email will be sent upon successful booking.</li>
-                  <li style={{ marginBottom: 8 }}><strong style={{ color: "#cbd5e1" }}>Check-in / Check-out:</strong> Standard check-in 2:00 PM, check-out 12:00 PM.</li>
-                  <li style={{ marginBottom: 8 }}><strong style={{ color: "#cbd5e1" }}>Cancellation:</strong> Free cancellation up to 48 hours before check-in. Late cancellations incur one night's charge.</li>
-                  <li><strong style={{ color: "#cbd5e1" }}>Payment:</strong> Full payment required at booking. Refunds processed within 5-7 business days.</li>
+                  <li style={{ marginBottom: 8 }}><strong style={{ color: "#374151" }}>Booking Confirmation:</strong> All bookings are subject to availability. A confirmation email will be sent upon successful booking.</li>
+                  <li style={{ marginBottom: 8 }}><strong style={{ color: "#374151" }}>Check-in / Check-out:</strong> Standard check-in 2:00 PM, check-out 12:00 PM.</li>
+                  <li style={{ marginBottom: 8 }}><strong style={{ color: "#374151" }}>Cancellation:</strong> Free cancellation up to 48 hours before check-in. Late cancellations incur one night's charge.</li>
+                  <li><strong style={{ color: "#374151" }}>Payment:</strong> Full payment required at booking. Refunds processed within 5-7 business days.</li>
                 </ol>
               </div>
             )}
           </div>
 
-          <button type="submit" disabled={!termsAccepted} style={{ width: "100%", padding: "14px", borderRadius: 12, border: "none", background: termsAccepted ? "linear-gradient(to right, #3b82f6, #8b5cf6)" : "#334155", color: termsAccepted ? "white" : "#64748b", fontWeight: 700, fontSize: 15, cursor: termsAccepted ? "pointer" : "not-allowed", transition: "all 0.3s" }}>
+          <button type="submit" disabled={!termsAccepted} style={{ width: "100%", padding: "14px", borderRadius: 12, border: "none", background: termsAccepted ? "linear-gradient(to right, #2563EB, #7C3AED)" : "#E5E7EB", color: termsAccepted ? "white" : "#9CA3AF", fontWeight: 700, fontSize: 15, cursor: termsAccepted ? "pointer" : "not-allowed", transition: "all 0.3s" }}>
             Pay & Confirm Booking →
           </button>
         </form>
@@ -457,7 +458,7 @@ function FlightCard({ item, onViewDetails, onBook, onFeedbackAnalysis }) {
   return (
     <div style={{ ...S.card, transition: "border-color 0.2s, transform 0.2s" }}
       onMouseEnter={e => { e.currentTarget.style.borderColor = meta.color; e.currentTarget.style.transform = "translateY(-2px)"; }}
-      onMouseLeave={e => { e.currentTarget.style.borderColor = "#334155"; e.currentTarget.style.transform = "translateY(0)"; }}
+      onMouseLeave={e => { e.currentTarget.style.borderColor = "#E8EDF5"; e.currentTarget.style.transform = "translateY(0)"; }}
     >
       <div style={S.cardBody}>
         {/* Header: Airline + Price */}
@@ -467,7 +468,7 @@ function FlightCard({ item, onViewDetails, onBook, onFeedbackAnalysis }) {
               <span style={{ fontSize: 18 }}>{meta.icon}</span>
             </div>
             <div>
-              <div style={{ fontWeight: 700, fontSize: 15, color: "white" }}>{item.airline}</div>
+              <div style={{ fontWeight: 700, fontSize: 15, color: "#1F2937" }}>{item.airline}</div>
               <div style={{ fontSize: 11, color: "#64748b", display: "flex", alignItems: "center", gap: 6 }}>
                 <span>{item.flightNo}</span>
                 <span style={{ width: 3, height: 3, borderRadius: "50%", background: "#334155", display: "inline-block" }} />
@@ -485,7 +486,7 @@ function FlightCard({ item, onViewDetails, onBook, onFeedbackAnalysis }) {
         {/* Route visual */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
           <div style={{ textAlign: "center", minWidth: 90 }}>
-            <div style={{ fontSize: 24, fontWeight: 800, color: "white" }}>{item.departure}</div>
+            <div style={{ fontSize: 24, fontWeight: 800, color: "#1F2937" }}>{item.departure}</div>
             <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 2 }}>{item.from}</div>
             <div style={{ fontSize: 10, color: "#64748b", marginTop: 2 }}>Terminal {item.terminal.dep}</div>
           </div>
@@ -501,7 +502,7 @@ function FlightCard({ item, onViewDetails, onBook, onFeedbackAnalysis }) {
             <div style={{ fontSize: 10, color: item.stops === "Non-stop" ? "#22c55e" : "#f59e0b", marginTop: 4, fontWeight: 600 }}>{item.stops}</div>
           </div>
           <div style={{ textAlign: "center", minWidth: 90 }}>
-            <div style={{ fontSize: 24, fontWeight: 800, color: "white" }}>{item.arrival}</div>
+            <div style={{ fontSize: 24, fontWeight: 800, color: "#1F2937" }}>{item.arrival}</div>
             <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 2 }}>{item.to}</div>
             <div style={{ fontSize: 10, color: "#64748b", marginTop: 2 }}>Terminal {item.terminal.arr}</div>
           </div>
@@ -528,7 +529,7 @@ function FlightCard({ item, onViewDetails, onBook, onFeedbackAnalysis }) {
             onClick={() => onFeedbackAnalysis(item)}
             style={{
               flex: 1, padding: "9px 6px", borderRadius: 10, border: "1px solid #3b82f6",
-              background: "rgba(59,130,246,0.12)", color: "#93c5fd", cursor: "pointer",
+              background: "rgba(37,99,235,0.07)", color: "#2563EB", cursor: "pointer",
               fontSize: 11, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
               transition: "all 0.2s", fontFamily: "inherit"
             }}
@@ -536,8 +537,8 @@ function FlightCard({ item, onViewDetails, onBook, onFeedbackAnalysis }) {
             <FaChartPie size={12} color="#3b82f6" /> Feedback Analysis
           </button>
           <button onClick={() => onViewDetails(item)} style={{
-            padding: "9px 10px", borderRadius: 10, border: "1px solid #334155",
-            background: "#0f172a", color: "#94a3b8", cursor: "pointer", fontSize: 11,
+            padding: "9px 10px", borderRadius: 10, border: "1px solid #E5E7EB",
+            background: "#F9FAFB", color: "#374151", cursor: "pointer", fontSize: 11,
             fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "center", gap: 4,
             transition: "all 0.2s", fontFamily: "inherit"
           }}>
@@ -567,21 +568,20 @@ function FlightDetailsModal({ flight, onClose, onBook }) {
 
   useEffect(() => {
     setLiveLoading(true);
-    const depIata = flight.from.match(/\((\w+)\)/)?.[1];
-    const arrIata = flight.to.match(/\((\w+)\)/)?.[1];
-    fetchLiveFlights({ dep_iata: depIata, arr_iata: arrIata }).then(data => {
-      const match = data.find(d => d.flightNo === flight.flightNo);
-      setLiveData(match || data[0] || null);
-      setLiveLoading(false);
-    }).catch(() => setLiveLoading(false));
+    getFlightStatus(flight.flightNo)
+      .then(({ data }) => {
+        setLiveData(data || null);
+        setLiveLoading(false);
+      })
+      .catch(() => setLiveLoading(false));
   }, [flight]);
 
   const detailRow = (icon, label, value, highlight) => (
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 0", borderBottom: "1px solid #1e293b" }}>
-      <span style={{ display: "flex", alignItems: "center", gap: 8, color: "#94a3b8", fontSize: 13 }}>
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 0", borderBottom: "1px solid #E5E7EB" }}>
+      <span style={{ display: "flex", alignItems: "center", gap: 8, color: "#6B7280", fontSize: 13 }}>
         {icon} {label}
       </span>
-      <span style={{ fontSize: 13, fontWeight: 600, color: highlight || "white" }}>{value}</span>
+      <span style={{ fontSize: 13, fontWeight: 600, color: highlight || "#111827" }}>{value}</span>
     </div>
   );
 
@@ -595,29 +595,29 @@ function FlightDetailsModal({ flight, onClose, onBook }) {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
           <div>
             <div style={{ fontSize: 11, color: meta.color, fontWeight: 700, textTransform: "uppercase", letterSpacing: 2, marginBottom: 6 }}>Flight Details</div>
-            <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: "white" }}>{flight.airline} · {flight.flightNo}</h2>
+            <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: "#111827" }}>{flight.airline} · {flight.flightNo}</h2>
 
             <div style={{ fontSize: 13, color: "#64748b", marginTop: 4 }}>{flight.aircraft}</div>
           </div>
-          <button onClick={onClose} style={{ background: "#334155", border: "none", borderRadius: "50%", width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#94a3b8", fontSize: 16, flexShrink: 0 }}>
+          <button onClick={onClose} style={{ background: "#F3F4F6", border: "1px solid #E5E7EB", borderRadius: "50%", width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#6B7280", fontSize: 16, flexShrink: 0 }}>
             <FaTimes />
           </button>
         </div>
 
         {/* Route Card */}
-        <div style={{ background: "#0f172a", borderRadius: 16, padding: 24, marginBottom: 20, border: "1px solid #334155" }}>
+        <div style={{ background: "#F8FAFC", borderRadius: 16, padding: 24, marginBottom: 20, border: "1px solid #E5E7EB" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <div style={{ textAlign: "center" }}>
-              <div style={{ fontSize: 32, fontWeight: 900, color: "white" }}>{flight.departure}</div>
-              <div style={{ fontSize: 14, color: "#94a3b8", marginTop: 4 }}>{flight.from}</div>
-              <div style={{ fontSize: 11, color: "#64748b", marginTop: 4, background: "#1e293b", padding: "3px 10px", borderRadius: 8, display: "inline-block" }}>Terminal {flight.terminal.dep}</div>
+              <div style={{ fontSize: 32, fontWeight: 900, color: "#1F2937" }}>{flight.departure}</div>
+              <div style={{ fontSize: 14, color: "#6B7280", marginTop: 4 }}>{flight.from}</div>
+              <div style={{ fontSize: 11, color: "#6B7280", marginTop: 4, background: "#F3F4F6", padding: "3px 10px", borderRadius: 8, display: "inline-block", border: "1px solid #E5E7EB" }}>Terminal {flight.terminal.dep}</div>
             </div>
             <div style={{ flex: 1, textAlign: "center", padding: "0 20px" }}>
-              <div style={{ fontSize: 12, color: "#64748b", marginBottom: 6, fontWeight: 600 }}>{flight.duration}</div>
+              <div style={{ fontSize: 12, color: "#6B7280", marginBottom: 6, fontWeight: 600 }}>{flight.duration}</div>
               <div style={{ height: 3, background: `linear-gradient(to right, ${meta.color}, #8b5cf6)`, position: "relative", borderRadius: 3 }}>
-                <span style={{ position: "absolute", left: -2, top: -4, width: 10, height: 10, borderRadius: "50%", background: meta.color, display: "block", border: "2px solid #0f172a" }} />
-                {flight.layover && <span style={{ position: "absolute", left: "50%", top: -4, width: 10, height: 10, borderRadius: "50%", background: "#f59e0b", display: "block", border: "2px solid #0f172a", transform: "translateX(-50%)" }} />}
-                <span style={{ position: "absolute", right: -2, top: -4, width: 10, height: 10, borderRadius: "50%", background: "#8b5cf6", display: "block", border: "2px solid #0f172a" }} />
+                <span style={{ position: "absolute", left: -2, top: -4, width: 10, height: 10, borderRadius: "50%", background: meta.color, display: "block", border: "2px solid #FFFFFF" }} />
+                {flight.layover && <span style={{ position: "absolute", left: "50%", top: -4, width: 10, height: 10, borderRadius: "50%", background: "#f59e0b", display: "block", border: "2px solid #FFFFFF", transform: "translateX(-50%)" }} />}
+                <span style={{ position: "absolute", right: -2, top: -4, width: 10, height: 10, borderRadius: "50%", background: "#8b5cf6", display: "block", border: "2px solid #FFFFFF" }} />
               </div>
               <div style={{ fontSize: 11, color: flight.stops === "Non-stop" ? "#22c55e" : "#f59e0b", marginTop: 6, fontWeight: 600 }}>
                 {flight.stops}
@@ -629,57 +629,64 @@ function FlightDetailsModal({ flight, onClose, onBook }) {
               )}
             </div>
             <div style={{ textAlign: "center" }}>
-              <div style={{ fontSize: 32, fontWeight: 900, color: "white" }}>{flight.arrival}</div>
-              <div style={{ fontSize: 14, color: "#94a3b8", marginTop: 4 }}>{flight.to}</div>
-              <div style={{ fontSize: 11, color: "#64748b", marginTop: 4, background: "#1e293b", padding: "3px 10px", borderRadius: 8, display: "inline-block" }}>Terminal {flight.terminal.arr}</div>
+              <div style={{ fontSize: 32, fontWeight: 900, color: "#1F2937" }}>{flight.arrival}</div>
+              <div style={{ fontSize: 14, color: "#6B7280", marginTop: 4 }}>{flight.to}</div>
+              <div style={{ fontSize: 11, color: "#6B7280", marginTop: 4, background: "#F3F4F6", padding: "3px 10px", borderRadius: 8, display: "inline-block", border: "1px solid #E5E7EB" }}>Terminal {flight.terminal.arr}</div>
             </div>
           </div>
         </div>
 
         {/* Live Tracking Status */}
-        <div style={{ background: "#0f172a", borderRadius: 16, padding: 20, marginBottom: 20, border: "1px solid #334155" }}>
+        <div style={{ background: "#F8FAFC", borderRadius: 16, padding: 20, marginBottom: 20, border: "1px solid #E5E7EB" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
             <FaSatelliteDish size={12} color="#22c55e" />
-            <span style={{ fontSize: 13, fontWeight: 700, color: "#93c5fd", textTransform: "uppercase", letterSpacing: 1 }}>Live Tracking</span>
-            {liveLoading && <span style={{ fontSize: 11, color: "#64748b" }}>Fetching...</span>}
+            <span style={{ fontSize: 13, fontWeight: 700, color: "#2563EB", textTransform: "uppercase", letterSpacing: 1 }}>Live Tracking</span>
+            {liveLoading && <span style={{ fontSize: 11, color: "#9CA3AF" }}>Fetching...</span>}
           </div>
           {liveData ? (
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
-              <div style={{ background: "#1e293b", borderRadius: 10, padding: 12, textAlign: "center" }}>
-                <div style={{ fontSize: 10, color: "#64748b", textTransform: "uppercase", marginBottom: 4 }}>Status</div>
-                <div style={{
-                  fontSize: 13, fontWeight: 700,
-                  color: statusColors[liveData.status] || "#64748b",
-                  textTransform: "capitalize",
-                }}>
+              <div style={{ background: "#FFFFFF", borderRadius: 10, padding: 12, textAlign: "center", border: "1px solid #E5E7EB" }}>
+                <div style={{ fontSize: 10, color: "#9CA3AF", textTransform: "uppercase", marginBottom: 4 }}>Status</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: statusColors[liveData.status] || "#9CA3AF", textTransform: "capitalize" }}>
                   <span style={{
                     display: "inline-block", width: 6, height: 6, borderRadius: "50%",
-                    background: statusColors[liveData.status] || "#64748b",
-                    marginRight: 6, animation: liveData.status === "active" ? "pulse 1.5s infinite" : "none",
+                    background: statusColors[liveData.status] || "#9CA3AF",
+                    marginRight: 6,
                   }} />
                   {liveData.status}
                 </div>
               </div>
-              <div style={{ background: "#1e293b", borderRadius: 10, padding: 12, textAlign: "center" }}>
-                <div style={{ fontSize: 10, color: "#64748b", textTransform: "uppercase", marginBottom: 4 }}>Gate</div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: "white" }}>{liveData.departure.gate}</div>
-              </div>
-              <div style={{ background: "#1e293b", borderRadius: 10, padding: 12, textAlign: "center" }}>
-                <div style={{ fontSize: 10, color: "#64748b", textTransform: "uppercase", marginBottom: 4 }}>Delay</div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: liveData.departure.delay > 0 ? "#ef4444" : "#22c55e" }}>
-                  {liveData.departure.delay > 0 ? `+${liveData.departure.delay} min` : "On Time"}
+              <div style={{ background: "#FFFFFF", borderRadius: 10, padding: 12, textAlign: "center", border: "1px solid #E5E7EB" }}>
+                <div style={{ fontSize: 10, color: "#9CA3AF", textTransform: "uppercase", marginBottom: 4 }}>Dep. Gate</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#111827" }}>
+                  {(liveData.gate?.dep) || (liveData.departure?.gate) || "—"}
                 </div>
               </div>
+              <div style={{ background: "#FFFFFF", borderRadius: 10, padding: 12, textAlign: "center", border: "1px solid #E5E7EB" }}>
+                <div style={{ fontSize: 10, color: "#9CA3AF", textTransform: "uppercase", marginBottom: 4 }}>Delay</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: (liveData.delay ?? liveData.departure?.delay ?? 0) > 0 ? "#ef4444" : "#22c55e" }}>
+                  {(liveData.delay ?? liveData.departure?.delay ?? 0) > 0
+                    ? `+${liveData.delay ?? liveData.departure?.delay} min`
+                    : "On Time"}
+                </div>
+              </div>
+              {/* Estimated departure if different from scheduled */}
+              {liveData.estimatedDep && liveData.estimatedDep !== liveData.scheduledDep && liveData.estimatedDep !== "—" && (
+                <div style={{ background: "rgba(239,68,68,0.06)", borderRadius: 10, padding: 12, textAlign: "center", border: "1px solid rgba(239,68,68,0.2)", gridColumn: "1 / -1" }}>
+                  <div style={{ fontSize: 10, color: "#9CA3AF", textTransform: "uppercase", marginBottom: 4 }}>Estimated Departure</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: "#ef4444" }}>{liveData.estimatedDep?.slice(11, 16) || liveData.estimatedDep}</div>
+                </div>
+              )}
             </div>
           ) : (
-            <div style={{ color: "#64748b", fontSize: 12, textAlign: "center", padding: 10 }}>
+            <div style={{ color: "#9CA3AF", fontSize: 12, textAlign: "center", padding: 10 }}>
               {liveLoading ? "Loading live data..." : "Live data unavailable for this flight"}
             </div>
           )}
         </div>
 
         {/* Flight Details */}
-        <div style={{ background: "#0f172a", borderRadius: 16, padding: "6px 20px", marginBottom: 20, border: "1px solid #334155" }}>
+        <div style={{ background: "#F8FAFC", borderRadius: 16, padding: "6px 20px", marginBottom: 20, border: "1px solid #E5E7EB" }}>
           {detailRow(<FaChair size={12} color="#3b82f6" />, "Class", flight.class)}
           {detailRow(<FaChair size={12} color="#3b82f6" />, "Seat Pitch", flight.seatPitch)}
           {detailRow(<FaSuitcase size={12} color="#3b82f6" />, "Cabin Baggage", flight.baggage.cabin)}
@@ -691,7 +698,7 @@ function FlightDetailsModal({ flight, onClose, onBook }) {
         </div>
 
         {/* Cancellation & Policies */}
-        <div style={{ background: "#0f172a", borderRadius: 16, padding: "6px 20px", marginBottom: 24, border: "1px solid #334155" }}>
+        <div style={{ background: "#F8FAFC", borderRadius: 16, padding: "6px 20px", marginBottom: 24, border: "1px solid #E5E7EB" }}>
           {detailRow(<FaTicketAlt size={12} color="#3b82f6" />, "Cancellation Fee", flight.cancellationFee, flight.refundable ? "#22c55e" : "#f59e0b")}
           {detailRow(<FaCheckCircle size={12} color="#3b82f6" />, "Reschedule Fee", flight.reschedule, flight.reschedule === "Free" ? "#22c55e" : "#f59e0b")}
           {detailRow(<FaCheckCircle size={12} color="#3b82f6" />, "Refundable", flight.refundable ? "Yes" : "No", flight.refundable ? "#22c55e" : "#ef4444")}
@@ -785,19 +792,20 @@ function FlightBookingModal({ flight, passengers: passengerCount, onClose }) {
 
   const inputStyle = {
     width: "100%",
-    background: "#0f172a",
-    border: "1px solid #334155",
+    background: "#FFFFFF",
+    border: "1px solid #DCE5F2",
     borderRadius: 10,
     padding: "11px 14px",
-    color: "white",
+    color: "#111827",
     fontSize: 14,
     outline: "none",
     boxSizing: "border-box",
+    fontFamily: "inherit",
   };
 
   const labelStyle = {
     fontSize: 12,
-    color: "#94a3b8",
+    color: "#6B7280",
     marginBottom: 6,
     display: "block",
     fontWeight: 600,
@@ -813,28 +821,28 @@ function FlightBookingModal({ flight, passengers: passengerCount, onClose }) {
         <div style={{ ...MS.modal, maxWidth: 560 }} onClick={e => e.stopPropagation()}>
           <div style={{ textAlign: "center", padding: "40px 20px" }}>
             <FaCheckCircle size={56} color="#22c55e" />
-            <h2 style={{ color: "white", marginTop: 18, fontSize: 24, fontWeight: 800 }}>Flight Booked! <FaCheckCircle /></h2>
-            <p style={{ color: "#94a3b8", fontSize: 14, marginTop: 8, lineHeight: 1.7 }}>
+            <h2 style={{ color: "#111827", marginTop: 18, fontSize: 24, fontWeight: 800 }}>Flight Booked! <FaCheckCircle /></h2>
+            <p style={{ color: "#6B7280", fontSize: 14, marginTop: 8, lineHeight: 1.7 }}>
               Your booking for <strong style={{ color: meta.color }}>{flight.airline} {flight.flightNo}</strong> has been confirmed.
             </p>
-            <div style={{ background: "#0f172a", borderRadius: 14, padding: 20, marginTop: 20, textAlign: "left", border: "1px solid #334155" }}>
+            <div style={{ background: "#F8FAFC", borderRadius: 14, padding: 20, marginTop: 20, textAlign: "left", border: "1px solid #E5E7EB" }}>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                <div><div style={{ fontSize: 11, color: "#64748b", textTransform: "uppercase" }}>Route</div><div style={{ color: "white", fontSize: 13, fontWeight: 600, marginTop: 2 }}>{flight.from.split(" (")[0]} → {flight.to.split(" (")[0]}</div></div>
-                <div><div style={{ fontSize: 11, color: "#64748b", textTransform: "uppercase" }}>Date</div><div style={{ color: "white", fontSize: 13, fontWeight: 600, marginTop: 2 }}>{new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</div></div>
-                <div><div style={{ fontSize: 11, color: "#64748b", textTransform: "uppercase" }}>Departure</div><div style={{ color: "white", fontSize: 13, fontWeight: 600, marginTop: 2 }}>{flight.departure} · T{flight.terminal.dep}</div></div>
+                <div><div style={{ fontSize: 11, color: "#9CA3AF", textTransform: "uppercase" }}>Route</div><div style={{ color: "#111827", fontSize: 13, fontWeight: 600, marginTop: 2 }}>{flight.from.split(" (")[0]} → {flight.to.split(" (")[0]}</div></div>
+                <div><div style={{ fontSize: 11, color: "#9CA3AF", textTransform: "uppercase" }}>Date</div><div style={{ color: "#111827", fontSize: 13, fontWeight: 600, marginTop: 2 }}>{new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</div></div>
+                <div><div style={{ fontSize: 11, color: "#9CA3AF", textTransform: "uppercase" }}>Departure</div><div style={{ color: "#111827", fontSize: 13, fontWeight: 600, marginTop: 2 }}>{flight.departure} · T{flight.terminal.dep}</div></div>
 
-                <div><div style={{ fontSize: 11, color: "#64748b", textTransform: "uppercase" }}>Arrival</div><div style={{ color: "white", fontSize: 13, fontWeight: 600, marginTop: 2 }}>{flight.arrival} · T{flight.terminal.arr}</div></div>
+                <div><div style={{ fontSize: 11, color: "#9CA3AF", textTransform: "uppercase" }}>Arrival</div><div style={{ color: "#111827", fontSize: 13, fontWeight: 600, marginTop: 2 }}>{flight.arrival} · T{flight.terminal.arr}</div></div>
 
-                <div><div style={{ fontSize: 11, color: "#64748b", textTransform: "uppercase" }}>Passengers</div><div style={{ color: "white", fontSize: 13, fontWeight: 600, marginTop: 2 }}>{formData.passengers.map(p => p.name || "Passenger").join(", ")}</div></div>
-                <div><div style={{ fontSize: 11, color: "#64748b", textTransform: "uppercase" }}>Class</div><div style={{ color: "white", fontSize: 13, fontWeight: 600, marginTop: 2 }}>{flight.class}</div></div>
-                <div style={{ gridColumn: "1 / -1", borderTop: "1px solid #334155", paddingTop: 12 }}>
-                  <div style={{ fontSize: 11, color: "#64748b", textTransform: "uppercase" }}>Total Paid</div>
-                  <div style={{ color: "#22c55e", fontSize: 20, fontWeight: 900, marginTop: 2 }}>₹{grandTotal.toLocaleString()}</div>
+                <div><div style={{ fontSize: 11, color: "#9CA3AF", textTransform: "uppercase" }}>Passengers</div><div style={{ color: "#111827", fontSize: 13, fontWeight: 600, marginTop: 2 }}>{formData.passengers.map(p => p.name || "Passenger").join(", ")}</div></div>
+                <div><div style={{ fontSize: 11, color: "#9CA3AF", textTransform: "uppercase" }}>Class</div><div style={{ color: "#111827", fontSize: 13, fontWeight: 600, marginTop: 2 }}>{flight.class}</div></div>
+                <div style={{ gridColumn: "1 / -1", borderTop: "1px solid #E5E7EB", paddingTop: 12 }}>
+                  <div style={{ fontSize: 11, color: "#9CA3AF", textTransform: "uppercase" }}>Total Paid</div>
+                  <div style={{ color: "#059669", fontSize: 20, fontWeight: 900, marginTop: 2 }}>₹{grandTotal.toLocaleString()}</div>
 
                 </div>
               </div>
             </div>
-            <div style={{ marginTop: 20, padding: 14, background: "rgba(59,130,246,0.08)", borderRadius: 12, border: "1px solid rgba(59,130,246,0.2)", fontSize: 12, color: "#93c5fd", lineHeight: 1.6 }}>
+            <div style={{ marginTop: 20, padding: 14, background: "rgba(37,99,235,0.06)", borderRadius: 12, border: "1px solid rgba(37,99,235,0.15)", fontSize: 12, color: "#2563EB", lineHeight: 1.6 }}>
               <FaEnvelope size={11} style={{ marginRight: 6 }} /> A confirmation e-ticket has been sent to <strong>{formData.contactEmail || "your email"}</strong>. Please carry a valid photo ID for check-in.
 
             </div>
@@ -855,9 +863,9 @@ function FlightBookingModal({ flight, passengers: passengerCount, onClose }) {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
           <div>
             <div style={{ fontSize: 11, color: meta.color, fontWeight: 700, textTransform: "uppercase", letterSpacing: 2, marginBottom: 6 }}>Flight Booking</div>
-            <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: "white" }}>{flight.airline} · {flight.flightNo}</h2>
+            <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: "#111827" }}>{flight.airline} · {flight.flightNo}</h2>
 
-            <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 6, color: "#94a3b8", fontSize: 13 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 6, color: "#6B7280", fontSize: 13 }}>
               {flight.from.split(" (")[0]} → {flight.to.split(" (")[0]}
 
               <span style={{ margin: "0 4px", color: "#334155" }}>·</span>
@@ -865,21 +873,21 @@ function FlightBookingModal({ flight, passengers: passengerCount, onClose }) {
               <span style={{ color: "#3b82f6", fontWeight: 700 }}>{flight.departure} - {flight.arrival}</span>
             </div>
           </div>
-          <button onClick={onClose} style={{ background: "#334155", border: "none", borderRadius: "50%", width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#94a3b8", fontSize: 16, flexShrink: 0 }}>
+          <button onClick={onClose} style={{ background: "#F3F4F6", border: "1px solid #E5E7EB", borderRadius: "50%", width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#6B7280", fontSize: 16, flexShrink: 0 }}>
             <FaTimes />
           </button>
         </div>
 
         {/* Route Summary Strip */}
-        <div style={{ background: "#0f172a", borderRadius: 14, padding: "14px 20px", marginBottom: 20, border: "1px solid #334155", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={{ background: "#F8FAFC", borderRadius: 14, padding: "14px 20px", marginBottom: 20, border: "1px solid #E5E7EB", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-            <span style={{ fontSize: 20, fontWeight: 900, color: "white" }}>{flight.departure}</span>
+            <span style={{ fontSize: 20, fontWeight: 900, color: "#1F2937" }}>{flight.departure}</span>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <div style={{ width: 30, height: 2, background: meta.color, borderRadius: 2 }} />
               <FaPlane size={12} color={meta.color} />
               <div style={{ width: 30, height: 2, background: "#8b5cf6", borderRadius: 2 }} />
             </div>
-            <span style={{ fontSize: 20, fontWeight: 900, color: "white" }}>{flight.arrival}</span>
+            <span style={{ fontSize: 20, fontWeight: 900, color: "#1F2937" }}>{flight.arrival}</span>
           </div>
           <div style={{ display: "flex", gap: 8 }}>
             <span style={S.flightBadge}>{flight.class}</span>
@@ -890,13 +898,13 @@ function FlightBookingModal({ flight, passengers: passengerCount, onClose }) {
         <form onSubmit={handleFlightSubmit}>
 
           {/* Passenger Details */}
-          <div style={{ fontSize: 13, fontWeight: 700, color: "#93c5fd", marginBottom: 14, textTransform: "uppercase", letterSpacing: 1 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "#2563EB", marginBottom: 14, textTransform: "uppercase", letterSpacing: 1 }}>
             Passenger Details ({formData.passengers.length})
           </div>
           {formData.passengers.map((p, idx) => (
             <div key={idx} style={{
-              background: "#0f172a", borderRadius: 14, padding: "16px 18px", marginBottom: 14,
-              border: "1px solid #334155",
+              background: "#F9FAFB", borderRadius: 14, padding: "16px 18px", marginBottom: 14,
+              border: "1px solid #E5E7EB",
             }}>
               <div style={{ fontSize: 11, color: "#64748b", fontWeight: 700, marginBottom: 10, textTransform: "uppercase", letterSpacing: 1 }}>
                 Passenger {idx + 1}
@@ -923,7 +931,7 @@ function FlightBookingModal({ flight, passengers: passengerCount, onClose }) {
           ))}
 
           {/* Contact Info */}
-          <div style={{ fontSize: 13, fontWeight: 700, color: "#93c5fd", marginBottom: 14, textTransform: "uppercase", letterSpacing: 1 }}>Contact Information</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "#2563EB", marginBottom: 14, textTransform: "uppercase", letterSpacing: 1 }}>Contact Information</div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 20 }}>
             <div>
               <label style={labelStyle}>Email *</label>
@@ -936,7 +944,7 @@ function FlightBookingModal({ flight, passengers: passengerCount, onClose }) {
           </div>
 
           {/* Preferences */}
-          <div style={{ fontSize: 13, fontWeight: 700, color: "#93c5fd", marginBottom: 14, textTransform: "uppercase", letterSpacing: 1 }}>Preferences</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "#2563EB", marginBottom: 14, textTransform: "uppercase", letterSpacing: 1 }}>Preferences</div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 20 }}>
             <div>
               <label style={labelStyle}>Seat Preference</label>
@@ -960,22 +968,22 @@ function FlightBookingModal({ flight, passengers: passengerCount, onClose }) {
           </div>
 
           {/* Add-ons */}
-          <div style={{ fontSize: 13, fontWeight: 700, color: "#93c5fd", marginBottom: 14, textTransform: "uppercase", letterSpacing: 1 }}>Add-ons</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "#2563EB", marginBottom: 14, textTransform: "uppercase", letterSpacing: 1 }}>Add-ons</div>
           <div style={{ display: "flex", gap: 12, marginBottom: 20 }}>
             {[
               { key: "addBaggage", label: <span><FaSuitcaseRolling style={{ marginRight: 6 }} />Extra 10 kg Baggage</span>, price: `₹1,200/person`, checked: formData.addBaggage },
               { key: "travelInsurance", label: <span><FaShieldAlt style={{ marginRight: 6 }} />Travel Insurance</span>, price: `₹499/person`, checked: formData.travelInsurance },
             ].map(addon => (
               <label key={addon.key} style={{
-                flex: 1, background: addon.checked ? "rgba(59,130,246,0.08)" : "#0f172a",
-                border: addon.checked ? "2px solid #3b82f6" : "1px solid #334155",
+                flex: 1, background: addon.checked ? "rgba(37,99,235,0.07)" : "#F9FAFB",
+                border: addon.checked ? "2px solid #2563EB" : "1px solid #E5E7EB",
                 borderRadius: 14, padding: "14px 16px", cursor: "pointer",
                 transition: "all 0.2s",
               }}>
                 <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
                   <input type="checkbox" checked={addon.checked} onChange={e => update(addon.key, e.target.checked)} style={{ accentColor: "#3b82f6", marginTop: 3, width: 16, height: 16 }} />
                   <div>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: "white" }}>{addon.label}</div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: "#111827" }}>{addon.label}</div>
                     <div style={{ fontSize: 11, color: "#3b82f6", marginTop: 3, fontWeight: 600 }}>{addon.price}</div>
                   </div>
                 </div>
@@ -984,16 +992,16 @@ function FlightBookingModal({ flight, passengers: passengerCount, onClose }) {
           </div>
 
           {/* Payment Method */}
-          <div style={{ fontSize: 13, fontWeight: 700, color: "#93c5fd", marginBottom: 14, textTransform: "uppercase", letterSpacing: 1 }}>Payment</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "#2563EB", marginBottom: 14, textTransform: "uppercase", letterSpacing: 1 }}>Payment</div>
           <div style={{ display: "flex", gap: 10, marginBottom: 18 }}>
             {[{ key: "card", label: "Credit / Debit Card" }, { key: "upi", label: "UPI" }].map(m => (
 
               <button key={m.key} type="button" onClick={() => update("paymentMethod", m.key)} style={{
                 flex: 1, padding: "12px 10px", borderRadius: 10,
-                border: formData.paymentMethod === m.key ? "2px solid #3b82f6" : "1px solid #334155",
-                background: formData.paymentMethod === m.key ? "rgba(59,130,246,0.12)" : "#0f172a",
-                color: formData.paymentMethod === m.key ? "#93c5fd" : "#94a3b8",
-                fontWeight: 600, fontSize: 13, cursor: "pointer",
+                border: formData.paymentMethod === m.key ? "2px solid #2563EB" : "1px solid #E5E7EB",
+                background: formData.paymentMethod === m.key ? "rgba(37,99,235,0.08)" : "#F9FAFB",
+                color: formData.paymentMethod === m.key ? "#2563EB" : "#6B7280",
+                fontWeight: 600, fontSize: 13, cursor: "pointer", fontFamily: "inherit",
               }}>{m.label}</button>
             ))}
           </div>
@@ -1029,31 +1037,31 @@ function FlightBookingModal({ flight, passengers: passengerCount, onClose }) {
           )}
 
           {/* Price Breakdown */}
-          <div style={{ background: "#0f172a", borderRadius: 14, padding: 18, marginBottom: 20, border: "1px solid #334155" }}>
-            <div style={{ fontSize: 12, color: "#64748b", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 12 }}>Price Breakdown</div>
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8, fontSize: 13, color: "#94a3b8" }}>
+          <div style={{ background: "#F8FAFC", borderRadius: 14, padding: 18, marginBottom: 20, border: "1px solid #E5E7EB" }}>
+            <div style={{ fontSize: 12, color: "#9CA3AF", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 12 }}>Price Breakdown</div>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8, fontSize: 13, color: "#6B7280" }}>
               <span>Base Fare ({formData.passengers.length} x ₹{flight.price.toLocaleString()})</span>
 
-              <span style={{ color: "white", fontWeight: 600 }}>₹{totalPrice.toLocaleString()}</span>
+              <span style={{ color: "#111827", fontWeight: 600 }}>₹{totalPrice.toLocaleString()}</span>
 
             </div>
             {addons.map((a, i) => (
-              <div key={i} style={{ display: "flex", justifyContent: "space-between", marginBottom: 8, fontSize: 13, color: "#94a3b8" }}>
+              <div key={i} style={{ display: "flex", justifyContent: "space-between", marginBottom: 8, fontSize: 13, color: "#6B7280" }}>
                 <span>{a.label}</span>
-                <span style={{ color: "white", fontWeight: 600 }}>₹{a.price.toLocaleString()}</span>
+                <span style={{ color: "#111827", fontWeight: 600 }}>₹{a.price.toLocaleString()}</span>
 
               </div>
             ))}
-            <div style={{ borderTop: "1px solid #334155", paddingTop: 12, marginTop: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span style={{ fontSize: 14, fontWeight: 700, color: "white" }}>Grand Total</span>
-              <span style={{ fontSize: 24, fontWeight: 900, color: "#22c55e" }}>₹{grandTotal.toLocaleString()}</span>
+            <div style={{ borderTop: "1px solid #E5E7EB", paddingTop: 12, marginTop: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span style={{ fontSize: 14, fontWeight: 700, color: "#111827" }}>Grand Total</span>
+              <span style={{ fontSize: 24, fontWeight: 900, color: "#059669" }}>₹{grandTotal.toLocaleString()}</span>
 
             </div>
           </div>
 
           {/* Terms */}
           <div style={{ marginBottom: 20 }}>
-            <label style={{ display: "flex", alignItems: "flex-start", gap: 10, cursor: "pointer", fontSize: 13, color: "#94a3b8", lineHeight: 1.5 }}>
+            <label style={{ display: "flex", alignItems: "flex-start", gap: 10, cursor: "pointer", fontSize: 13, color: "#6B7280", lineHeight: 1.5 }}>
               <input type="checkbox" checked={termsAccepted} onChange={e => setTermsAccepted(e.target.checked)} style={{ accentColor: "#3b82f6", marginTop: 3, width: 16, height: 16, flexShrink: 0, cursor: "pointer" }} />
               <span>I accept the cancellation policy ({flight.cancellationFee} cancellation fee) and agree to the booking terms.</span>
             </label>
@@ -1061,8 +1069,8 @@ function FlightBookingModal({ flight, passengers: passengerCount, onClose }) {
 
           <button type="submit" disabled={!termsAccepted} style={{
             width: "100%", padding: "14px", borderRadius: 12, border: "none",
-            background: termsAccepted ? `linear-gradient(to right, ${meta.color}, #8b5cf6)` : "#334155",
-            color: termsAccepted ? "white" : "#64748b", fontWeight: 700, fontSize: 15,
+            background: termsAccepted ? `linear-gradient(to right, ${meta.color}, #7C3AED)` : "#E5E7EB",
+            color: termsAccepted ? "white" : "#9CA3AF", fontWeight: 700, fontSize: 15,
             cursor: termsAccepted ? "pointer" : "not-allowed", transition: "all 0.3s",
           }}>
             Pay ₹{grandTotal.toLocaleString()} & Confirm Booking ✈️
@@ -1075,14 +1083,14 @@ function FlightBookingModal({ flight, passengers: passengerCount, onClose }) {
 
 const MS = {
   overlay: {
-    position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)",
+    position: "fixed", inset: 0, background: "rgba(15,23,42,0.45)",
     backdropFilter: "blur(6px)", display: "flex", alignItems: "center",
     justifyContent: "center", zIndex: 1000, padding: 20,
   },
   modal: {
-    background: "#1e293b", borderRadius: 24, padding: 32,
+    background: "#FFFFFF", borderRadius: 24, padding: 32,
     width: "100%", maxWidth: 560, maxHeight: "90vh", overflowY: "auto",
-    border: "1px solid #334155", boxShadow: "0 40px 100px rgba(0,0,0,0.6)",
+    border: "1px solid #E5E7EB", boxShadow: "0 25px 60px rgba(15,23,42,0.20)",
   },
 };
 
@@ -1115,6 +1123,9 @@ export default function SearchResults() {
   const [liveTracker, setLiveTracker] = useState([]);
   const [trackerLoading, setTrackerLoading] = useState(false);
   const [showTracker, setShowTracker] = useState(false);
+  const [liveFlightResults, setLiveFlightResults] = useState(null); // null = use static
+  const [flightSource, setFlightSource] = useState("static"); // "live" | "simulated" | "static"
+  const [flightSearchLoading, setFlightSearchLoading] = useState(false);
   const [selectedHotelForCalendar, setSelectedHotelForCalendar] = useState(null);
 
 
@@ -1140,10 +1151,25 @@ export default function SearchResults() {
   const toggleWishlist = (id) =>
     setWishlist(w => w.includes(id) ? w.filter(i => i !== id) : [...w, id]);
 
-  const handleSearch = (e) => {
+  const handleSearch = async (e) => {
     if (e) e.preventDefault();
-    setLoading(true);
-    setTimeout(() => setLoading(false), 500);
+    setFlightSearchLoading(true);
+    setLiveFlightResults(null);
+    try {
+      const { results, source } = await searchFlights({
+        from: flightFrom,
+        to: flightTo,
+        date: flightDate,
+        limit: 20,
+      });
+      setLiveFlightResults(results);
+      setFlightSource(source);
+    } catch (err) {
+      console.error("Flight search error:", err);
+      setFlightSource("static");
+    } finally {
+      setFlightSearchLoading(false);
+    }
   };
 
   const filterAndSort = (items) => {
@@ -1155,26 +1181,47 @@ export default function SearchResults() {
     return filtered;
   };
 
-  // Flight filtering & sorting
+  // Flight filtering & sorting — uses live results when available, falls back to static
   const filterFlights = () => {
-    let f = FLIGHTS.filter(fl =>
-      (!flightFrom || fl.from.toLowerCase().includes(flightFrom.toLowerCase())) &&
-      (!flightTo || fl.to.toLowerCase().includes(flightTo.toLowerCase())) &&
+    const pool = liveFlightResults !== null ? liveFlightResults : FLIGHTS;
+    let f = pool.filter(fl =>
       (flightClass === "All" || fl.class === flightClass)
     );
+    // Apply text search on top of already-filtered pool
     if (query) {
       f = f.filter(fl => JSON.stringify(fl).toLowerCase().includes(query.toLowerCase()));
     }
-    if (flightSort === "price") f.sort((a, b) => a.price - b.price);
-    else if (flightSort === "duration") f.sort((a, b) => a.duration.localeCompare(b.duration));
-    else if (flightSort === "departure") f.sort((a, b) => a.departure.localeCompare(b.departure));
+    // Also apply from/to if no live search was done yet
+    if (liveFlightResults === null) {
+      f = f.filter(fl =>
+        (!flightFrom || fl.from.toLowerCase().includes(flightFrom.toLowerCase())) &&
+        (!flightTo || fl.to.toLowerCase().includes(flightTo.toLowerCase()))
+      );
+    }
+    if (flightSort === "price") f.sort((a, b) => (a.price || 0) - (b.price || 0));
+    else if (flightSort === "duration") f.sort((a, b) => (a.duration || "").localeCompare(b.duration || ""));
+    else if (flightSort === "departure") f.sort((a, b) => (a.departure || "").localeCompare(b.departure || ""));
     return f;
   };
 
-  // Live tracker
+  // Live tracker — tries Flask proxy first, falls back to legacy fetchLiveFlights
   const loadLiveTracker = async () => {
     setTrackerLoading(true);
     setShowTracker(true);
+    try {
+      const resp = await fetch("http://127.0.0.1:5000/api/flights/live?limit=15", {
+        signal: AbortSignal.timeout(8000),
+      });
+      if (resp.ok) {
+        const body = await resp.json();
+        if (body.success && body.data && body.data.length > 0) {
+          setLiveTracker(body.data.slice(0, 10));
+          setTrackerLoading(false);
+          return;
+        }
+      }
+    } catch (_) {}
+    // Fallback to legacy fetchLiveFlights
     const data = await fetchLiveFlights({});
     setLiveTracker(data.slice(0, 10));
     setTrackerLoading(false);
@@ -1200,27 +1247,7 @@ export default function SearchResults() {
           from { opacity:0; transform:translateY(-12px) scaleY(.96); }
           to   { opacity:1; transform:translateY(0) scaleY(1); }
         }
-        .sr-card-item {
-          background: rgba(15,23,42,0.72);
-          backdrop-filter: blur(20px);
-          -webkit-backdrop-filter: blur(20px);
-          border: 1px solid rgba(148,163,184,0.10);
-          border-radius: 20px;
-          overflow: hidden;
-          transition: transform .3s cubic-bezier(.34,1.56,.64,1), border-color .3s, box-shadow .3s;
-        }
-        .sr-card-item:hover {
-          transform: translateY(-6px);
-          border-color: rgba(59,130,246,0.30);
-          box-shadow: 0 16px 50px rgba(0,0,0,0.45);
-        }
-        .sr-card-item:hover img {
-          transform: scale(1.05);
-        }
-        .sr-card-item img {
-          transition: transform .4s ease;
-        }
-        .sr-live-row:hover { background: rgba(255,255,255,0.03) !important; }
+        .sr-live-row:hover { background: rgba(37,99,235,0.03) !important; }
       `}</style>
 
       <div className="sr-main">
@@ -1304,18 +1331,30 @@ export default function SearchResults() {
           {activeTab === "flights" && (
             <>
               <div style={{
-                background: "rgba(15,23,42,0.72)", backdropFilter: "blur(20px)",
-                WebkitBackdropFilter: "blur(20px)",
-                border: "1px solid rgba(148,163,184,0.10)",
+                background: "#FFFFFF",
+                border: "1px solid #E8EDF5",
                 borderRadius: 20, padding: "24px 28px", marginBottom: 20,
+                boxShadow: "0 10px 30px rgba(15,23,42,.08)",
               }}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
-                  <h3 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: "white", display: "flex", alignItems: "center", gap: 10 }}>
-                    <FaPlane size={18} /> Search Flights
-                  </h3>
+                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <h3 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: "#1F2937", display: "flex", alignItems: "center", gap: 10 }}>
+                      <FaPlane size={18} color="#2563EB" /> Search Flights
+                    </h3>
+                    {liveFlightResults !== null && (
+                      <span style={{
+                        fontSize: 10, fontWeight: 700, padding: "3px 10px", borderRadius: 20,
+                        background: flightSource === "live" ? "rgba(34,197,94,0.12)" : "rgba(99,102,241,0.1)",
+                        color: flightSource === "live" ? "#16A34A" : "#6366F1",
+                        border: `1px solid ${flightSource === "live" ? "rgba(34,197,94,0.3)" : "rgba(99,102,241,0.25)"}`,
+                      }}>
+                        {flightSource === "live" ? "🟢 Live Data" : "🔵 Simulated"}
+                      </span>
+                    )}
+                  </div>
                   <button onClick={loadLiveTracker} style={{
                     padding: "8px 16px", borderRadius: 10, border: "1px solid rgba(34,197,94,0.3)",
-                    background: "rgba(34,197,94,0.08)", color: "#22c55e",
+                    background: "rgba(34,197,94,0.08)", color: "#16A34A",
                     cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit",
                     display: "flex", alignItems: "center", gap: 6,
                   }}>
@@ -1326,32 +1365,37 @@ export default function SearchResults() {
                   {[{ label: "From", value: flightFrom, set: setFlightFrom, ph: "Delhi, Mumbai..." },
                   { label: "To", value: flightTo, set: setFlightTo, ph: "Goa, Bangalore..." }].map(({ label, value, set, ph }) => (
                     <div key={label} style={{ flex: 1, minWidth: 130 }}>
-                      <div style={{ fontSize: 10, color: "#64748b", marginBottom: 4, textTransform: "uppercase", letterSpacing: 1 }}>{label}</div>
-                      <div style={{ display: "flex", alignItems: "center", background: "rgba(5,11,24,0.7)", borderRadius: 10, padding: "10px 14px", border: "1px solid rgba(148,163,184,0.12)" }}>
-                        <FaMapMarkerAlt size={11} color="#3b82f6" style={{ marginRight: 8, flexShrink: 0 }} />
+                      <div style={{ fontSize: 10, color: "#64748B", marginBottom: 4, textTransform: "uppercase", letterSpacing: 1 }}>{label}</div>
+                      <div style={{ display: "flex", alignItems: "center", background: "#F9FAFB", borderRadius: 10, padding: "10px 14px", border: "1px solid #E5E7EB" }}>
+                        <FaMapMarkerAlt size={11} color="#2563EB" style={{ marginRight: 8, flexShrink: 0 }} />
                         <input value={value} onChange={e => set(e.target.value)} placeholder={ph}
-                          style={{ background: "transparent", border: "none", outline: "none", color: "white", fontSize: 13, width: "100%", fontFamily: "inherit" }} />
+                          style={{ background: "transparent", border: "none", outline: "none", color: "#111827", fontSize: 13, width: "100%", fontFamily: "inherit" }} />
                       </div>
                     </div>
                   ))}
                   <div style={{ flex: 1, minWidth: 130 }}>
-                    <div style={{ fontSize: 10, color: "#64748b", marginBottom: 4, textTransform: "uppercase", letterSpacing: 1 }}>Date</div>
-                    <div style={{ display: "flex", alignItems: "center", background: "rgba(5,11,24,0.7)", borderRadius: 10, padding: "10px 14px", border: "1px solid rgba(148,163,184,0.12)" }}>
-                      <FaCalendarAlt size={11} color="#3b82f6" style={{ marginRight: 8, flexShrink: 0 }} />
+                    <div style={{ fontSize: 10, color: "#64748B", marginBottom: 4, textTransform: "uppercase", letterSpacing: 1 }}>Date</div>
+                    <div style={{ display: "flex", alignItems: "center", background: "#F9FAFB", borderRadius: 10, padding: "10px 14px", border: "1px solid #E5E7EB" }}>
+                      <FaCalendarAlt size={11} color="#2563EB" style={{ marginRight: 8, flexShrink: 0 }} />
                       <input type="date" value={flightDate} onChange={e => setFlightDate(e.target.value)}
-                        style={{ background: "transparent", border: "none", outline: "none", color: "white", fontSize: 13, width: "100%", fontFamily: "inherit", colorScheme: "dark" }} />
+                        style={{ background: "transparent", border: "none", outline: "none", color: "#111827", fontSize: 13, width: "100%", fontFamily: "inherit", colorScheme: "light" }} />
                     </div>
                   </div>
                   <div style={{ flex: 1, minWidth: 110 }}>
-                    <div style={{ fontSize: 10, color: "#64748b", marginBottom: 4, textTransform: "uppercase", letterSpacing: 1 }}>Passengers</div>
-                    <div style={{ display: "flex", alignItems: "center", background: "rgba(5,11,24,0.7)", borderRadius: 10, padding: "10px 14px", border: "1px solid rgba(148,163,184,0.12)" }}>
-                      <FaUsers size={11} color="#3b82f6" style={{ marginRight: 8, flexShrink: 0 }} />
+                    <div style={{ fontSize: 10, color: "#64748B", marginBottom: 4, textTransform: "uppercase", letterSpacing: 1 }}>Passengers</div>
+                    <div style={{ display: "flex", alignItems: "center", background: "#F9FAFB", borderRadius: 10, padding: "10px 14px", border: "1px solid #E5E7EB" }}>
+                      <FaUsers size={11} color="#2563EB" style={{ marginRight: 8, flexShrink: 0 }} />
                       <input type="number" min={1} max={9} value={passengers} onChange={e => setPassengers(Number(e.target.value))}
-                        style={{ background: "transparent", border: "none", outline: "none", color: "white", fontSize: 13, width: "100%", fontFamily: "inherit" }} />
+                        style={{ background: "transparent", border: "none", outline: "none", color: "#111827", fontSize: 13, width: "100%", fontFamily: "inherit" }} />
                     </div>
                   </div>
-                  <button onClick={handleSearch} className="sr-btn" style={{ alignSelf: "flex-end" }}>
-                    Search Flights
+                  <button
+                    onClick={handleSearch}
+                    disabled={flightSearchLoading}
+                    className="sr-btn"
+                    style={{ alignSelf: "flex-end", opacity: flightSearchLoading ? 0.7 : 1, cursor: flightSearchLoading ? "not-allowed" : "pointer" }}
+                  >
+                    {flightSearchLoading ? "Searching..." : "Search Flights"}
                   </button>
                 </div>
               </div>
@@ -1359,51 +1403,51 @@ export default function SearchResults() {
               {/* Live Tracker Panel */}
               {showTracker && (
                 <div style={{
-                  background: "rgba(15,23,42,0.72)", backdropFilter: "blur(20px)",
-                  WebkitBackdropFilter: "blur(20px)",
-                  border: "1px solid rgba(34,197,94,0.25)",
+                  background: "#FFFFFF",
+                  border: "1px solid rgba(34,197,94,0.3)",
                   borderRadius: 20, padding: "20px 24px", marginBottom: 20,
+                  boxShadow: "0 10px 30px rgba(15,23,42,.08)",
                 }}>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <FaSatelliteDish size={13} color="#22c55e" />
-                      <span style={{ fontSize: 14, fontWeight: 700, color: "#22c55e" }}>Live Flight Tracker</span>
-                      <span style={{ fontSize: 11, color: "#64748b" }}>via AviationStack API</span>
+                      <FaSatelliteDish size={13} color="#16A34A" />
+                      <span style={{ fontSize: 14, fontWeight: 700, color: "#16A34A" }}>Live Flight Tracker</span>
+                      <span style={{ fontSize: 11, color: "#64748B" }}>via AviationStack API</span>
                     </div>
-                    <button onClick={() => setShowTracker(false)} style={{ background: "none", border: "none", color: "#64748b", cursor: "pointer", fontSize: 16 }}><FaTimes /></button>
+                    <button onClick={() => setShowTracker(false)} style={{ background: "none", border: "none", color: "#64748B", cursor: "pointer", fontSize: 16 }}><FaTimes /></button>
                   </div>
                   {trackerLoading ? (
-                    <div style={{ textAlign: "center", padding: 20, color: "#64748b", fontSize: 13 }}>
+                    <div style={{ textAlign: "center", padding: 20, color: "#64748B", fontSize: 13 }}>
                       <div style={{ fontSize: 28, marginBottom: 8 }}><FaPlane size={28} /></div>Loading live flight data...
                     </div>
                   ) : (
                     <div style={{ overflowX: "auto" }}>
                       <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
                         <thead>
-                          <tr style={{ borderBottom: "1px solid rgba(148,163,184,0.1)" }}>
+                          <tr style={{ borderBottom: "1px solid #E5E7EB" }}>
                             {["Flight", "Airline", "Route", "Scheduled", "Gate", "Status", "Delay"].map(h => (
-                              <th key={h} style={{ padding: "8px 10px", textAlign: "left", color: "#64748b", fontWeight: 600, textTransform: "uppercase", fontSize: 10, letterSpacing: 1 }}>{h}</th>
+                              <th key={h} style={{ padding: "8px 10px", textAlign: "left", color: "#64748B", fontWeight: 600, textTransform: "uppercase", fontSize: 10, letterSpacing: 1 }}>{h}</th>
                             ))}
                           </tr>
                         </thead>
                         <tbody>
                           {liveTracker.map((fl, i) => (
-                            <tr key={i} className="sr-live-row" style={{ borderBottom: "1px solid rgba(148,163,184,0.05)" }}>
-                              <td style={{ padding: "10px", fontWeight: 700, color: "white" }}>{fl.flightNo}</td>
-                              <td style={{ padding: "10px", color: "#94a3b8" }}>{fl.airline}</td>
-                              <td style={{ padding: "10px", color: "#94a3b8" }}>{fl.departure.iata} → {fl.arrival.iata}</td>
-                              <td style={{ padding: "10px", color: "white", fontWeight: 600 }}>{fl.departure.scheduled}</td>
-                              <td style={{ padding: "10px", color: "#93c5fd", fontWeight: 600 }}>{fl.departure.gate}</td>
+                            <tr key={i} className="sr-live-row" style={{ borderBottom: "1px solid #F1F5F9" }}>
+                              <td style={{ padding: "10px", fontWeight: 700, color: "#111827" }}>{fl.flightNo}</td>
+                              <td style={{ padding: "10px", color: "#4B5563" }}>{fl.airline}</td>
+                              <td style={{ padding: "10px", color: "#4B5563" }}>{fl.departure.iata} → {fl.arrival.iata}</td>
+                              <td style={{ padding: "10px", color: "#111827", fontWeight: 600 }}>{fl.departure.scheduled}</td>
+                              <td style={{ padding: "10px", color: "#2563EB", fontWeight: 600 }}>{fl.departure.gate}</td>
                               <td style={{ padding: "10px" }}>
                                 <span style={{
                                   fontSize: 11, fontWeight: 600, padding: "3px 10px", borderRadius: 20,
-                                  color: statusColors[fl.status] || "#64748b",
-                                  background: (statusColors[fl.status] || "#64748b") + "18",
-                                  border: `1px solid ${(statusColors[fl.status] || "#64748b")}40`,
+                                  color: statusColors[fl.status] || "#64748B",
+                                  background: (statusColors[fl.status] || "#64748B") + "18",
+                                  border: `1px solid ${(statusColors[fl.status] || "#64748B")}40`,
                                   textTransform: "capitalize",
                                 }}>{fl.status}</span>
                               </td>
-                              <td style={{ padding: "10px", color: fl.departure.delay > 0 ? "#ef4444" : "#22c55e", fontWeight: 600 }}>
+                              <td style={{ padding: "10px", color: fl.departure.delay > 0 ? "#ef4444" : "#16A34A", fontWeight: 600 }}>
                                 {fl.departure.delay > 0 ? `+${fl.departure.delay}m` : "On Time"}
                               </td>
                             </tr>
@@ -1422,27 +1466,28 @@ export default function SearchResults() {
             selectedHotelForCalendar ? (
               <div className="sr-calendar-panel">
                 <div style={{
-                  background: "linear-gradient(135deg,rgba(139,92,246,0.10),rgba(15,23,42,0.80))",
+                  background: "linear-gradient(135deg,rgba(139,92,246,0.06),#FFFFFF)",
                   border: "1px solid rgba(139,92,246,0.20)",
                   borderRadius: 20, padding: "20px 24px",
                   display: "flex", alignItems: "flex-start", gap: 24, flexWrap: "wrap",
+                  boxShadow: "0 10px 30px rgba(15,23,42,.08)",
                 }}>
                   <div style={{ flex: "0 0 auto", maxWidth: 240 }}>
-                    <div style={{ display: "inline-flex", alignItems: "center", gap: 7, background: "rgba(139,92,246,0.15)", border: "1px solid rgba(139,92,246,0.3)", borderRadius: 20, padding: "4px 14px", marginBottom: 12 }}>
-                      <FaBed size={14} />
-                      <span style={{ fontSize: 11, fontWeight: 700, color: "#c4b5fd", textTransform: "uppercase", letterSpacing: 1 }}>Room Availability</span>
+                    <div style={{ display: "inline-flex", alignItems: "center", gap: 7, background: "rgba(139,92,246,0.10)", border: "1px solid rgba(139,92,246,0.25)", borderRadius: 20, padding: "4px 14px", marginBottom: 12 }}>
+                      <FaBed size={14} color="#7C3AED" />
+                      <span style={{ fontSize: 11, fontWeight: 700, color: "#7C3AED", textTransform: "uppercase", letterSpacing: 1 }}>Room Availability</span>
                     </div>
-                    <h3 style={{ margin: "0 0 6px", fontSize: 16, fontWeight: 800, color: "white" }}>{selectedHotelForCalendar.name}</h3>
-                    <p style={{ margin: "0 0 16px", fontSize: 12, color: "#64748b", lineHeight: 1.6 }}>Check available dates before confirming your booking.</p>
+                    <h3 style={{ margin: "0 0 6px", fontSize: 16, fontWeight: 800, color: "#1F2937" }}>{selectedHotelForCalendar.name}</h3>
+                    <p style={{ margin: "0 0 16px", fontSize: 12, color: "#64748B", lineHeight: 1.6 }}>Check available dates before confirming your booking.</p>
                     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                      {[{ c: "#ef4444", label: "Fully Booked", sub: "No rooms available" }, { c: "#22c55e", label: "Holiday / Open", sub: "Great availability" }].map(({ c, label, sub }) => (
+                      {[{ c: "#ef4444", label: "Fully Booked", sub: "No rooms available" }, { c: "#16A34A", label: "Holiday / Open", sub: "Great availability" }].map(({ c, label, sub }) => (
                         <div key={label} style={{ display: "flex", alignItems: "center", gap: 10, background: `${c}08`, border: `1px solid ${c}20`, borderRadius: 10, padding: "8px 12px" }}>
                           <span style={{ width: 10, height: 10, borderRadius: "50%", background: c, boxShadow: `0 0 6px ${c}99`, flexShrink: 0 }} />
-                          <div><div style={{ fontSize: 11, fontWeight: 700, color: `${c}dd` }}>{label}</div><div style={{ fontSize: 10, color: "#64748b" }}>{sub}</div></div>
+                          <div><div style={{ fontSize: 11, fontWeight: 700, color: `${c}dd` }}>{label}</div><div style={{ fontSize: 10, color: "#64748B" }}>{sub}</div></div>
                         </div>
                       ))}
                     </div>
-                    <button onClick={() => setSelectedHotelForCalendar(null)} style={{ marginTop: 14, fontSize: 12, color: "#64748b", background: "none", border: "none", cursor: "pointer", padding: 0, fontFamily: "inherit" }}>
+                    <button onClick={() => setSelectedHotelForCalendar(null)} style={{ marginTop: 14, fontSize: 12, color: "#64748B", background: "none", border: "none", cursor: "pointer", padding: 0, fontFamily: "inherit" }}>
                       <FaTimes size={11} style={{ marginRight: 4 }} /> Hide calendar
                     </button>
                   </div>
@@ -1466,24 +1511,25 @@ export default function SearchResults() {
             flightCalendarReady ? (
               <div className="sr-calendar-panel">
                 <div style={{
-                  background: "linear-gradient(135deg,rgba(6,182,212,0.08),rgba(15,23,42,0.80))",
+                  background: "linear-gradient(135deg,rgba(6,182,212,0.06),#FFFFFF)",
                   border: "1px solid rgba(6,182,212,0.20)",
                   borderRadius: 20, padding: "20px 24px",
                   display: "flex", alignItems: "flex-start", gap: 24, flexWrap: "wrap",
+                  boxShadow: "0 10px 30px rgba(15,23,42,.08)",
                 }}>
                   <div style={{ flex: "0 0 auto", maxWidth: 240 }}>
-                    <div style={{ display: "inline-flex", alignItems: "center", gap: 7, background: "rgba(6,182,212,0.12)", border: "1px solid rgba(6,182,212,0.3)", borderRadius: 20, padding: "4px 14px", marginBottom: 12 }}>
-                      <FaPlane size={14} />
-                      <span style={{ fontSize: 11, fontWeight: 700, color: "#67e8f9", textTransform: "uppercase", letterSpacing: 1 }}>Seat Availability</span>
+                    <div style={{ display: "inline-flex", alignItems: "center", gap: 7, background: "rgba(6,182,212,0.10)", border: "1px solid rgba(6,182,212,0.25)", borderRadius: 20, padding: "4px 14px", marginBottom: 12 }}>
+                      <FaPlane size={14} color="#0EA5E9" />
+                      <span style={{ fontSize: 11, fontWeight: 700, color: "#0EA5E9", textTransform: "uppercase", letterSpacing: 1 }}>Seat Availability</span>
                     </div>
-                    <h3 style={{ margin: "0 0 6px", fontSize: 16, fontWeight: 800, color: "white" }}>Flight Calendar</h3>
-                    <p style={{ margin: "0 0 6px", fontSize: 12, color: "#64748b" }}>{flightFrom} → {flightTo}</p>
-                    <p style={{ margin: "0 0 16px", fontSize: 12, color: "#64748b", lineHeight: 1.6 }}>Pick a date to prefill your search.</p>
+                    <h3 style={{ margin: "0 0 6px", fontSize: 16, fontWeight: 800, color: "#1F2937" }}>Flight Calendar</h3>
+                    <p style={{ margin: "0 0 6px", fontSize: 12, color: "#64748B" }}>{flightFrom} → {flightTo}</p>
+                    <p style={{ margin: "0 0 16px", fontSize: 12, color: "#64748B", lineHeight: 1.6 }}>Pick a date to prefill your search.</p>
                     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                      {[{ c: "#ef4444", label: "Fully Booked", sub: "All seats taken" }, { c: "#22c55e", label: "Holiday / Open", sub: "Extra flights available" }].map(({ c, label, sub }) => (
+                      {[{ c: "#ef4444", label: "Fully Booked", sub: "All seats taken" }, { c: "#16A34A", label: "Holiday / Open", sub: "Extra flights available" }].map(({ c, label, sub }) => (
                         <div key={label} style={{ display: "flex", alignItems: "center", gap: 10, background: `${c}08`, border: `1px solid ${c}20`, borderRadius: 10, padding: "8px 12px" }}>
                           <span style={{ width: 10, height: 10, borderRadius: "50%", background: c, boxShadow: `0 0 6px ${c}99`, flexShrink: 0 }} />
-                          <div><div style={{ fontSize: 11, fontWeight: 700, color: `${c}dd` }}>{label}</div><div style={{ fontSize: 10, color: "#64748b" }}>{sub}</div></div>
+                          <div><div style={{ fontSize: 11, fontWeight: 700, color: `${c}dd` }}>{label}</div><div style={{ fontSize: 10, color: "#64748B" }}>{sub}</div></div>
                         </div>
                       ))}
                     </div>
@@ -1506,7 +1552,7 @@ export default function SearchResults() {
           {/* Results header */}
           <div style={{ marginBottom: 20, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <div>
-              <h2 style={{ fontSize: 22, fontWeight: 800, margin: 0, color: "white" }}>
+              <h2 style={{ fontSize: 22, fontWeight: 800, margin: 0, color: "#1F2937" }}>
                 {activeTab === "places" ? <><FaMapMarkerAlt size={18} style={{ marginRight: 8 }} />Destinations</> : activeTab === "hotels" ? <><FaBed size={18} style={{ marginRight: 8 }} />Hotels</> : <><FaPlane size={18} style={{ marginRight: 8 }} />Flights</>}
               </h2>
               <p style={{ color: "#64748b", fontSize: 13, marginTop: 4 }}>
@@ -1572,17 +1618,17 @@ export default function SearchResults() {
 }
 
 const S = {
-  card: { background: "rgba(15,23,42,0.72)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", borderRadius: 20, overflow: "hidden", border: "1px solid rgba(148,163,184,0.10)", transition: "transform .3s cubic-bezier(.34,1.56,.64,1), border-color .3s, box-shadow .3s", className: "sr-card-item" },
+  card: { background: "#FFFFFF", borderRadius: 22, overflow: "hidden", border: "1px solid #E8EDF5", boxShadow: "0 10px 30px rgba(15,23,42,.08)", transition: "transform .3s cubic-bezier(.34,1.56,.64,1), border-color .3s, box-shadow .3s" },
   cardImg: { width: "100%", height: 190, objectFit: "cover", display: "block" },
   cardBody: { padding: "16px 18px" },
-  cardTitle: { fontSize: 16, fontWeight: 700, color: "white", margin: 0 },
-  ratingText: { fontSize: 11, color: "#94a3b8" },
-  price: { fontSize: 17, fontWeight: 800, color: "#3b82f6" },
-  priceLabel: { fontSize: 10, color: "#64748b" },
-  tag: { fontSize: 11, padding: "3px 10px", borderRadius: 20, background: "rgba(15,23,42,0.8)", color: "#94a3b8", border: "1px solid rgba(148,163,184,0.10)" },
-  amenity: { display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: "#94a3b8", background: "rgba(15,23,42,0.8)", padding: "3px 10px", borderRadius: 20, border: "1px solid rgba(148,163,184,0.10)" },
-  heartBtn: { position: "absolute", top: 10, right: 10, background: "rgba(0,0,0,0.50)", backdropFilter: "blur(8px)", border: "none", borderRadius: "50%", width: 34, height: 34, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" },
-  catBadge: { position: "absolute", bottom: 10, left: 10, background: "rgba(0,0,0,0.65)", backdropFilter: "blur(8px)", color: "white", fontSize: 10, padding: "4px 10px", borderRadius: 20 },
-  actionBtn: { background: "linear-gradient(135deg,rgba(59,130,246,0.15),rgba(139,92,246,0.15))", border: "1px solid rgba(59,130,246,0.30)", color: "#60a5fa", padding: "8px 16px", borderRadius: 10, cursor: "pointer", fontSize: 12, fontWeight: 700, transition: "all .2s", fontFamily: "inherit" },
-  flightBadge: { fontSize: 11, color: "#94a3b8", background: "rgba(15,23,42,0.8)", padding: "3px 10px", borderRadius: 20, border: "1px solid rgba(148,163,184,0.10)", display: "inline-flex", alignItems: "center", gap: 4 },
+  cardTitle: { fontSize: 16, fontWeight: 700, color: "#1F2937", margin: 0 },
+  ratingText: { fontSize: 11, color: "#64748B" },
+  price: { fontSize: 17, fontWeight: 800, color: "#2563EB" },
+  priceLabel: { fontSize: 10, color: "#9CA3AF" },
+  tag: { fontSize: 11, padding: "3px 10px", borderRadius: 20, background: "#EEF4FF", color: "#3B82F6", border: "1px solid rgba(59,130,246,0.20)" },
+  amenity: { display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: "#2563EB", background: "#EEF4FF", padding: "3px 10px", borderRadius: 20, border: "1px solid rgba(59,130,246,0.15)" },
+  heartBtn: { position: "absolute", top: 10, right: 10, background: "rgba(255,255,255,0.92)", backdropFilter: "blur(8px)", border: "1px solid rgba(0,0,0,0.08)", borderRadius: "50%", width: 34, height: 34, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" },
+  catBadge: { position: "absolute", bottom: 10, left: 10, background: "rgba(255,255,255,0.92)", backdropFilter: "blur(8px)", color: "#374151", fontSize: 10, fontWeight: 700, padding: "4px 10px", borderRadius: 20, border: "1px solid rgba(0,0,0,0.08)" },
+  actionBtn: { background: "linear-gradient(135deg,#2563EB,#3B82F6)", border: "none", color: "white", padding: "8px 16px", borderRadius: 10, cursor: "pointer", fontSize: 12, fontWeight: 700, transition: "all .2s", fontFamily: "inherit", boxShadow: "0 4px 12px rgba(37,99,235,0.25)" },
+  flightBadge: { fontSize: 11, color: "#2563EB", background: "#EEF4FF", padding: "3px 10px", borderRadius: 20, border: "1px solid rgba(59,130,246,0.20)", display: "inline-flex", alignItems: "center", gap: 4 },
 };

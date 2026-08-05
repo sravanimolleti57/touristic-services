@@ -2,6 +2,7 @@
 // Uses AviationStack free API for live tracking + local data for booking
 
 const AVIATIONSTACK_KEY = ""; // User can add their free key from aviationstack.com
+const FLASK_BASE = "http://127.0.0.1:5000"; // Flask backend proxy base URL
 
 // ── Comprehensive Flight Database ─────────────────────────────────────────────
 export const FLIGHTS = [
@@ -177,3 +178,201 @@ export const AIRPORTS = [
   { code: "COK", name: "Cochin International", city: "Kochi" },
   { code: "AMD", name: "Sardar Vallabhbhai Patel", city: "Ahmedabad" },
 ];
+
+// ── Flask-Proxied Flight Search ────────────────────────────────────────────────
+/**
+ * Search flights via Flask proxy → AviationStack.
+ * Falls back to filtering static FLIGHTS array on any error.
+ *
+ * @param {Object} params
+ * @param {string} [params.from]       Free-text from field (city or IATA)
+ * @param {string} [params.to]         Free-text to field (city or IATA)
+ * @param {string} [params.dep_iata]   IATA departure code (overrides from)
+ * @param {string} [params.arr_iata]   IATA arrival code (overrides to)
+ * @param {string} [params.date]       Departure date YYYY-MM-DD (informational)
+ * @param {number} [params.limit=20]   Max results
+ * @returns {Promise<{results: Array, source: string}>}
+ */
+export async function searchFlights(params = {}) {
+  // Resolve IATA codes from free-text inputs
+  const depIata = params.dep_iata || _resolveIata(params.from || "");
+  const arrIata = params.arr_iata || _resolveIata(params.to || "");
+
+  try {
+    const qs = new URLSearchParams();
+    if (depIata) qs.set("dep_iata", depIata);
+    if (arrIata) qs.set("arr_iata", arrIata);
+    if (params.limit) qs.set("limit", params.limit);
+
+    const resp = await fetch(`${FLASK_BASE}/api/flights/search?${qs}`, {
+      signal: AbortSignal.timeout(10000),
+    });
+
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const body = await resp.json();
+
+    if (body.success && body.data) {
+      // Merge API results with static FLIGHTS so booking modals still work
+      const merged = _mergeWithStatic(body.data, params);
+      return { results: merged, source: body.source };
+    }
+    throw new Error("API returned no data");
+  } catch (err) {
+    console.warn("searchFlights fell back to static data:", err.message);
+    // Fallback: filter static FLIGHTS
+    return { results: _filterStatic(params), source: "static" };
+  }
+}
+
+/**
+ * Get live status for a specific flight number via Flask proxy.
+ * Falls back to a simulated status object on error.
+ *
+ * @param {string} flightIata  e.g. "AI101" or "AI-101"
+ * @returns {Promise<{data: Object|null, source: string}>}
+ */
+export async function getFlightStatus(flightIata) {
+  const normalized = flightIata.replace("-", "").toUpperCase();
+  try {
+    const resp = await fetch(
+      `${FLASK_BASE}/api/flights/status?flight_iata=${normalized}`,
+      { signal: AbortSignal.timeout(10000) }
+    );
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const body = await resp.json();
+    if (body.success) return { data: body.data, source: body.source };
+    throw new Error("API error");
+  } catch (err) {
+    console.warn("getFlightStatus fell back to simulated:", err.message);
+    // Build a plausible status from static data
+    const match = FLIGHTS.find(
+      (f) => f.flightNo.replace("-", "") === normalized
+    );
+    if (!match) return { data: null, source: "static" };
+    return {
+      data: {
+        flightNo: match.flightNo,
+        airline: match.airline,
+        from: match.from.split(" (")[0],
+        fromIata: (match.from.match(/\((\w+)\)/) || [])[1] || "—",
+        to: match.to.split(" (")[0],
+        toIata: (match.to.match(/\((\w+)\)/) || [])[1] || "—",
+        departure: match.departure,
+        arrival: match.arrival,
+        terminal: match.terminal,
+        gate: { dep: "—", arr: "—" },
+        status: "scheduled",
+        delay: 0,
+        scheduledDep: match.departure,
+        scheduledArr: match.arrival,
+        estimatedDep: match.departure,
+        estimatedArr: match.arrival,
+      },
+      source: "static",
+    };
+  }
+}
+
+// ── Internal helpers ──────────────────────────────────────────────────────────
+
+/** Resolve a city/airport name to IATA code using AIRPORTS list. */
+function _resolveIata(text) {
+  if (!text) return "";
+  const upper = text.toUpperCase().trim();
+  // Direct 3-letter code
+  if (/^[A-Z]{3}$/.test(upper)) return upper;
+  // Match in AIRPORTS
+  const match = AIRPORTS.find(
+    (a) =>
+      a.code === upper ||
+      a.city.toLowerCase().includes(text.toLowerCase()) ||
+      a.name.toLowerCase().includes(text.toLowerCase())
+  );
+  return match ? match.code : "";
+}
+
+/** Filter the static FLIGHTS array matching free-text from/to. */
+function _filterStatic(params) {
+  const from = (params.from || "").toLowerCase();
+  const to = (params.to || "").toLowerCase();
+  const depIata = (params.dep_iata || "").toUpperCase();
+  const arrIata = (params.arr_iata || "").toUpperCase();
+
+  return FLIGHTS.filter((f) => {
+    const matchFrom = depIata
+      ? f.from.includes(depIata)
+      : !from || f.from.toLowerCase().includes(from);
+    const matchTo = arrIata
+      ? f.to.includes(arrIata)
+      : !to || f.to.toLowerCase().includes(to);
+    return matchFrom && matchTo;
+  });
+}
+
+/**
+ * Merge live API results with static FLIGHTS so FlightCard / BookingModal
+ * props (price, class, baggage, meal, etc.) are always populated.
+ * API data takes precedence for status/gate/terminal fields.
+ */
+function _mergeWithStatic(apiFlights, params) {
+  const staticFiltered = _filterStatic(params);
+
+  // If API returned nothing meaningful, return static
+  if (!apiFlights || apiFlights.length === 0) return staticFiltered;
+
+  // Build lookup: flightNo → static flight
+  const staticMap = {};
+  staticFiltered.forEach((f) => {
+    staticMap[f.flightNo.replace("-", "").toUpperCase()] = f;
+  });
+
+  // Enrich API flights with static booking data where available
+  const enriched = apiFlights.map((af) => {
+    const key = (af.flightNo || "").replace("-", "").toUpperCase();
+    const staticFlight = staticMap[key];
+    if (staticFlight) {
+      return {
+        ...staticFlight,           // full booking-ready static data
+        // Override with live data
+        terminal: af.terminal || staticFlight.terminal,
+        status: af.status || "scheduled",
+        delay: af.delay || 0,
+        gate: af.gate || { dep: "—", arr: "—" },
+        scheduledDep: af.scheduledDep,
+        scheduledArr: af.scheduledArr,
+        estimatedDep: af.estimatedDep,
+        estimatedArr: af.estimatedArr,
+        _liveData: true,
+      };
+    }
+    // API flight not in static — return as-is (may lack price etc.)
+    return {
+      ...af,
+      type: "flight",
+      price: af.price || 0,
+      priceNum: af.priceNum || 0,
+      class: af.class || "Economy",
+      baggage: af.baggage || { cabin: "7 kg", checkin: "15 kg" },
+      meal: af.meal || "—",
+      seatPitch: af.seatPitch || "—",
+      refundable: af.refundable || false,
+      cancellationFee: af.cancellationFee || "—",
+      reschedule: af.reschedule || "—",
+      wifi: af.wifi || false,
+      usb: af.usb || false,
+      entertainment: af.entertainment || "—",
+      _liveData: true,
+    };
+  });
+
+  // Append any static flights not present in API results
+  const apiNos = new Set(
+    enriched.map((f) => (f.flightNo || "").replace("-", "").toUpperCase())
+  );
+  const staticOnly = staticFiltered.filter(
+    (f) => !apiNos.has(f.flightNo.replace("-", "").toUpperCase())
+  );
+
+  return [...enriched, ...staticOnly];
+}
+

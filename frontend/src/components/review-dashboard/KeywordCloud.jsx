@@ -10,24 +10,38 @@ export default function KeywordCloud({ keywords = [] }) {
       initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: 0.15 }}
-      className="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 backdrop-blur-md shadow-lg"
+      style={{
+        padding: 20, borderRadius: 16,
+        background: "#FFFFFF", border: "1px solid #E5E7EB",
+        boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+      }}
     >
-      <div className="flex items-center gap-2 mb-3">
-        <FaHashtag className="text-sky-400 text-xs" />
-        <h4 className="text-sm uppercase tracking-wider font-semibold text-slate-400">
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+        <FaHashtag style={{ color: "#2563EB", fontSize: 12 }} />
+        <h4 style={{ margin: 0, fontSize: 11, textTransform: "uppercase", letterSpacing: "0.5px", fontWeight: 700, color: "#6B7280" }}>
           Most Mentioned Keywords
         </h4>
       </div>
 
-      <div className="flex flex-wrap gap-2">
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
         {keywords.map((kw, i) => (
           <motion.span
             key={i}
             whileHover={{ scale: 1.05 }}
-            className="px-3 py-1.5 rounded-xl bg-slate-800/90 text-slate-200 border border-slate-700/60 text-xs font-medium flex items-center gap-1.5 shadow-sm"
+            style={{
+              padding: "5px 12px", borderRadius: 20,
+              background: "#F3F4F6", color: "#374151",
+              border: "1px solid #E5E7EB",
+              fontSize: 12, fontWeight: 600,
+              display: "flex", alignItems: "center", gap: 6,
+              cursor: "default",
+            }}
           >
             <span>{kw.label}</span>
-            <span className="bg-sky-500/20 text-sky-300 px-1.5 py-0.5 rounded-full text-[10px] font-bold">
+            <span style={{
+              background: "rgba(37,99,235,0.10)", color: "#2563EB",
+              padding: "1px 6px", borderRadius: 10, fontSize: 10, fontWeight: 800,
+            }}>
               {kw.count}
             </span>
           </motion.span>

@@ -15,27 +15,38 @@ export default function EmotionChart({ data = [], avgRating = 4.8, totalReviews 
       initial={{ opacity: 0, scale: 0.96 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.4 }}
-      className="p-5 rounded-2xl bg-slate-900/90 border border-slate-800 backdrop-blur-md shadow-xl space-y-4"
+      style={{
+        padding: 20, borderRadius: 16,
+        background: "#FFFFFF", border: "1px solid #E5E7EB",
+        boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+        display: "flex", flexDirection: "column", gap: 16,
+      }}
     >
-      <div className="flex justify-between items-center pb-2 border-b border-slate-800">
-        <h4 className="text-xs uppercase tracking-wider font-extrabold text-slate-300">
+      <div style={{
+        display: "flex", justifyContent: "space-between", alignItems: "center",
+        paddingBottom: 12, borderBottom: "1px solid #E5E7EB",
+      }}>
+        <h4 style={{ margin: 0, fontSize: 11, textTransform: "uppercase", letterSpacing: "0.5px", fontWeight: 800, color: "#374151" }}>
           Sentiment Pie Chart
         </h4>
-        <span className="text-[11px] bg-sky-500/10 text-sky-400 border border-sky-500/20 px-2 py-0.5 rounded-full font-bold">
+        <span style={{
+          fontSize: 11, fontWeight: 700,
+          background: "rgba(37,99,235,0.08)", color: "#2563EB",
+          border: "1px solid rgba(37,99,235,0.2)",
+          padding: "2px 10px", borderRadius: 20,
+        }}>
           Live AI Analysis
         </span>
       </div>
 
-      {/* Large Centerpiece Pie Chart */}
-      <div className="h-56 w-full relative">
+      {/* Pie Chart */}
+      <div style={{ height: 220, width: "100%" }}>
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
               data={data}
-              cx="50%"
-              cy="50%"
-              innerRadius={50}
-              outerRadius={75}
+              cx="50%" cy="50%"
+              innerRadius={50} outerRadius={75}
               paddingAngle={6}
               dataKey="value"
               animationDuration={1200}
@@ -48,18 +59,18 @@ export default function EmotionChart({ data = [], avgRating = 4.8, totalReviews 
                     entry.name.toLowerCase().includes("neu") ? "#eab308" :
                     "#ef4444"
                   }
-                  stroke="#0f172a"
+                  stroke="#FFFFFF"
                   strokeWidth={2}
                 />
               ))}
             </Pie>
             <Tooltip
               contentStyle={{
-                backgroundColor: "#0f172a",
-                borderColor: "#334155",
-                borderRadius: "12px",
-                color: "#f8fafc",
-                boxShadow: "0 10px 25px rgba(0,0,0,0.5)"
+                backgroundColor: "#FFFFFF",
+                borderColor: "#E5E7EB",
+                borderRadius: 10,
+                color: "#111827",
+                boxShadow: "0 4px 16px rgba(0,0,0,0.08)",
               }}
               formatter={(val, name, payload) => [
                 `${val}% (${payload.payload.count || 0} reviews)`,
@@ -69,38 +80,49 @@ export default function EmotionChart({ data = [], avgRating = 4.8, totalReviews 
             <Legend
               verticalAlign="bottom"
               height={32}
-              formatter={(value) => <span className="text-slate-300 text-xs font-semibold">{value}</span>}
+              formatter={(value) => (
+                <span style={{ color: "#374151", fontSize: 12, fontWeight: 600 }}>{value}</span>
+              )}
             />
           </PieChart>
         </ResponsiveContainer>
       </div>
 
-      {/* Under-Chart Summary Statistics */}
-      <div className="pt-2 border-t border-slate-800 space-y-2">
-        <div className="flex justify-between items-center">
-          <span className="text-xs text-slate-400 font-medium">Overall Rating</span>
-          <span className="text-sm font-extrabold text-amber-400 flex items-center gap-1">
+      {/* Summary stats */}
+      <div style={{ paddingTop: 12, borderTop: "1px solid #E5E7EB", display: "flex", flexDirection: "column", gap: 10 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <span style={{ fontSize: 12, color: "#6B7280", fontWeight: 500 }}>Overall Rating</span>
+          <span style={{ fontSize: 13, fontWeight: 800, color: "#F59E0B", display: "flex", alignItems: "center", gap: 4 }}>
             <FaStar /> {avgRating}/5.0
           </span>
         </div>
 
-        <div className="grid grid-cols-3 gap-1.5 pt-1 text-center text-xs">
-          <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
-            <div className="flex justify-center mb-0.5"><FaSmile /></div>
-            <div className="font-extrabold">{posData.value}%</div>
-            <div className="text-[10px] text-slate-400">Positive</div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6, textAlign: "center", fontSize: 12 }}>
+          <div style={{
+            padding: 8, borderRadius: 10,
+            background: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.2)", color: "#059669",
+          }}>
+            <div style={{ display: "flex", justifyContent: "center", marginBottom: 2 }}><FaSmile /></div>
+            <div style={{ fontWeight: 800 }}>{posData.value}%</div>
+            <div style={{ fontSize: 10, color: "#6B7280" }}>Positive</div>
           </div>
 
-          <div className="p-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400">
-            <div className="flex justify-center mb-0.5"><FaMeh /></div>
-            <div className="font-extrabold">{neuData.value}%</div>
-            <div className="text-[10px] text-slate-400">Neutral</div>
+          <div style={{
+            padding: 8, borderRadius: 10,
+            background: "rgba(234,179,8,0.08)", border: "1px solid rgba(234,179,8,0.2)", color: "#D97706",
+          }}>
+            <div style={{ display: "flex", justifyContent: "center", marginBottom: 2 }}><FaMeh /></div>
+            <div style={{ fontWeight: 800 }}>{neuData.value}%</div>
+            <div style={{ fontSize: 10, color: "#6B7280" }}>Neutral</div>
           </div>
 
-          <div className="p-2 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400">
-            <div className="flex justify-center mb-0.5"><FaFrown /></div>
-            <div className="font-extrabold">{negData.value}%</div>
-            <div className="text-[10px] text-slate-400">Negative</div>
+          <div style={{
+            padding: 8, borderRadius: 10,
+            background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)", color: "#DC2626",
+          }}>
+            <div style={{ display: "flex", justifyContent: "center", marginBottom: 2 }}><FaFrown /></div>
+            <div style={{ fontWeight: 800 }}>{negData.value}%</div>
+            <div style={{ fontSize: 10, color: "#6B7280" }}>Negative</div>
           </div>
         </div>
       </div>

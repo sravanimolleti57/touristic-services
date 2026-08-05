@@ -24,9 +24,7 @@ export default function UploadReview({ selectedHotelName, onHotelSelect, onAnaly
   const handleHotelChange = (e) => {
     const val = e.target.value;
     setSelectedHotel(val);
-    if (onHotelSelect && val !== "Custom Hotel (Enter manually)") {
-      onHotelSelect(val);
-    }
+    if (onHotelSelect && val !== "Custom Hotel (Enter manually)") onHotelSelect(val);
   };
 
   const handleSubmit = async (e) => {
@@ -40,7 +38,7 @@ export default function UploadReview({ selectedHotelName, onHotelSelect, onAnaly
 
       const formData = new FormData();
       formData.append("email", user?.email || "guest@user.com");
-      formData.append("hostelName", activeHotelName); // Preserves backend API contract
+      formData.append("hostelName", activeHotelName);
       formData.append("rating", rating);
       if (textReview.trim()) formData.append("text", textReview);
       if (audioFile) formData.append("audio", audioFile);
@@ -54,7 +52,6 @@ export default function UploadReview({ selectedHotelName, onHotelSelect, onAnaly
       setTextReview("");
       setAudioFile(null);
       setVideoFile(null);
-
       if (onAnalysisComplete) onAnalysisComplete(activeHotelName);
     } catch (err) {
       console.warn("Backend submit error, using local session fallback:", err);
@@ -68,52 +65,86 @@ export default function UploadReview({ selectedHotelName, onHotelSelect, onAnaly
     }
   };
 
+  /* ── Shared input style ── */
+  const inputStyle = {
+    width: "100%", padding: "11px 14px", borderRadius: 10,
+    border: "1px solid #E5E7EB", background: "#FFFFFF",
+    color: "#111827", fontSize: 13, outline: "none",
+    fontFamily: "inherit", boxSizing: "border-box",
+    transition: "border-color 0.2s, box-shadow 0.2s",
+  };
+
+  const labelStyle = {
+    display: "block", fontSize: 11, fontWeight: 800,
+    color: "#6B7280", textTransform: "uppercase",
+    letterSpacing: "0.5px", marginBottom: 6,
+  };
+
   return (
-    <div className="glass-panel p-6 rounded-2xl border border-slate-800 shadow-2xl space-y-5 text-slate-100">
+    <div style={{
+      background: "#FFFFFF",
+      border: "1px solid #E5E7EB",
+      borderRadius: 16,
+      padding: "20px 24px",
+      boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+      fontFamily: "'Inter','Segoe UI',system-ui,sans-serif",
+    }}>
       {/* Header */}
-      <div className="flex items-center gap-3 pb-3 border-b border-slate-800/80">
-        <div className="p-2.5 rounded-xl bg-sky-500/10 text-sky-400 border border-sky-500/20 shadow-sm">
-          <FaHotel className="text-xl" />
+      <div style={{
+        display: "flex", alignItems: "center", gap: 12,
+        paddingBottom: 14, marginBottom: 16, borderBottom: "1px solid #E5E7EB",
+      }}>
+        <div style={{
+          width: 40, height: 40, borderRadius: 10,
+          background: "rgba(37,99,235,0.08)",
+          border: "1px solid rgba(37,99,235,0.15)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+        }}>
+          <FaHotel style={{ color: "#2563EB", fontSize: 18 }} />
         </div>
         <div>
-          <h2 className="text-lg font-extrabold text-white tracking-tight">Submit Hotel Review</h2>
-          <p className="text-xs text-slate-400 mt-0.5">
+          <h2 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: "#111827" }}>Submit Hotel Review</h2>
+          <p style={{ margin: 0, fontSize: 12, color: "#6B7280", marginTop: 2 }}>
             Share text, audio, or video feedback. Live AI sentiment analytics updates automatically.
           </p>
         </div>
       </div>
 
+      {/* Success Message */}
       {successMsg && (
-        <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold flex items-center gap-2 animate-fade-in">
-          <FaCheckCircle className="text-base flex-shrink-0" />
+        <div style={{
+          padding: "10px 14px", borderRadius: 10, marginBottom: 16,
+          background: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.25)",
+          color: "#065F46", fontSize: 12, fontWeight: 600,
+          display: "flex", alignItems: "center", gap: 8,
+        }}>
+          <FaCheckCircle style={{ flexShrink: 0, color: "#059669" }} />
           <span>{successMsg}</span>
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+
         {/* Hotel Selector */}
         <div>
-          <label className="block text-xs font-extrabold text-slate-400 uppercase tracking-wider mb-1.5">
-            Select Target Hotel *
-          </label>
+          <label style={labelStyle}>Select Target Hotel *</label>
           <select
             value={selectedHotel}
             onChange={handleHotelChange}
-            className="w-full px-4 py-3 rounded-xl bg-slate-900/90 text-white border border-slate-700/80 text-sm font-semibold outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-all cursor-pointer"
+            style={{ ...inputStyle, cursor: "pointer" }}
+            onFocus={e => { e.target.style.borderColor = "#2563EB"; e.target.style.boxShadow = "0 0 0 3px rgba(37,99,235,0.10)"; }}
+            onBlur={e => { e.target.style.borderColor = "#E5E7EB"; e.target.style.boxShadow = "none"; }}
           >
             {HOTEL_OPTIONS.map((h) => (
-              <option key={h} value={h} className="bg-slate-900 text-white">
-                {h}
-              </option>
+              <option key={h} value={h}>{h}</option>
             ))}
           </select>
         </div>
 
+        {/* Custom Hotel Name */}
         {selectedHotel === "Custom Hotel (Enter manually)" && (
           <div>
-            <label className="block text-xs font-extrabold text-slate-400 uppercase tracking-wider mb-1.5">
-              Custom Hotel Name *
-            </label>
+            <label style={labelStyle}>Custom Hotel Name *</label>
             <input
               type="text"
               placeholder="e.g. Grand Resort Goa"
@@ -122,95 +153,106 @@ export default function UploadReview({ selectedHotelName, onHotelSelect, onAnaly
                 setCustomHotel(e.target.value);
                 if (onHotelSelect) onHotelSelect(e.target.value);
               }}
-              className="w-full px-4 py-3 rounded-xl bg-slate-900/90 text-white border border-slate-700/80 text-sm font-medium outline-none focus:border-sky-500 transition-all"
+              style={inputStyle}
               required
+              onFocus={e => { e.target.style.borderColor = "#2563EB"; e.target.style.boxShadow = "0 0 0 3px rgba(37,99,235,0.10)"; }}
+              onBlur={e => { e.target.style.borderColor = "#E5E7EB"; e.target.style.boxShadow = "none"; }}
             />
           </div>
         )}
 
         {/* Rating Selector */}
         <div>
-          <label className="block text-xs font-extrabold text-slate-400 uppercase tracking-wider mb-1.5">
-            Rating Score
-          </label>
-          <div className="grid grid-cols-5 gap-2">
-            {["5", "4", "3", "2", "1"].map((num) => (
+          <label style={labelStyle}>Rating Score</label>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 8 }}>
+            {["5","4","3","2","1"].map((num) => (
               <button
                 key={num}
                 type="button"
                 onClick={() => setRating(num)}
-                className={`py-2.5 rounded-xl border text-xs font-extrabold flex items-center justify-center gap-1 transition-all ${
-                  rating === num
-                    ? "bg-amber-500/20 border-amber-500 text-amber-300 shadow-md shadow-amber-500/10 scale-[1.02]"
-                    : "bg-slate-900/60 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700"
-                }`}
+                style={{
+                  padding: "10px 0", borderRadius: 10,
+                  border: rating === num ? "1.5px solid #F59E0B" : "1px solid #E5E7EB",
+                  background: rating === num ? "rgba(245,158,11,0.10)" : "#F9FAFB",
+                  color: rating === num ? "#D97706" : "#6B7280",
+                  fontWeight: 800, fontSize: 12, cursor: "pointer",
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: 4,
+                  transition: "all 0.2s", fontFamily: "inherit",
+                  transform: rating === num ? "scale(1.04)" : "scale(1)",
+                }}
               >
                 <span>{num}</span>
-                <FaStar className="text-[11px]" />
+                <FaStar style={{ fontSize: 11 }} />
               </button>
             ))}
           </div>
         </div>
 
-        {/* Text Review Input */}
+        {/* Text Review */}
         <div>
-          <label className="block text-xs font-extrabold text-slate-400 uppercase tracking-wider mb-1.5">
-            Your Detailed Review
-          </label>
+          <label style={labelStyle}>Your Detailed Review</label>
           <textarea
             rows={4}
             placeholder="Share details about cleanliness, staff behavior, room comfort, WiFi, location..."
             value={textReview}
             onChange={(e) => setTextReview(e.target.value)}
-            className="w-full p-4 rounded-xl bg-slate-900/90 text-white border border-slate-700/80 text-sm outline-none focus:border-sky-500 transition-all resize-none leading-relaxed"
+            style={{ ...inputStyle, resize: "vertical", lineHeight: 1.6 }}
+            onFocus={e => { e.target.style.borderColor = "#2563EB"; e.target.style.boxShadow = "0 0 0 3px rgba(37,99,235,0.10)"; }}
+            onBlur={e => { e.target.style.borderColor = "#E5E7EB"; e.target.style.boxShadow = "none"; }}
           />
         </div>
 
         {/* Media Attachments */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           {/* Audio Upload */}
-          <div className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800 space-y-2">
-            <div className="flex items-center gap-2 text-xs font-bold text-sky-400">
-              <FaMicrophone /> <span>Audio Review Attachment</span>
+          <div style={{
+            padding: 14, borderRadius: 12,
+            background: "#F9FAFB", border: "1px solid #E5E7EB",
+            display: "flex", flexDirection: "column", gap: 8,
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 12, fontWeight: 700, color: "#2563EB" }}>
+              <FaMicrophone /> <span>Audio Review</span>
             </div>
-            <input
-              type="file"
-              accept="audio/*"
-              id="audio-upload"
-              onChange={(e) => setAudioFile(e.target.files[0])}
-              className="hidden"
-            />
+            <input type="file" accept="audio/*" id="audio-upload"
+              onChange={(e) => setAudioFile(e.target.files[0])} style={{ display: "none" }} />
             <label
               htmlFor="audio-upload"
-              className={`block w-full py-2.5 px-3 rounded-lg border text-center text-xs font-medium truncate cursor-pointer transition-all ${
-                audioFile
-                  ? "bg-sky-500/15 border-sky-500/40 text-sky-300"
-                  : "bg-slate-800/80 border-dashed border-slate-700 text-slate-400 hover:border-slate-600 hover:text-slate-200"
-              }`}
+              style={{
+                display: "block", width: "100%", padding: "8px 12px",
+                borderRadius: 8, textAlign: "center", fontSize: 12, fontWeight: 600,
+                cursor: "pointer", transition: "all 0.2s", boxSizing: "border-box",
+                overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                background: audioFile ? "rgba(37,99,235,0.08)" : "#FFFFFF",
+                border: audioFile ? "1px solid rgba(37,99,235,0.3)" : "1px dashed #D1D5DB",
+                color: audioFile ? "#2563EB" : "#9CA3AF",
+              }}
             >
               {audioFile ? `🎤 ${audioFile.name}` : "Upload Audio Recording"}
             </label>
           </div>
 
           {/* Video Upload */}
-          <div className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800 space-y-2">
-            <div className="flex items-center gap-2 text-xs font-bold text-purple-400">
-              <FaVideo /> <span>Video Review Attachment</span>
+          <div style={{
+            padding: 14, borderRadius: 12,
+            background: "#F9FAFB", border: "1px solid #E5E7EB",
+            display: "flex", flexDirection: "column", gap: 8,
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 12, fontWeight: 700, color: "#7C3AED" }}>
+              <FaVideo /> <span>Video Review</span>
             </div>
-            <input
-              type="file"
-              accept="video/*"
-              id="video-upload"
-              onChange={(e) => setVideoFile(e.target.files[0])}
-              className="hidden"
-            />
+            <input type="file" accept="video/*" id="video-upload"
+              onChange={(e) => setVideoFile(e.target.files[0])} style={{ display: "none" }} />
             <label
               htmlFor="video-upload"
-              className={`block w-full py-2.5 px-3 rounded-lg border text-center text-xs font-medium truncate cursor-pointer transition-all ${
-                videoFile
-                  ? "bg-purple-500/15 border-purple-500/40 text-purple-300"
-                  : "bg-slate-800/80 border-dashed border-slate-700 text-slate-400 hover:border-slate-600 hover:text-slate-200"
-              }`}
+              style={{
+                display: "block", width: "100%", padding: "8px 12px",
+                borderRadius: 8, textAlign: "center", fontSize: 12, fontWeight: 600,
+                cursor: "pointer", transition: "all 0.2s", boxSizing: "border-box",
+                overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                background: videoFile ? "rgba(124,58,237,0.08)" : "#FFFFFF",
+                border: videoFile ? "1px solid rgba(124,58,237,0.3)" : "1px dashed #D1D5DB",
+                color: videoFile ? "#7C3AED" : "#9CA3AF",
+              }}
             >
               {videoFile ? `📹 ${videoFile.name}` : "Upload Video Clips"}
             </label>
@@ -221,15 +263,25 @@ export default function UploadReview({ selectedHotelName, onHotelSelect, onAnaly
         <button
           type="submit"
           disabled={loading}
-          className={`w-full py-3.5 px-4 rounded-xl text-sm font-extrabold flex items-center justify-center gap-2 shadow-lg transition-all ${
-            loading
-              ? "bg-slate-800 text-slate-500 cursor-wait"
-              : "bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white shadow-sky-500/25 active:scale-[0.99]"
-          }`}
+          style={{
+            width: "100%", padding: "13px 24px", borderRadius: 12,
+            border: "none", cursor: loading ? "wait" : "pointer",
+            fontFamily: "inherit", fontWeight: 800, fontSize: 14,
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+            transition: "all 0.25s",
+            background: loading
+              ? "#E5E7EB"
+              : "linear-gradient(135deg,#2563EB,#3B82F6)",
+            color: loading ? "#9CA3AF" : "#FFFFFF",
+            boxShadow: loading ? "none" : "0 4px 14px rgba(37,99,235,0.25)",
+          }}
+          onMouseEnter={e => { if (!loading) { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 8px 24px rgba(37,99,235,0.35)"; } }}
+          onMouseLeave={e => { e.currentTarget.style.transform = "none"; e.currentTarget.style.boxShadow = loading ? "none" : "0 4px 14px rgba(37,99,235,0.25)"; }}
         >
-          <FaPaperPlane className="text-xs" />
+          <FaPaperPlane style={{ fontSize: 12 }} />
           <span>{loading ? "Processing AI Analysis..." : "Submit Hotel Review"}</span>
         </button>
+
       </form>
     </div>
   );

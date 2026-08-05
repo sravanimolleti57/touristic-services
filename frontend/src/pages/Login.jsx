@@ -68,7 +68,7 @@ function FloatingIcon({ icon, style }) {
 function Login() {
   const navigate = useNavigate();
 
-  const [isRegister, setIsRegister] = useState(true);
+  const [isRegister, setIsRegister] = useState(false);
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -98,21 +98,28 @@ function Login() {
     try {
       const response = await axios.post(
         "http://127.0.0.1:5000/login",
-        { email, password }
+        { email, password },
+        { timeout: 10000 }
       );
 
       localStorage.setItem(
         "user",
         JSON.stringify({
-          name: response.data.name,
-          email: response.data.email,
+          name: response.data.name || "",
+          email: response.data.email || email,
           isLoggedIn: true,
         })
       );
 
       navigate("/home");
     } catch (err) {
-      setError(err.response?.data?.message || "Login Failed");
+      if (err.code === "ECONNABORTED" || err.message?.includes("timeout")) {
+        setError("Request timed out. Please check if the server is running.");
+      } else if (!err.response) {
+        setError("Cannot reach the server. Please ensure the backend is running.");
+      } else {
+        setError(err.response?.data?.message || "Login failed. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
@@ -131,7 +138,11 @@ function Login() {
     setLoading(true);
 
     try {
-      await axios.post("http://127.0.0.1:5000/register", { name, email, password });
+      await axios.post(
+        "http://127.0.0.1:5000/register",
+        { name, email, password },
+        { timeout: 10000 }
+      );
 
       setName("");
       setEmail("");
@@ -139,7 +150,13 @@ function Login() {
       setIsRegister(false);
       setError("");
     } catch (err) {
-      setError(err.response?.data?.message || "Registration Failed");
+      if (err.code === "ECONNABORTED" || err.message?.includes("timeout")) {
+        setError("Request timed out. Please check if the server is running.");
+      } else if (!err.response) {
+        setError("Cannot reach the server. Please ensure the backend is running.");
+      } else {
+        setError(err.response?.data?.message || "Registration failed. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
