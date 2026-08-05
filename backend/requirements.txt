@@ -1,0 +1,10 @@
+flask
+flask-cors
+pymongo
+transformers
+torch
+joblib
+nltk
+scikit-learn
+pandas
+python-dotenv
