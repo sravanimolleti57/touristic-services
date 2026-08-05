@@ -6,7 +6,12 @@ import UploadReview from "../components/UploadReview";
 import ReviewAnalytics from "../components/review-dashboard/ReviewAnalytics";
 import HotelDetailsPanel from "../components/review-dashboard/HotelDetailsPanel";
 import { HOTELS_LIST, getHotelByName } from "../data/hotels";
+<<<<<<< Updated upstream
 import { FaHotel, FaStar, FaMapMarkerAlt, FaChartPie, FaChevronDown, FaChevronUp, FaInfoCircle, FaComments } from "react-icons/fa";
+=======
+import { isHotelMatch } from "../utils/reviewAnalytics";
+import { FaHotel, FaStar, FaChartPie, FaChevronDown, FaChevronUp, FaInfoCircle, FaComments } from "react-icons/fa";
+>>>>>>> Stashed changes
 
 export default function Reviews() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -30,6 +35,7 @@ export default function Reviews() {
   const loadReviews = async () => {
     try {
       const res = await axios.get(`http://127.0.0.1:5000/reviews/${email}`);
+<<<<<<< Updated upstream
       if (Array.isArray(res.data) && res.data.length > 0) {
         setAllReviews(res.data);
       } else {
@@ -51,12 +57,42 @@ export default function Reviews() {
       { hostelName: "GoStops Hotel Rishikesh", user: "Meera D.", text: "Nice Ganga view from rooftop, but WiFi was slightly slow during evening peak.", type: "Text", rating: "4", createdAt: new Date(Date.now() - 86400000 * 5).toISOString() },
     ]);
   };
+=======
+      const backendRevs = Array.isArray(res.data) ? res.data : [];
+
+      // Combine backend reviews with fallback set if empty
+      let combined = backendRevs.length > 0 ? backendRevs : getFallbackReviews();
+      
+      // Combine with local session reviews if any stored locally
+      const localSessionRevs = JSON.parse(sessionStorage.getItem("local_reviews") || "[]");
+      if (localSessionRevs.length > 0) {
+        combined = [...localSessionRevs, ...combined];
+      }
+
+      setAllReviews(combined);
+    } catch (err) {
+      console.warn("Backend reviews fetch note, using local session reviews dataset:", err);
+      const localSessionRevs = JSON.parse(sessionStorage.getItem("local_reviews") || "[]");
+      setAllReviews(localSessionRevs.length > 0 ? localSessionRevs : getFallbackReviews());
+    }
+  };
+
+  const getFallbackReviews = () => [
+    { hostelName: "The Leela Palace", user: "Anand R.", text: "Royal luxury experience! Exceptional service, stunning architecture, and pristine pool area.", type: "Text, Audio", rating: "5", createdAt: new Date().toISOString() },
+    { hostelName: "The Leela Palace", user: "Priya S.", text: "Superb dining and friendly concierge staff. Room cleanliness was 10/10.", type: "Text", rating: "5", createdAt: new Date(Date.now() - 86400000 * 1).toISOString() },
+    { hostelName: "Taj Mahal Palace", user: "Vikram M.", text: "Iconic sea view room! Attentive staff and delicious breakfast spread.", type: "Text, Video", rating: "5", createdAt: new Date(Date.now() - 86400000 * 2).toISOString() },
+    { hostelName: "Oberoi Udaivilas", user: "Neha K.", text: "Breathtaking lake views and tranquil spa services. Highly recommended!", type: "Text", rating: "5", createdAt: new Date(Date.now() - 86400000 * 3).toISOString() },
+    { hostelName: "Zostel Hotel Jaipur", user: "Rahul T.", text: "Awesome vibe! Met great travellers, super clean rooms.", type: "Text, Audio", rating: "5", createdAt: new Date(Date.now() - 86400000 * 4).toISOString() },
+    { hostelName: "GoStops Hotel Rishikesh", user: "Meera D.", text: "Nice Ganga view from rooftop, but WiFi was slightly slow during evening peak.", type: "Text", rating: "4", createdAt: new Date(Date.now() - 86400000 * 5).toISOString() },
+  ];
+>>>>>>> Stashed changes
 
   const handleHotelSelect = (hotelName) => {
     setSelectedHotelName(hotelName);
     setSearchParams({ hotel: hotelName });
   };
 
+<<<<<<< Updated upstream
   const handleNewReviewSubmitted = (submittedHotelName) => {
     if (submittedHotelName) {
       handleHotelSelect(submittedHotelName);
@@ -70,6 +106,28 @@ export default function Reviews() {
     return allReviews.filter(r => {
       const nameInRev = (r.hostelName || r.hotelName || "").toLowerCase();
       return nameInRev.includes(selectedHotelName.toLowerCase()) || selectedHotelName.toLowerCase().includes(nameInRev);
+=======
+  const handleNewReviewSubmitted = (newReviewData) => {
+    let targetHotel = selectedHotelName;
+
+    if (typeof newReviewData === "string") {
+      targetHotel = newReviewData;
+    } else if (newReviewData && newReviewData.hostelName) {
+      targetHotel = newReviewData.hostelName;
+      setAllReviews((prev) => [newReviewData, ...prev]);
+    }
+
+    handleHotelSelect(targetHotel);
+    loadReviews();
+  };
+
+  // Filter reviews strictly for the selected hotel or show all
+  const filteredReviews = useMemo(() => {
+    if (filterMode === "all") return allReviews;
+    return allReviews.filter((r) => {
+      const nameInRev = r.hostelName || r.hotelName || "";
+      return isHotelMatch(nameInRev, selectedHotelName);
+>>>>>>> Stashed changes
     });
   }, [allReviews, selectedHotelName, filterMode]);
 
@@ -105,7 +163,11 @@ export default function Reviews() {
                     onChange={(e) => handleHotelSelect(e.target.value)}
                     className="bg-transparent text-white font-bold text-xs outline-none cursor-pointer pr-2"
                   >
+<<<<<<< Updated upstream
                     {HOTELS_LIST.map(h => (
+=======
+                    {HOTELS_LIST.map((h) => (
+>>>>>>> Stashed changes
                       <option key={h.id} value={h.name} className="bg-slate-900 text-white">
                         {h.name}
                       </option>
@@ -168,6 +230,7 @@ export default function Reviews() {
             )}
           </div>
 
+<<<<<<< Updated upstream
           {/* 
             3-COLUMN LAYOUT REQUIREMENT:
             | Column 1: Reviews (60%) | Column 2: Analytics Dashboard (20%) | Column 3: Hotel Details (20%) |
@@ -175,6 +238,12 @@ export default function Reviews() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
             
             {/* Column 1: Reviews Section (60% / col-span-7) */}
+=======
+          {/* 3-COLUMN LAYOUT */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            
+            {/* Column 1: Reviews Section */}
+>>>>>>> Stashed changes
             <div className="lg:col-span-7 space-y-6">
               
               <UploadReview
@@ -252,12 +321,20 @@ export default function Reviews() {
               </div>
             </div>
 
+<<<<<<< Updated upstream
             {/* Column 2: Analytics Dashboard (20% / col-span-3) - Sits between Reviews and Hotel Details! */}
+=======
+            {/* Column 2: Analytics Dashboard */}
+>>>>>>> Stashed changes
             <div className="hidden lg:block lg:col-span-3 lg:sticky lg:top-24 max-h-[calc(100vh-120px)] overflow-y-auto pr-1 space-y-4">
               <ReviewAnalytics reviews={filteredReviews} />
             </div>
 
+<<<<<<< Updated upstream
             {/* Column 3: Hotel Details Panel (20% / col-span-2) - Positioned on the RIGHT of Analytics Dashboard! */}
+=======
+            {/* Column 3: Hotel Details Panel */}
+>>>>>>> Stashed changes
             <div className="hidden lg:block lg:col-span-2 lg:sticky lg:top-24 max-h-[calc(100vh-120px)] overflow-y-auto">
               <HotelDetailsPanel hotel={selectedHotelInfo} />
             </div>

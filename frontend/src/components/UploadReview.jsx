@@ -34,6 +34,25 @@ export default function UploadReview({ selectedHotelName, onHotelSelect, onAnaly
     if (!activeHotelName.trim()) { alert("Please select or enter a hotel name."); return; }
     if (!textReview.trim() && !audioFile && !videoFile) { alert("Please enter text or upload an audio/video review."); return; }
 
+    const reviewTypes = [];
+    if (textReview.trim()) reviewTypes.push("Text");
+    if (audioFile) reviewTypes.push("Audio");
+    if (videoFile) reviewTypes.push("Video");
+    const typeStr = reviewTypes.length > 0 ? reviewTypes.join(", ") : "Text";
+
+    const newRevObj = {
+      hostelName: activeHotelName,
+      hotelName: activeHotelName,
+      user: user?.name || user?.email?.split("@")[0] || "Traveler",
+      userEmail: user?.email || "guest@user.com",
+      rating: rating,
+      text: textReview,
+      audioName: audioFile?.name || "",
+      videoName: videoFile?.name || "",
+      type: typeStr,
+      createdAt: new Date().toISOString()
+    };
+
     try {
       setLoading(true);
       setSuccessMsg("");
@@ -50,19 +69,41 @@ export default function UploadReview({ selectedHotelName, onHotelSelect, onAnaly
         headers: { "Content-Type": "multipart/form-data" },
       });
 
+<<<<<<< Updated upstream
       setSuccessMsg(`Review for "${activeHotelName}" successfully saved to backend database!`);
+=======
+      // Save locally to session storage to guarantee immediate sync
+      const existingLocal = JSON.parse(sessionStorage.getItem("local_reviews") || "[]");
+      sessionStorage.setItem("local_reviews", JSON.stringify([newRevObj, ...existingLocal]));
+
+      setSuccessMsg(`Review for "${activeHotelName}" saved successfully!`);
+>>>>>>> Stashed changes
       setTextReview("");
       setAudioFile(null);
       setVideoFile(null);
 
+<<<<<<< Updated upstream
       if (onAnalysisComplete) onAnalysisComplete(activeHotelName);
     } catch (err) {
       console.warn("Backend submit error, using local session fallback:", err);
+=======
+      if (onAnalysisComplete) onAnalysisComplete(newRevObj);
+    } catch (err) {
+      console.warn("Backend submit error, saving in local session database:", err);
+      const existingLocal = JSON.parse(sessionStorage.getItem("local_reviews") || "[]");
+      sessionStorage.setItem("local_reviews", JSON.stringify([newRevObj, ...existingLocal]));
+
+>>>>>>> Stashed changes
       setSuccessMsg(`Review for "${activeHotelName}" saved in local session database!`);
       setTextReview("");
       setAudioFile(null);
       setVideoFile(null);
+<<<<<<< Updated upstream
       if (onAnalysisComplete) onAnalysisComplete(activeHotelName);
+=======
+
+      if (onAnalysisComplete) onAnalysisComplete(newRevObj);
+>>>>>>> Stashed changes
     } finally {
       setLoading(false);
     }

@@ -5,10 +5,17 @@ import {
 } from "recharts";
 import {
   FaTimes, FaChartPie, FaShieldAlt, FaThumbsUp,
+<<<<<<< Updated upstream
   FaThumbsDown, FaHotel, FaPlane, FaStar, FaCheckCircle, FaBrain, FaHashtag, FaQuoteLeft
 } from "react-icons/fa";
 import axios from "axios";
 import { analyzeReviewText } from "../utils/reviewAnalytics";
+=======
+  FaThumbsDown, FaHotel, FaPlane, FaStar, FaBrain, FaHashtag
+} from "react-icons/fa";
+import axios from "axios";
+import { analyzeReviewText, isHotelMatch } from "../utils/reviewAnalytics";
+>>>>>>> Stashed changes
 
 export default function FeedbackAnalysisModal({ item, itemType = "hotel", onClose }) {
   const [hotelReviews, setHotelReviews] = useState([]);
@@ -52,11 +59,24 @@ export default function FeedbackAnalysisModal({ item, itemType = "hotel", onClos
       ];
     }
 
+<<<<<<< Updated upstream
     // Filter reviews strictly for this selected hotel or item name
     const matchedRevs = allRevs.filter(r => {
       const nameInRev = (r.hostelName || r.hotelName || "").toLowerCase();
       const targetName = title.toLowerCase();
       return nameInRev.includes(targetName) || targetName.includes(nameInRev);
+=======
+    // Combine local session reviews
+    const localSessionRevs = JSON.parse(sessionStorage.getItem("local_reviews") || "[]");
+    if (localSessionRevs.length > 0) {
+      allRevs = [...localSessionRevs, ...allRevs];
+    }
+
+    // Filter reviews strictly for this selected hotel or item name using normalized hotel matching
+    const matchedRevs = allRevs.filter(r => {
+      const nameInRev = r.hostelName || r.hotelName || "";
+      return isHotelMatch(nameInRev, title);
+>>>>>>> Stashed changes
     });
 
     const finalRevs = matchedRevs.length > 0 ? matchedRevs : allRevs;
@@ -93,6 +113,7 @@ export default function FeedbackAnalysisModal({ item, itemType = "hotel", onClos
 
   // Category dimensions derived from real sentiment data
   const categoryDimensions = useMemo(() => {
+<<<<<<< Updated upstream
     const posPct = analytics.emotionPieData.find(d => d.name.toLowerCase().includes("pos"))?.value || 85;
     return isFlight
       ? [
@@ -106,6 +127,21 @@ export default function FeedbackAnalysisModal({ item, itemType = "hotel", onClos
           { name: "Location & Transport", score: Math.min(98, posPct + 1), color: "#38bdf8" },
           { name: "Staff Hospitality", score: Math.min(100, posPct + 4), color: "#c084fc" },
           { name: "Value & Amenities", score: Math.min(95, posPct - 4), color: "#f59e0b" },
+=======
+    const posPct = analytics.positiveCount > 0 ? analytics.emotionPieData.find(d => d.name.toLowerCase().includes("pos"))?.value || 85 : 0;
+    return isFlight
+      ? [
+          { name: "Punctuality & Schedule", score: posPct > 0 ? Math.min(99, posPct + 2) : 0, color: "#38bdf8" },
+          { name: "Cabin Comfort", score: posPct > 0 ? Math.min(98, Math.max(0, posPct - 3)) : 0, color: "#c084fc" },
+          { name: "Crew Hospitality", score: posPct > 0 ? Math.min(100, posPct + 4) : 0, color: "#10b981" },
+          { name: "In-Flight Services", score: posPct > 0 ? Math.min(95, Math.max(0, posPct - 5)) : 0, color: "#f59e0b" },
+        ]
+      : [
+          { name: "Cleanliness & Hygiene", score: posPct > 0 ? Math.min(99, posPct + 3) : 0, color: "#10b981" },
+          { name: "Location & Transport", score: posPct > 0 ? Math.min(98, posPct + 1) : 0, color: "#38bdf8" },
+          { name: "Staff Hospitality", score: posPct > 0 ? Math.min(100, posPct + 4) : 0, color: "#c084fc" },
+          { name: "Value & Amenities", score: posPct > 0 ? Math.min(95, Math.max(0, posPct - 4)) : 0, color: "#f59e0b" },
+>>>>>>> Stashed changes
         ];
   }, [analytics, isFlight]);
 
@@ -270,7 +306,11 @@ export default function FeedbackAnalysisModal({ item, itemType = "hotel", onClos
             {/* Most Mentioned Keywords */}
             {analytics.keywords.length > 0 && (
               <div style={{ marginTop: 20 }}>
+<<<<<<< Updated upstream
                 <h4 style={{ fontSize: 11, textTransform: "uppercase", color: "#94a3b8", letterSpacing: 1.5, marginBottom: 8, fontWeight: 700, display: "flex", alignItems: "center", gap: 6 }}>
+=======
+                <h4 style={{ fontSize: 11, textTransform: "uppercase", color: "#94a3b8", letterSpacing: 1.5, marginBottom: 8, fontWeight: 700, display: "flex", items: "center", gap: 6 }}>
+>>>>>>> Stashed changes
                   <FaHashtag style={{ color: "#38bdf8" }} /> Most Mentioned Keywords
                 </h4>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
@@ -312,7 +352,11 @@ export default function FeedbackAnalysisModal({ item, itemType = "hotel", onClos
                 <ul style={styles.list}>
                   {analytics.pros.map((pos, idx) => (
                     <li key={idx} style={styles.listItem}>
+<<<<<<< Updated upstream
                       <FaCheckCircle color="#10b981" size={12} style={{ flexShrink: 0, marginTop: 2 }} />
+=======
+                      <span style={{ color: "#10b981", fontWeight: 800, fontSize: 12 }}>✓</span>
+>>>>>>> Stashed changes
                       <span>{pos}</span>
                     </li>
                   ))}
