@@ -12,7 +12,13 @@ export const HOTELS_LIST = [
   { id: "h7", name: "Zostel Hotel Jaipur", location: "Jaipur, Rajasthan", rating: 4.8, price: "₹2,500/night", img: "https://images.unsplash.com/photo-1582719508461-905c673771fd?w=400&q=80" },
   { id: "h8", name: "GoStops Hotel Rishikesh", location: "Rishikesh, Uttarakhand", rating: 4.6, price: "₹2,100/night", img: "https://images.unsplash.com/photo-1590490360182-c33d57733427?w=400&q=80" },
   { id: "h9", name: "The Hosteller Goa", location: "Anjuna, Goa", rating: 4.7, price: "₹3,200/night", img: "https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=400&q=80" },
-  { id: "h10", name: "Moustache Hotel Manali", location: "Manali, Himachal Pradesh", rating: 4.5, price: "₹2,800/night", img: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400&q=80" }
+  { id: "h10", name: "Moustache Hotel Manali", location: "Manali, Himachal Pradesh", rating: 4.5, price: "₹2,800/night", img: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400&q=80" },
+  { id: "h11", name: "Burj Al Arab Jumeirah", location: "Dubai, UAE", rating: 4.9, price: "₹1,20,000/night", img: "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=400&q=80" },
+  { id: "h12", name: "Marina Bay Sands Hotel", location: "Singapore", rating: 4.8, price: "₹68,000/night", img: "https://images.unsplash.com/photo-1525625293386-3f8f99389edd?w=400&q=80" },
+  { id: "h13", name: "The Plaza Hotel", location: "New York City, USA", rating: 4.9, price: "₹95,000/night", img: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400&q=80" },
+  { id: "h14", name: "Kumarakom Lake Resort", location: "Kerala, India", rating: 4.8, price: "₹32,000/night", img: "https://images.unsplash.com/photo-1602216056096-3b40cc0c9944?w=400&q=80" },
+  { id: "h15", name: "Grand Hotel Tremezzo", location: "Lake Como, Italy", rating: 4.9, price: "₹85,000/night", img: "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=400&q=80" },
+  { id: "h16", name: "The Oberoi Amarvilas", location: "Agra, India", rating: 4.9, price: "₹48,000/night", img: "https://images.unsplash.com/photo-1578683010236-d716f9a3f461?w=400&q=80" }
 ];
 
 export function getHotelByName(name) {

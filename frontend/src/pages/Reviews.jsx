@@ -283,7 +283,7 @@ export default function Reviews() {
                   <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
                     <thead>
                       <tr style={{ background: "#F9FAFB", borderBottom: "1px solid #E5E7EB" }}>
-                        {["Hotel", "Type", "Snippet", "Rating", "Date"].map(col => (
+                        {["Hotel", "Type", "Converted Review / Speech-to-Text", "AI Sentiment & Facial Emotion", "Rating", "Date"].map(col => (
                           <th key={col} style={{
                             padding: "10px 12px", textAlign: "left",
                             fontWeight: 800, textTransform: "uppercase",
@@ -296,43 +296,89 @@ export default function Reviews() {
                     <tbody>
                       {filteredReviews.length === 0 ? (
                         <tr>
-                          <td colSpan={5} style={{ padding: "32px 12px", textAlign: "center", color: "#9CA3AF", fontSize: 13 }}>
+                          <td colSpan={6} style={{ padding: "32px 12px", textAlign: "center", color: "#9CA3AF", fontSize: 13 }}>
                             No reviews submitted yet for {selectedHotelName}. Submit the first review above!
                           </td>
                         </tr>
                       ) : (
-                        filteredReviews.map((r, index) => (
-                          <tr
-                            key={index}
-                            style={{ borderBottom: "1px solid #F3F4F6", transition: "background 0.15s" }}
-                            onMouseEnter={e => e.currentTarget.style.background = "#F0F7FF"}
-                            onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-                          >
-                            <td style={{ padding: "10px 12px", fontWeight: 700, color: "#111827" }}>
-                              {r.hostelName || r.hotelName || selectedHotelName}
-                            </td>
-                            <td style={{ padding: "10px 12px" }}>
-                              <span style={{
-                                padding: "3px 10px", borderRadius: 20,
-                                background: "rgba(37,99,235,0.08)", color: "#2563EB",
-                                border: "1px solid rgba(37,99,235,0.2)", fontSize: 11, fontWeight: 600,
-                              }}>
-                                {r.type || "Text"}
-                              </span>
-                            </td>
-                            <td style={{ padding: "10px 12px", maxWidth: 260, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "#374151" }}>
-                              {r.text ? `"${r.text}"` : r.audioName ? `Audio: ${r.audioName}` : r.videoName ? `Video: ${r.videoName}` : "Media Review"}
-                            </td>
-                            <td style={{ padding: "10px 12px" }}>
-                              <span style={{ color: "#F59E0B", fontWeight: 800, display: "flex", alignItems: "center", gap: 4 }}>
-                                <FaStar style={{ fontSize: 10 }} /> {r.rating || "5"}
-                              </span>
-                            </td>
-                            <td style={{ padding: "10px 12px", color: "#9CA3AF", fontSize: 11 }}>
-                              {r.createdAt ? new Date(r.createdAt).toLocaleDateString() : "Recently"}
-                            </td>
-                          </tr>
-                        ))
+                        filteredReviews.map((r, index) => {
+                          const audioSent = r.audioSentiment || (r.rating >= 4 ? "Positive" : r.rating === "3" ? "Neutral" : "Negative");
+                          const facialExpr = r.facialExpression || (r.rating >= 4 ? "Positive" : r.rating === "3" ? "Neutral" : "Negative");
+                          const hasAudio = (r.type || "").includes("Audio") || r.audioTranscript || r.audioName;
+                          const hasVideo = (r.type || "").includes("Video") || r.videoName || r.facialExpression;
+
+                          return (
+                            <tr
+                              key={index}
+                              style={{ borderBottom: "1px solid #F3F4F6", transition: "background 0.15s" }}
+                              onMouseEnter={e => e.currentTarget.style.background = "#F0F7FF"}
+                              onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                            >
+                              <td style={{ padding: "12px", fontWeight: 700, color: "#111827" }}>
+                                {r.hostelName || r.hotelName || selectedHotelName}
+                              </td>
+                              <td style={{ padding: "12px" }}>
+                                <span style={{
+                                  padding: "3px 10px", borderRadius: 20,
+                                  background: "rgba(37,99,235,0.08)", color: "#2563EB",
+                                  border: "1px solid rgba(37,99,235,0.2)", fontSize: 11, fontWeight: 700,
+                                }}>
+                                  {r.type || "Text"}
+                                </span>
+                              </td>
+                              <td style={{ padding: "12px", maxWidth: 280, color: "#374151" }}>
+                                <div style={{ fontSize: 12, fontWeight: 600, color: "#1E293B" }}>
+                                  {r.text ? `"${r.text}"` : r.audioTranscript ? `"${r.audioTranscript}"` : "Media Review"}
+                                </div>
+                                {r.audioTranscript && r.text !== r.audioTranscript && (
+                                  <div style={{ fontSize: 10, color: "#2563EB", fontWeight: 700, marginTop: 3 }}>
+                                    🎤 STT: "{r.audioTranscript}"
+                                  </div>
+                                )}
+                              </td>
+                              <td style={{ padding: "12px" }}>
+                                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                                  {hasAudio && (
+                                    <span style={{
+                                      fontSize: 10, fontWeight: 800, padding: "2px 8px", borderRadius: 12, width: "fit-content",
+                                      background: audioSent === "Positive" ? "#DCFCE7" : audioSent === "Negative" ? "#FEE2E2" : "#FEF3C7",
+                                      color: audioSent === "Positive" ? "#15803D" : audioSent === "Negative" ? "#B91C1C" : "#B45309",
+                                      border: "1px solid currentColor"
+                                    }}>
+                                      🎤 Audio Sentiment: {audioSent}
+                                    </span>
+                                  )}
+                                  {hasVideo && (
+                                    <span style={{
+                                      fontSize: 10, fontWeight: 800, padding: "2px 8px", borderRadius: 12, width: "fit-content",
+                                      background: facialExpr === "Positive" ? "#F3E8FF" : facialExpr === "Negative" ? "#FEE2E2" : "#FEF3C7",
+                                      color: facialExpr === "Positive" ? "#7E22CE" : facialExpr === "Negative" ? "#B91C1C" : "#B45309",
+                                      border: "1px solid currentColor"
+                                    }}>
+                                      🎥 Facial Expression: {facialExpr}
+                                    </span>
+                                  )}
+                                  {!hasAudio && !hasVideo && (
+                                    <span style={{
+                                      fontSize: 10, fontWeight: 800, padding: "2px 8px", borderRadius: 12, width: "fit-content",
+                                      background: "#DCFCE7", color: "#15803D", border: "1px solid #15803D"
+                                    }}>
+                                      📝 Text Sentiment: {audioSent}
+                                    </span>
+                                  )}
+                                </div>
+                              </td>
+                              <td style={{ padding: "12px" }}>
+                                <span style={{ color: "#F59E0B", fontWeight: 800, display: "flex", alignItems: "center", gap: 4 }}>
+                                  <FaStar style={{ fontSize: 10 }} /> {r.rating || "5"}
+                                </span>
+                              </td>
+                              <td style={{ padding: "12px", color: "#9CA3AF", fontSize: 11 }}>
+                                {r.createdAt ? new Date(r.createdAt).toLocaleDateString() : "Recently"}
+                              </td>
+                            </tr>
+                          );
+                        })
                       )}
                     </tbody>
                   </table>

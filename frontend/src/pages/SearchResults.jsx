@@ -68,6 +68,12 @@ const HOTELS = [
   { id: 10, type: "hotel", name: "Oberoi Udaivilas", location: "Udaipur, India", rating: 4.9, reviews: 2105, price: "₹55,000/night", img: "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=400&q=80", amenities: ["wifi", "pool", "restaurant", "ac"], sentiment: "99% Positive" },
   { id: 11, type: "hotel", name: "Six Senses Vana", location: "Dehradun, India", rating: 4.8, reviews: 765, price: "₹42,000/night", img: "https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=400&q=80", amenities: ["wifi", "pool", "gym", "restaurant"], sentiment: "97% Positive" },
   { id: 12, type: "hotel", name: "Amanbagh Resort", location: "Alwar, Rajasthan", rating: 4.7, reviews: 543, price: "₹38,000/night", img: "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=400&q=80", amenities: ["wifi", "pool", "parking", "restaurant", "ac"], sentiment: "95% Positive" },
+  { id: 13, type: "hotel", name: "Burj Al Arab Jumeirah", location: "Dubai, UAE", rating: 4.9, reviews: 4120, price: "₹1,20,000/night", img: "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=400&q=80", amenities: ["wifi", "pool", "gym", "restaurant", "ac"], sentiment: "99% Positive" },
+  { id: 14, type: "hotel", name: "Marina Bay Sands Hotel", location: "Singapore", rating: 4.8, reviews: 3890, price: "₹68,000/night", img: "https://images.unsplash.com/photo-1525625293386-3f8f99389edd?w=400&q=80", amenities: ["wifi", "pool", "gym", "restaurant", "ac"], sentiment: "98% Positive" },
+  { id: 15, type: "hotel", name: "The Plaza Hotel", location: "New York City, USA", rating: 4.9, reviews: 2950, price: "₹95,000/night", img: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400&q=80", amenities: ["wifi", "gym", "restaurant", "ac"], sentiment: "97% Positive" },
+  { id: 16, type: "hotel", name: "Kumarakom Lake Resort", location: "Kerala, India", rating: 4.8, reviews: 1840, price: "₹32,000/night", img: "https://images.unsplash.com/photo-1602216056096-3b40cc0c9944?w=400&q=80", amenities: ["wifi", "pool", "restaurant", "ac"], sentiment: "96% Positive" },
+  { id: 17, type: "hotel", name: "Grand Hotel Tremezzo", location: "Lake Como, Italy", rating: 4.9, reviews: 1420, price: "₹85,000/night", img: "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=400&q=80", amenities: ["wifi", "pool", "gym", "restaurant", "ac"], sentiment: "99% Positive" },
+  { id: 18, type: "hotel", name: "The Oberoi Amarvilas", location: "Agra, India", rating: 4.9, reviews: 2510, price: "₹48,000/night", img: "https://images.unsplash.com/photo-1578683010236-d716f9a3f461?w=400&q=80", amenities: ["wifi", "pool", "gym", "restaurant", "ac"], sentiment: "98% Positive" },
 ];
 
 const AMENITY_ICONS = { wifi: <FaWifi />, pool: <FaSwimmingPool />, gym: <FaDumbbell />, parking: <FaCar />, restaurant: <FaUtensils />, ac: <FaSnowflake /> };
@@ -191,9 +197,6 @@ function BookingModal({ hotel, onClose }) {
     checkIn: "", checkOut: "",
     guests: 1, rooms: 1, roomType: "Deluxe",
     specialRequests: "",
-    paymentMethod: "card",
-    cardNumber: "", cardExpiry: "", cardCvv: "", cardName: "",
-    upiId: "",
   });
   const [submitted, setSubmitted] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
@@ -218,7 +221,7 @@ function BookingModal({ hotel, onClose }) {
       const user = JSON.parse(localStorage.getItem("user"));
 
       await axios.post("http://127.0.0.1:5000/book-hotel", {
-        userEmail: user.email,
+        userEmail: user ? user.email : formData.email,
         hotelName: hotel.name,
         location: hotel.location,
         checkIn: formData.checkIn,
@@ -293,7 +296,7 @@ function BookingModal({ hotel, onClose }) {
         </div>
 
         <form onSubmit={handleSubmit}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: "#2563EB", marginBottom: 14, textTransform: "uppercase", letterSpacing: 1 }}>Personal Details</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "#2563EB", marginBottom: 14, textTransform: "uppercase", letterSpacing: 1 }}>Customer Details</div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 20 }}>
             <div>
               <label style={labelStyle}>Full Name *</label>
@@ -353,68 +356,13 @@ function BookingModal({ hotel, onClose }) {
             </div>
           </div>
 
-          <div style={{ fontSize: 13, fontWeight: 700, color: "#2563EB", marginBottom: 14, textTransform: "uppercase", letterSpacing: 1 }}>Payment Details</div>
-          <div style={{ display: "flex", gap: 10, marginBottom: 18 }}>
-            {[{ key: "card", label: "Card / Debit Card" }, { key: "upi", label: "UPI" }].map(m => (
-
-              <button key={m.key} type="button" onClick={() => update("paymentMethod", m.key)} style={{
-                flex: 1, padding: "12px 10px", borderRadius: 10, border: formData.paymentMethod === m.key ? "2px solid #2563EB" : "1px solid #E5E7EB",
-                background: formData.paymentMethod === m.key ? "rgba(37,99,235,0.08)" : "#F9FAFB",
-                color: formData.paymentMethod === m.key ? "#2563EB" : "#6B7280",
-                fontWeight: 600, fontSize: 13, cursor: "pointer", transition: "all 0.2s", fontFamily: "inherit",
-              }}>{m.label}</button>
-            ))}
-          </div>
-
-          {formData.paymentMethod === "card" ? (
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 24 }}>
-              <div style={{ gridColumn: "1 / -1" }}>
-                <label style={labelStyle}>Card Number *</label>
-                <div style={{ position: "relative" }}>
-                  <FaCreditCard style={{ ...iconWrap }} />
-                  <input required maxLength={19} value={formData.cardNumber} onChange={e => {
-                    let v = e.target.value.replace(/[^\d]/g, "").slice(0, 16);
-                    v = v.replace(/(\d{4})(?=\d)/g, "$1 ");
-                    update("cardNumber", v);
-                  }} placeholder="1234 5678 9012 3456" style={{ ...inputStyle, paddingLeft: 38, letterSpacing: 2 }} />
-                </div>
-              </div>
-              <div>
-                <label style={labelStyle}>Expiry Date *</label>
-                <input required maxLength={5} value={formData.cardExpiry} onChange={e => {
-                  let v = e.target.value.replace(/[^\d]/g, "").slice(0, 4);
-                  if (v.length >= 3) v = v.slice(0, 2) + "/" + v.slice(2);
-                  update("cardExpiry", v);
-                }} placeholder="MM/YY" style={inputStyle} />
-              </div>
-              <div>
-                <label style={labelStyle}>CVV *</label>
-                <div style={{ position: "relative" }}>
-                  <FaLock style={{ ...iconWrap }} />
-                  <input required maxLength={4} type="password" value={formData.cardCvv} onChange={e => {
-                    const v = e.target.value.replace(/[^\d]/g, "").slice(0, 4);
-                    update("cardCvv", v);
-                  }} placeholder="****" style={{ ...inputStyle, paddingLeft: 38 }} />
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div style={{ marginBottom: 24 }}>
-              <label style={labelStyle}>UPI ID *</label>
-              <div style={{ position: "relative" }}>
-                <span style={{ ...iconWrap, fontSize: 11, fontWeight: 800, color: "#3b82f6" }}>@</span>
-                <input required value={formData.upiId} onChange={e => update("upiId", e.target.value)} placeholder="yourname@upi" style={{ ...inputStyle, paddingLeft: 38 }} />
-              </div>
-            </div>
-          )}
-
           <div style={{ background: "#F8FAFC", borderRadius: 12, padding: 16, marginBottom: 20, border: "1px solid #E5E7EB", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div>
-              <div style={{ fontSize: 12, color: "#9CA3AF", textTransform: "uppercase" }}>Total Amount</div>
+              <div style={{ fontSize: 12, color: "#9CA3AF", textTransform: "uppercase" }}>Estimated Price</div>
               <div style={{ fontSize: 22, fontWeight: 900, color: "#059669", marginTop: 2 }}>{hotel.price}</div>
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, color: "#9CA3AF", fontSize: 11 }}>
-              <FaLock size={10} /> Secure Payment
+            <div style={{ fontSize: 12, color: "#6B7280", fontWeight: 600, background: "#E0F2FE", padding: "6px 12px", borderRadius: 20 }}>
+              Pay at Hotel upon Check-in
             </div>
           </div>
 
@@ -436,14 +384,14 @@ function BookingModal({ hotel, onClose }) {
                   <li style={{ marginBottom: 8 }}><strong style={{ color: "#374151" }}>Booking Confirmation:</strong> All bookings are subject to availability. A confirmation email will be sent upon successful booking.</li>
                   <li style={{ marginBottom: 8 }}><strong style={{ color: "#374151" }}>Check-in / Check-out:</strong> Standard check-in 2:00 PM, check-out 12:00 PM.</li>
                   <li style={{ marginBottom: 8 }}><strong style={{ color: "#374151" }}>Cancellation:</strong> Free cancellation up to 48 hours before check-in. Late cancellations incur one night's charge.</li>
-                  <li><strong style={{ color: "#374151" }}>Payment:</strong> Full payment required at booking. Refunds processed within 5-7 business days.</li>
+                  <li><strong style={{ color: "#374151" }}>Payment:</strong> Pay directly at the hotel upon check-in. No advance payment required.</li>
                 </ol>
               </div>
             )}
           </div>
 
           <button type="submit" disabled={!termsAccepted} style={{ width: "100%", padding: "14px", borderRadius: 12, border: "none", background: termsAccepted ? "linear-gradient(to right, #2563EB, #7C3AED)" : "#E5E7EB", color: termsAccepted ? "white" : "#9CA3AF", fontWeight: 700, fontSize: 15, cursor: termsAccepted ? "pointer" : "not-allowed", transition: "all 0.3s" }}>
-            Pay & Confirm Booking →
+            Confirm Booking →
           </button>
         </form>
       </div>
@@ -545,17 +493,13 @@ function FlightCard({ item, onViewDetails, onBook, onFeedbackAnalysis }) {
           }}>
             <FaInfoCircle size={11} /> Details
           </button>
-          <button onClick={() => {
-            const url = getOfficialBookingUrl(item);
-            window.open(url, "_blank", "noopener,noreferrer");
-            onBook(item);
-          }} style={{
+          <button onClick={() => onBook(item)} style={{
             flex: 1, padding: "9px 6px", borderRadius: 10, border: "none",
             background: `linear-gradient(to right, ${meta.color}, #8b5cf6)`,
             color: "white", cursor: "pointer", fontSize: 12, fontWeight: 700,
             display: "flex", alignItems: "center", justifyContent: "center", gap: 4, fontFamily: "inherit"
           }}>
-            <FaTicketAlt size={11} /> Book Now <FaExternalLinkAlt size={10} style={{ marginLeft: 2 }} />
+            <FaTicketAlt size={11} /> Book Official <FaExternalLinkAlt size={10} style={{ marginLeft: 2 }} />
           </button>
         </div>
       </div>
@@ -719,8 +663,6 @@ function FlightDetailsModal({ flight, onClose, onBook }) {
 
           </div>
           <button onClick={() => {
-            const url = getOfficialBookingUrl(flight);
-            window.open(url, "_blank", "noopener,noreferrer");
             onClose();
             onBook(flight);
           }} style={{
@@ -1209,6 +1151,31 @@ export default function SearchResults() {
   const toggleWishlist = (id) =>
     setWishlist(w => w.includes(id) ? w.filter(i => i !== id) : [...w, id]);
 
+  const handleDirectFlightBooking = async (flight) => {
+    const url = getOfficialBookingUrl(flight);
+    window.open(url, "_blank", "noopener,noreferrer");
+
+    try {
+      const user = JSON.parse(localStorage.getItem("user") || "{}");
+      await axios.post("http://127.0.0.1:5000/book-flight", {
+        userEmail: user?.email || "guest@example.com",
+        flightName: flight.airline,
+        flightNo: flight.flightNo,
+        from: flight.from,
+        to: flight.to,
+        departureDate: flightDate || new Date().toISOString().split("T")[0],
+        departure: flight.departure,
+        arrival: flight.arrival,
+        passengers: passengers || 1,
+        price: flight.price,
+      });
+    } catch (err) {
+      console.warn("Could not record flight booking:", err);
+    }
+
+    alert(`Redirecting to official ${flight.airline} website to complete your booking. Official e-tickets are generated directly by the airline.`);
+  };
+
   const handleSearch = async (e) => {
     if (e) e.preventDefault();
     setFlightSearchLoading(true);
@@ -1564,48 +1531,7 @@ export default function SearchResults() {
             )
           )}
 
-          {/* Flight Availability Calendar */}
-          {activeTab === "flights" && (
-            flightCalendarReady ? (
-              <div className="sr-calendar-panel">
-                <div style={{
-                  background: "linear-gradient(135deg,rgba(6,182,212,0.06),#FFFFFF)",
-                  border: "1px solid rgba(6,182,212,0.20)",
-                  borderRadius: 20, padding: "20px 24px",
-                  display: "flex", alignItems: "flex-start", gap: 24, flexWrap: "wrap",
-                  boxShadow: "0 10px 30px rgba(15,23,42,.08)",
-                }}>
-                  <div style={{ flex: "0 0 auto", maxWidth: 240 }}>
-                    <div style={{ display: "inline-flex", alignItems: "center", gap: 7, background: "rgba(6,182,212,0.10)", border: "1px solid rgba(6,182,212,0.25)", borderRadius: 20, padding: "4px 14px", marginBottom: 12 }}>
-                      <FaPlane size={14} color="#0EA5E9" />
-                      <span style={{ fontSize: 11, fontWeight: 700, color: "#0EA5E9", textTransform: "uppercase", letterSpacing: 1 }}>Seat Availability</span>
-                    </div>
-                    <h3 style={{ margin: "0 0 6px", fontSize: 16, fontWeight: 800, color: "#1F2937" }}>Flight Calendar</h3>
-                    <p style={{ margin: "0 0 6px", fontSize: 12, color: "#64748B" }}>{flightFrom} → {flightTo}</p>
-                    <p style={{ margin: "0 0 16px", fontSize: 12, color: "#64748B", lineHeight: 1.6 }}>Pick a date to prefill your search.</p>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                      {[{ c: "#ef4444", label: "Fully Booked", sub: "All seats taken" }, { c: "#16A34A", label: "Holiday / Open", sub: "Extra flights available" }].map(({ c, label, sub }) => (
-                        <div key={label} style={{ display: "flex", alignItems: "center", gap: 10, background: `${c}08`, border: `1px solid ${c}20`, borderRadius: 10, padding: "8px 12px" }}>
-                          <span style={{ width: 10, height: 10, borderRadius: "50%", background: c, boxShadow: `0 0 6px ${c}99`, flexShrink: 0 }} />
-                          <div><div style={{ fontSize: 11, fontWeight: 700, color: `${c}dd` }}>{label}</div><div style={{ fontSize: 10, color: "#64748B" }}>{sub}</div></div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  <div style={{ flex: 1, minWidth: 280 }}>
-                    <CalendarWidget compact availabilityData={FLIGHT_AVAILABILITY}
-                      onDateSelect={date => setFlightDate(date.toISOString().split("T")[0])} />
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="sr-calendar-placeholder">
-                <div className="ph-icon"><FaPlane size={36} /></div>
-                <div className="ph-title">Search flights to view seat availability</div>
-                <div className="ph-sub">Enter From, To, and Date above to see the availability calendar</div>
-              </div>
-            )
-          )}
+
 
           {/* Results header */}
           <div style={{ marginBottom: 20, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -1658,7 +1584,7 @@ export default function SearchResults() {
               {activeTab === "flights" && flights.map(item => (
                 <FlightCard key={item.id} item={item}
                   onViewDetails={setSelectedFlight}
-                  onBook={setBookingFlight}
+                  onBook={handleDirectFlightBooking}
                   onFeedbackAnalysis={flight => { setSelectedAnalysisItem(flight); setAnalysisItemType("flight"); }} />
               ))}
             </div>
@@ -1666,9 +1592,9 @@ export default function SearchResults() {
         </div>
       </div>
 
-      {/* Ã¢â€â‚¬Ã¢â€â‚¬ Modals Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */}
+      {/* ── Modals ──────────────────────────────────────────────────────────── */}
       {bookingHotel && <BookingModal hotel={bookingHotel} onClose={() => setBookingHotel(null)} />}
-      {selectedFlight && <FlightDetailsModal flight={selectedFlight} onClose={() => setSelectedFlight(null)} onBook={f => { setSelectedFlight(null); setBookingFlight(f); }} />}
+      {selectedFlight && <FlightDetailsModal flight={selectedFlight} onClose={() => setSelectedFlight(null)} onBook={handleDirectFlightBooking} />}
       {bookingFlight && <FlightBookingModal flight={bookingFlight} passengers={passengers} onClose={() => setBookingFlight(null)} />}
       {selectedAnalysisItem && <FeedbackAnalysisModal item={selectedAnalysisItem} itemType={analysisItemType} onClose={() => setSelectedAnalysisItem(null)} />}
     </div>

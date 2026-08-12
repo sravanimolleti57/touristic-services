@@ -44,16 +44,20 @@ const POPULAR_DESTINATIONS = [
   { name: "Santorini, Greece", rating: 4.8, price: "₹1,50,000", sentiment: "96% Positive", img: "https://images.unsplash.com/photo-1613395877344-13d4a8e0d49e?w=500&q=80" },
   { name: "Tokyo, Japan", rating: 4.7, price: "₹1,20,000", sentiment: "95% Positive", img: "https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=500&q=80" },
   { name: "Dubai, UAE", rating: 4.6, price: "₹85,000", sentiment: "94% Positive", img: "https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=500&q=80" },
-  { name: "Swiss Alps", rating: 4.9, price: "₹2,00,000", sentiment: "98% Positive", img: "https://images.unsplash.com/photo-1531366936337-7c912a4589a7?w=500&q=80" },
+  { name: "Swiss Alps, Switzerland", rating: 4.9, price: "₹2,00,000", sentiment: "98% Positive", img: "https://images.unsplash.com/photo-1531366936337-7c912a4589a7?w=500&q=80" },
+  { name: "Kerala, India", rating: 4.8, price: "₹24,000", sentiment: "96% Positive", img: "https://images.unsplash.com/photo-1602216056096-3b40cc0c9944?w=500&q=80" },
+  { name: "Singapore", rating: 4.8, price: "₹75,000", sentiment: "98% Positive", img: "https://images.unsplash.com/photo-1525625293386-3f8f99389edd?w=500&q=80" },
+  { name: "Rome, Italy", rating: 4.7, price: "₹1,15,000", sentiment: "95% Positive", img: "https://images.unsplash.com/photo-1552832230-c0197dd311b5?w=500&q=80" },
   { name: "New York, USA", rating: 4.5, price: "₹1,80,000", sentiment: "93% Positive", img: "https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?w=500&q=80" },
-  { name: "Goa, India", rating: 4.4, price: "₹25,000", sentiment: "92% Positive", img: "https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?w=500&q=80" },
 ];
 
 const FEATURED_HOTELS = [
   { name: "The Ritz Paris", price: "₹45,000", rating: 4.9, amenities: ["WiFi", "Pool", "Spa", "Restaurant"], img: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=500&q=80" },
-  { name: "Burj Al Arab", price: "₹85,000", rating: 4.9, amenities: ["WiFi", "Pool", "Gym", "Helipad"], img: "https://images.unsplash.com/photo-1582719508461-905c673771fd?w=500&q=80" },
-  { name: "Marina Bay Sands", price: "₹32,000", rating: 4.7, amenities: ["WiFi", "Pool", "Casino", "Restaurant"], img: "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=500&q=80" },
-  { name: "Taj Lake Palace", price: "₹28,000", rating: 4.8, amenities: ["WiFi", "Spa", "Lake View", "Restaurant"], img: "https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?w=500&q=80" },
+  { name: "Burj Al Arab Jumeirah", price: "₹1,20,000", rating: 4.9, amenities: ["WiFi", "Pool", "Gym", "Helipad"], img: "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=500&q=80" },
+  { name: "Marina Bay Sands", price: "₹68,000", rating: 4.8, amenities: ["WiFi", "Pool", "Casino", "Restaurant"], img: "https://images.unsplash.com/photo-1525625293386-3f8f99389edd?w=500&q=80" },
+  { name: "Taj Mahal Palace", price: "₹35,000", rating: 4.8, amenities: ["WiFi", "Pool", "Spa", "Restaurant"], img: "https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?w=500&q=80" },
+  { name: "Oberoi Udaivilas", price: "₹55,000", rating: 4.9, amenities: ["WiFi", "Pool", "Lake View", "Restaurant"], img: "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=500&q=80" },
+  { name: "Kumarakom Lake Resort", price: "₹32,000", rating: 4.8, amenities: ["WiFi", "Pool", "Spa", "Backwaters"], img: "https://images.unsplash.com/photo-1602216056096-3b40cc0c9944?w=500&q=80" },
 ];
 
 const FLIGHT_DEALS = [

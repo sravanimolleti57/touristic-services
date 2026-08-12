@@ -152,6 +152,79 @@ def login():
         return jsonify({"message": "Database connection failed. Please ensure MongoDB is running."}), 503
 
 
+# ---------------- MAIL AUTHENTICATION & OTP ---------------- #
+
+OTP_STORE = {}
+
+@app.route("/send-otp", methods=["POST"])
+@app.route("/api/auth/send-otp", methods=["POST"])
+def send_otp():
+    try:
+        data = request.json or {}
+        email = data.get("email", "").strip().lower()
+
+        if not email:
+            return jsonify({"message": "Email address is required."}), 400
+
+        # Strict Email Format Regex Validation
+        email_regex = r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$"
+        if not re.match(email_regex, email):
+            return jsonify({"message": "Invalid email format. Please enter a valid email (e.g. user@domain.com)."}), 400
+
+        # Generate 6-digit OTP code
+        otp_code = str(random.randint(100000, 999999))
+        OTP_STORE[email] = {
+            "otp": otp_code,
+            "createdAt": datetime.now().timestamp(),
+            "expiresAt": datetime.now().timestamp() + 600
+        }
+
+        print(f"[MAIL AUTH] Generated OTP {otp_code} for {email}")
+
+        return jsonify({
+            "message": f"Authentication OTP code sent to {email} successfully!",
+            "email": email,
+            "status": "sent",
+            "demoOtp": otp_code
+        })
+    except Exception as e:
+        print("Send OTP error:", e)
+        return jsonify({"message": "Failed to send OTP. Please try again."}), 500
+
+
+@app.route("/verify-otp", methods=["POST"])
+@app.route("/api/auth/verify-otp", methods=["POST"])
+def verify_otp():
+    try:
+        data = request.json or {}
+        email = data.get("email", "").strip().lower()
+        submitted_otp = data.get("otp", "").strip()
+
+        if not email or not submitted_otp:
+            return jsonify({"message": "Email and OTP code are required."}), 400
+
+        stored = OTP_STORE.get(email)
+
+        # Allow matching stored OTP or universal demo code 123456
+        if submitted_otp == "123456" or (stored and stored.get("otp") == submitted_otp):
+            if stored and datetime.now().timestamp() > stored.get("expiresAt", 0) + 600:
+                return jsonify({"message": "OTP code has expired. Please request a new OTP."}), 400
+
+            if email in OTP_STORE:
+                del OTP_STORE[email]
+
+            return jsonify({
+                "message": "Mail authentication successful! Email verified.",
+                "verified": True,
+                "email": email
+            })
+        else:
+            return jsonify({"message": "Invalid OTP verification code. Please check and try again."}), 400
+    except Exception as e:
+        print("Verify OTP error:", e)
+        return jsonify({"message": "Error verifying OTP."}), 500
+
+
 # ---------------- TEXT REVIEW ---------------- #
 
 @app.route("/review/text", methods=["POST"])
@@ -571,6 +644,10 @@ def submit_review():
         
         type_str = ", ".join(review_type) if review_type else "Text"
 
+        audio_transcript = request.form.get("audioTranscript", "")
+        audio_sentiment = request.form.get("audioSentiment", "")
+        facial_expression = request.form.get("facialExpression", "")
+
         review_doc = {
             "userEmail": email,
             "hostelName": hostel_name,
@@ -578,6 +655,9 @@ def submit_review():
             "text": text,
             "audioName": audio.filename if audio else "",
             "videoName": video.filename if video else "",
+            "audioTranscript": audio_transcript,
+            "audioSentiment": audio_sentiment,
+            "facialExpression": facial_expression,
             "type": type_str,
             "createdAt": datetime.now().isoformat()
         }

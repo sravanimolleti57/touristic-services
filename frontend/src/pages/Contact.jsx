@@ -46,6 +46,7 @@ export default function Contact() {
       icon: <FaEnvelope style={{ color: "#2563EB", fontSize: "22px" }} />,
       title: "Email Us",
       value: "support@travelai.com",
+      link: "mailto:support@travelai.com",
       subtext: "Response within 24 hours",
       bg: "rgba(37, 99, 235, 0.08)",
     },
@@ -53,6 +54,7 @@ export default function Contact() {
       icon: <FaPhoneAlt style={{ color: "#0EA5E9", fontSize: "22px" }} />,
       title: "Call Us",
       value: "+1 (800) 555-0199",
+      link: "tel:+18005550199",
       subtext: "Mon-Fri, 9am - 6pm EST",
       bg: "rgba(14, 165, 233, 0.08)",
     },
@@ -60,6 +62,7 @@ export default function Contact() {
       icon: <FaMapMarkerAlt style={{ color: "#6366F1", fontSize: "22px" }} />,
       title: "Visit Us",
       value: "123 Travel Suite, CA",
+      link: "https://maps.google.com/?q=123+Market+St,+San+Francisco,+CA+94105",
       subtext: "San Francisco, CA 94105",
       bg: "rgba(99, 102, 241, 0.08)",
     },
@@ -227,9 +230,37 @@ export default function Contact() {
               <h3 style={{ fontSize: "17px", fontWeight: 800, color: "#111827", margin: "0 0 6px 0" }}>
                 {card.title}
               </h3>
-              <p style={{ fontSize: "15px", fontWeight: 700, color: "#2563EB", margin: "0 0 4px 0" }}>
-                {card.value}
-              </p>
+              {card.link ? (
+                <a
+                  href={card.link}
+                  target={card.link.startsWith("http") ? "_blank" : "_self"}
+                  rel="noopener noreferrer"
+                  style={{
+                    fontSize: "15px",
+                    fontWeight: 700,
+                    color: "#2563EB",
+                    margin: "0 0 4px 0",
+                    textDecoration: "none",
+                    display: "inline-block",
+                    cursor: "pointer",
+                    transition: "all 0.2s",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.textDecoration = "underline";
+                    e.target.style.color = "#1D4ED8";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.textDecoration = "none";
+                    e.target.style.color = "#2563EB";
+                  }}
+                >
+                  {card.value}
+                </a>
+              ) : (
+                <p style={{ fontSize: "15px", fontWeight: 700, color: "#2563EB", margin: "0 0 4px 0" }}>
+                  {card.value}
+                </p>
+              )}
               <span style={{ fontSize: "13px", color: "#6B7280", fontWeight: 500 }}>
                 {card.subtext}
               </span>
@@ -553,6 +584,184 @@ export default function Contact() {
               </div>
             </div>
 
+          </div>
+        </div>
+
+        {/* ── Contact Instructions & Guidelines Section ──────────── */}
+        <div style={{ marginTop: "64px" }}>
+          <div style={{ textAlign: "center", maxWidth: "650px", margin: "0 auto 36px" }}>
+            <span
+              style={{
+                padding: "6px 16px",
+                borderRadius: "20px",
+                background: "rgba(37, 99, 235, 0.08)",
+                color: "#2563EB",
+                fontSize: "12px",
+                fontWeight: 800,
+                textTransform: "uppercase",
+                letterSpacing: "1px",
+              }}
+            >
+              Contact Instructions
+            </span>
+            <h2 style={{ fontSize: "28px", fontWeight: 900, color: "#111827", margin: "12px 0 8px 0" }}>
+              How to Reach Us &amp; Support Guidelines
+            </h2>
+            <p style={{ fontSize: "15px", color: "#6B7280", margin: 0 }}>
+              Follow these step-by-step instructions to ensure fast, accurate, and priority assistance for your travel inquiries.
+            </p>
+          </div>
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+              gap: "24px",
+            }}
+          >
+            {/* Step 1 */}
+            <div
+              style={{
+                background: "#FFFFFF",
+                borderRadius: "20px",
+                padding: "28px",
+                border: "1px solid #E5E7EB",
+                boxShadow: "0 4px 16px rgba(0, 0, 0, 0.04)",
+                position: "relative",
+              }}
+            >
+              <div
+                style={{
+                  width: "40px",
+                  height: "40px",
+                  borderRadius: "12px",
+                  background: "linear-gradient(135deg, #2563EB, #1D4ED8)",
+                  color: "#FFFFFF",
+                  fontWeight: 900,
+                  fontSize: "16px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  marginBottom: "16px",
+                }}
+              >
+                1
+              </div>
+              <h3 style={{ fontSize: "17px", fontWeight: 800, color: "#111827", margin: "0 0 8px 0" }}>
+                Select Query Category
+              </h3>
+              <p style={{ fontSize: "14px", color: "#6B7280", margin: 0, lineHeight: 1.6 }}>
+                Specify whether your inquiry is about <strong>Hotel Bookings</strong>, <strong>Flight Redirections</strong>, <strong>AI Itinerary Planning</strong>, or <strong>Account Settings</strong> for priority routing.
+              </p>
+            </div>
+
+            {/* Step 2 */}
+            <div
+              style={{
+                background: "#FFFFFF",
+                borderRadius: "20px",
+                padding: "28px",
+                border: "1px solid #E5E7EB",
+                boxShadow: "0 4px 16px rgba(0, 0, 0, 0.04)",
+                position: "relative",
+              }}
+            >
+              <div
+                style={{
+                  width: "40px",
+                  height: "40px",
+                  borderRadius: "12px",
+                  background: "linear-gradient(135deg, #0EA5E9, #0284C7)",
+                  color: "#FFFFFF",
+                  fontWeight: 900,
+                  fontSize: "16px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  marginBottom: "16px",
+                }}
+              >
+                2
+              </div>
+              <h3 style={{ fontSize: "17px", fontWeight: 800, color: "#111827", margin: "0 0 8px 0" }}>
+                Provide Registered Details
+              </h3>
+              <p style={{ fontSize: "14px", color: "#6B7280", margin: 0, lineHeight: 1.6 }}>
+                Include your registered email address and Booking Reference ID (if applicable) so our travel concierge can locate your reservation details instantly.
+              </p>
+            </div>
+
+            {/* Step 3 */}
+            <div
+              style={{
+                background: "#FFFFFF",
+                borderRadius: "20px",
+                padding: "28px",
+                border: "1px solid #E5E7EB",
+                boxShadow: "0 4px 16px rgba(0, 0, 0, 0.04)",
+                position: "relative",
+              }}
+            >
+              <div
+                style={{
+                  width: "40px",
+                  height: "40px",
+                  borderRadius: "12px",
+                  background: "linear-gradient(135deg, #16A34A, #15803D)",
+                  color: "#FFFFFF",
+                  fontWeight: 900,
+                  fontSize: "16px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  marginBottom: "16px",
+                }}
+              >
+                3
+              </div>
+              <h3 style={{ fontSize: "17px", fontWeight: 800, color: "#111827", margin: "0 0 8px 0" }}>
+                Swift Support Resolution
+              </h3>
+              <p style={{ fontSize: "14px", color: "#6B7280", margin: 0, lineHeight: 1.6 }}>
+                Our AI Support system logs your request immediately. General emails receive responses within <strong>24 hours</strong>, while emergency phone calls get instant assistance.
+              </p>
+            </div>
+
+            {/* Step 4 */}
+            <div
+              style={{
+                background: "#FFFFFF",
+                borderRadius: "20px",
+                padding: "28px",
+                border: "1px solid #E5E7EB",
+                boxShadow: "0 4px 16px rgba(0, 0, 0, 0.04)",
+                position: "relative",
+              }}
+            >
+              <div
+                style={{
+                  width: "40px",
+                  height: "40px",
+                  borderRadius: "12px",
+                  background: "linear-gradient(135deg, #7C3AED, #6D28D9)",
+                  color: "#FFFFFF",
+                  fontWeight: 900,
+                  fontSize: "16px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  marginBottom: "16px",
+                }}
+              >
+                4
+              </div>
+              <h3 style={{ fontSize: "17px", fontWeight: 800, color: "#111827", margin: "0 0 8px 0" }}>
+                Emergency Hotline
+              </h3>
+              <p style={{ fontSize: "14px", color: "#6B7280", margin: 0, lineHeight: 1.6 }}>
+                If you are currently traveling and need immediate assistance with urgent flight or hotel changes, call our 24/7 helpline directly at <strong>+1 (800) 555-0199</strong>.
+              </p>
+            </div>
           </div>
         </div>
       </div>
