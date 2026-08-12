@@ -51,11 +51,45 @@ export const FLIGHTS = [
 
 // ── Airline Colors & Metadata ─────────────────────────────────────────────────
 export const AIRLINE_META = {
-  "Air India": { color: "#E2393D", bg: "rgba(226,57,61,0.12)", icon: "✈️", logo: "AI" },
-  "IndiGo":    { color: "#1A237E", bg: "rgba(26,35,126,0.15)", icon: "🛫", logo: "6E" },
-  "Vistara":   { color: "#4A154B", bg: "rgba(74,21,75,0.15)",  icon: "🌟", logo: "UK" },
-  "SpiceJet":  { color: "#FF6F00", bg: "rgba(255,111,0,0.12)", icon: "🔥", logo: "SG" },
+  "Air India": { color: "#E2393D", bg: "rgba(226,57,61,0.12)", icon: "✈️", logo: "AI", officialWebsite: "https://www.airindia.com", bookingUrl: "https://www.airindia.com" },
+  "IndiGo":    { color: "#1A237E", bg: "rgba(26,35,126,0.15)", icon: "🛫", logo: "6E", officialWebsite: "https://www.goindigo.in", bookingUrl: "https://www.goindigo.in" },
+  "Vistara":   { color: "#4A154B", bg: "rgba(74,21,75,0.15)",  icon: "🌟", logo: "UK", officialWebsite: "https://www.airvistara.com", bookingUrl: "https://www.airvistara.com" },
+  "SpiceJet":  { color: "#FF6F00", bg: "rgba(255,111,0,0.12)", icon: "🔥", logo: "SG", officialWebsite: "https://www.spicejet.com", bookingUrl: "https://www.spicejet.com" },
+  "Akasa Air": { color: "#FF5722", bg: "rgba(255,87,34,0.12)", icon: "✈️", logo: "QP", officialWebsite: "https://www.akasaair.com", bookingUrl: "https://www.akasaair.com" },
+  "Air India Express": { color: "#D32F2F", bg: "rgba(211,47,47,0.12)", icon: "✈️", logo: "IX", officialWebsite: "https://www.airindiaexpress.in", bookingUrl: "https://www.airindiaexpress.in" },
+  "Emirates": { color: "#D71921", bg: "rgba(215,25,33,0.12)", icon: "✈️", logo: "EK", officialWebsite: "https://www.emirates.com", bookingUrl: "https://www.emirates.com" },
+  "Qatar Airways": { color: "#5C0632", bg: "rgba(92,6,50,0.12)", icon: "✈️", logo: "QR", officialWebsite: "https://www.qatarairways.com", bookingUrl: "https://www.qatarairways.com" },
+  "Singapore Airlines": { color: "#002B49", bg: "rgba(0,43,73,0.12)", icon: "✈️", logo: "SQ", officialWebsite: "https://www.singaporeair.com", bookingUrl: "https://www.singaporeair.com" }
 };
+
+/**
+ * Returns the official flight booking URL for a given flight or airline name.
+ * Falls back to Google Flights if no specific airline match is found.
+ */
+export function getOfficialBookingUrl(flight) {
+  if (!flight) return "https://www.google.com/travel/flights";
+  const name = flight.airline || flight.flightName || "";
+  
+  if (AIRLINE_META[name] && AIRLINE_META[name].bookingUrl) {
+    return AIRLINE_META[name].bookingUrl;
+  }
+  
+  const lower = name.toLowerCase();
+  if (lower.includes("indigo")) return "https://www.goindigo.in";
+  if (lower.includes("air india express")) return "https://www.airindiaexpress.in";
+  if (lower.includes("air india")) return "https://www.airindia.com";
+  if (lower.includes("vistara")) return "https://www.airvistara.com";
+  if (lower.includes("spicejet")) return "https://www.spicejet.com";
+  if (lower.includes("akasa")) return "https://www.akasaair.com";
+  if (lower.includes("emirates")) return "https://www.emirates.com";
+  if (lower.includes("qatar")) return "https://www.qatarairways.com";
+  if (lower.includes("singapore")) return "https://www.singaporeair.com";
+  if (lower.includes("lufthansa")) return "https://www.lufthansa.com";
+  if (lower.includes("etihad")) return "https://www.etihad.com";
+  if (lower.includes("flydubai")) return "https://www.flydubai.com";
+  
+  return "https://www.google.com/travel/flights";
+}
 
 // ── AviationStack Live API ────────────────────────────────────────────────────
 export async function fetchLiveFlights(params = {}) {

@@ -1,0 +1,15 @@
+{
+  "name": "touristic-services-workspace",
+  "version": "1.0.0",
+  "description": "Automated fullstack launcher for Touristic Services",
+  "main": "backend/app.py",
+  "scripts": {
+    "start": "concurrently \"npm run start:backend\" \"npm run start:frontend\"",
+    "dev": "concurrently \"npm run start:backend\" \"npm run start:frontend\"",
+    "start:backend": "python backend/app.py",
+    "start:frontend": "npm run dev --prefix frontend"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}

@@ -1,6 +1,14 @@
 import os
+import sys
 from pymongo import MongoClient
 from dotenv import load_dotenv
+
+# Ensure stdout handles UTF-8 safely on Windows
+if sys.platform == "win32":
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+    except Exception:
+        pass
 
 # Load .env from backend directory or parent directories
 env_path = os.path.join(os.path.dirname(__file__), '..', '.env')
@@ -24,8 +32,9 @@ except ImportError:
 
 try:
     client = MongoClient(MONGO_URI, **client_kwargs)
+    print("[INFO] Initialized MongoDB Client for:", MONGO_URI.split("@")[-1] if "@" in MONGO_URI else MONGO_URI)
 except Exception as err:
-    print("Warning initializing PyMongo client:", err)
+    print("[WARNING] PyMongo client init error, using local fallback:", str(err))
     client = MongoClient("mongodb://localhost:27017/tourism_ai", serverSelectionTimeoutMS=5000)
 
 # Use default database from MONGO_URI or fallback to 'tourism_ai'

@@ -10,11 +10,12 @@ import {
   FaCheckCircle, FaBed, FaPhone, FaEnvelope, FaUser,
   FaCreditCard, FaLock, FaSuitcase, FaChair,
   FaInfoCircle, FaTicketAlt, FaSatelliteDish, FaSlidersH,
-  FaMapMarkedAlt, FaShieldAlt, FaSmile, FaSuitcaseRolling, FaChartPie
+  FaMapMarkedAlt, FaShieldAlt, FaSmile, FaSuitcaseRolling, FaChartPie,
+  FaExternalLinkAlt
 } from "react-icons/fa";
 
 import { PLACES } from "../data/destinations";
-import { FLIGHTS, AIRLINE_META, fetchLiveFlights, searchFlights, getFlightStatus } from "../data/flights";
+import { FLIGHTS, AIRLINE_META, getOfficialBookingUrl, fetchLiveFlights, searchFlights, getFlightStatus } from "../data/flights";
 import CalendarWidget from "../components/CalendarWidget";
 import SharedNavbar from "../components/SharedNavbar";
 import FeedbackAnalysisModal from "../components/FeedbackAnalysisModal";
@@ -544,13 +545,17 @@ function FlightCard({ item, onViewDetails, onBook, onFeedbackAnalysis }) {
           }}>
             <FaInfoCircle size={11} /> Details
           </button>
-          <button onClick={() => onBook(item)} style={{
+          <button onClick={() => {
+            const url = getOfficialBookingUrl(item);
+            window.open(url, "_blank", "noopener,noreferrer");
+            onBook(item);
+          }} style={{
             flex: 1, padding: "9px 6px", borderRadius: 10, border: "none",
             background: `linear-gradient(to right, ${meta.color}, #8b5cf6)`,
             color: "white", cursor: "pointer", fontSize: 12, fontWeight: 700,
             display: "flex", alignItems: "center", justifyContent: "center", gap: 4, fontFamily: "inherit"
           }}>
-            <FaTicketAlt size={11} /> Book Now
+            <FaTicketAlt size={11} /> Book Now <FaExternalLinkAlt size={10} style={{ marginLeft: 2 }} />
           </button>
         </div>
       </div>
@@ -713,12 +718,18 @@ function FlightDetailsModal({ flight, onClose, onBook }) {
             <div style={{ fontSize: 11, color: "#64748b" }}>per person · taxes included</div>
 
           </div>
-          <button onClick={() => { onClose(); onBook(flight); }} style={{
-            padding: "14px 32px", borderRadius: 12, border: "none",
+          <button onClick={() => {
+            const url = getOfficialBookingUrl(flight);
+            window.open(url, "_blank", "noopener,noreferrer");
+            onClose();
+            onBook(flight);
+          }} style={{
+            padding: "14px 28px", borderRadius: 12, border: "none",
             background: `linear-gradient(to right, ${meta.color}, #8b5cf6)`,
             color: "white", fontWeight: 700, cursor: "pointer", fontSize: 15,
+            display: "flex", alignItems: "center", gap: 8, fontFamily: "inherit"
           }}>
-            Book This Flight <FaPlane size={12} />
+            Book Official ({flight.airline}) <FaExternalLinkAlt size={13} />
           </button>
         </div>
       </div>
@@ -765,10 +776,10 @@ function FlightBookingModal({ flight, passengers: passengerCount, onClose }) {
     e.preventDefault();
 
     try {
-      const user = JSON.parse(localStorage.getItem("user"));
+      const user = JSON.parse(localStorage.getItem("user") || "{}");
 
       await axios.post("http://127.0.0.1:5000/book-flight", {
-        userEmail: user.email,
+        userEmail: user?.email,
         flightName: flight.airline,
         flightNo: flight.flightNo,
         from: flight.from,
@@ -781,6 +792,10 @@ function FlightBookingModal({ flight, passengers: passengerCount, onClose }) {
         mealPref: formData.mealPref,
         price: grandTotal,
       });
+
+      // Direct user to the official airline booking page
+      const officialUrl = getOfficialBookingUrl(flight);
+      window.open(officialUrl, "_blank", "noopener,noreferrer");
 
       setSubmitted(true);
 
@@ -876,6 +891,49 @@ function FlightBookingModal({ flight, passengers: passengerCount, onClose }) {
           <button onClick={onClose} style={{ background: "#F3F4F6", border: "1px solid #E5E7EB", borderRadius: "50%", width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#6B7280", fontSize: 16, flexShrink: 0 }}>
             <FaTimes />
           </button>
+        </div>
+
+        {/* Official Airline Banner */}
+        <div style={{
+          background: "linear-gradient(135deg, rgba(37,99,235,0.08), rgba(124,58,237,0.08))",
+          border: `1px solid ${meta.color}40`,
+          borderRadius: 14,
+          padding: "14px 18px",
+          marginBottom: 16,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 12,
+          flexWrap: "wrap"
+        }}>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 800, color: meta.color, display: "flex", alignItems: "center", gap: 6 }}>
+              <span>🌐 Direct Official {flight.airline} Portal</span>
+            </div>
+            <div style={{ fontSize: 11, color: "#4B5563", marginTop: 3 }}>
+              Official Site: <strong>{getOfficialBookingUrl(flight).replace("https://www.", "")}</strong>
+            </div>
+          </div>
+          <a
+            href={getOfficialBookingUrl(flight)}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              background: meta.color,
+              color: "white",
+              padding: "8px 14px",
+              borderRadius: 9,
+              textDecoration: "none",
+              fontSize: 12,
+              fontWeight: 700,
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              boxShadow: "0 2px 8px rgba(0,0,0,0.15)"
+            }}
+          >
+            Open Official Site <FaExternalLinkAlt size={11} />
+          </a>
         </div>
 
         {/* Route Summary Strip */}

@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import SharedNavbar from "../components/SharedNavbar";
 import FeedbackAnalysisModal from "../components/FeedbackAnalysisModal";
-import { FaChartPie, FaTimesCircle, FaPlane, FaArrowRight, FaCalendarAlt, FaUserAlt } from "react-icons/fa";
+import { FaChartPie, FaTimesCircle, FaPlane, FaArrowRight, FaCalendarAlt, FaUserAlt, FaExternalLinkAlt } from "react-icons/fa";
+import { getOfficialBookingUrl } from "../data/flights";
 
 export default function MyFlights() {
   const user = JSON.parse(localStorage.getItem("user") || "{}");
@@ -144,7 +145,32 @@ export default function MyFlights() {
                     </div>
                   </div>
 
-                  <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                  <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+                    <a
+                      href={getOfficialBookingUrl(flight)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        background: "rgba(16,185,129,0.08)",
+                        border: "1px solid rgba(16,185,129,0.25)",
+                        color: "#059669",
+                        padding: "9px 14px",
+                        borderRadius: 10,
+                        textDecoration: "none",
+                        fontSize: 13,
+                        fontWeight: 700,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 6,
+                        transition: "all 0.2s",
+                        fontFamily: "inherit",
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.background = "rgba(16,185,129,0.16)"; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = "rgba(16,185,129,0.08)"; }}
+                    >
+                      Official Site <FaExternalLinkAlt size={12} />
+                    </a>
+
                     <button
                       onClick={() => setSelectedFlightForAnalysis({ airline: aName, flightNo: flight.flightNo, from: flight.from, to: flight.to, id: flight._id })}
                       style={{

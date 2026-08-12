@@ -2,6 +2,12 @@ import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+if sys.platform == "win32":
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+    except Exception:
+        pass
+
 from transformers import pipeline
 from flask import Flask, request, jsonify
 from flask_cors import CORS
@@ -47,6 +53,18 @@ CORS(app, origins="*", supports_credentials=True)
 
 
 
+# ---------------- HEALTH & STATUS ---------------- #
+
+@app.route("/health", methods=["GET"])
+@app.route("/api/health", methods=["GET"])
+def health_check():
+    return jsonify({
+        "status": "online",
+        "service": "Touristic Services Backend",
+        "timestamp": datetime.now().isoformat()
+    }), 200
+
+
 # ---------------- HOME ---------------- #
 
 @app.route("/")
@@ -59,6 +77,7 @@ def home():
 # ---------------- REGISTER ---------------- #
 
 @app.route("/register", methods=["POST"])
+@app.route("/api/auth/register", methods=["POST"])
 def register():
     try:
         data = request.json
@@ -97,6 +116,7 @@ def register():
 # ---------------- LOGIN ---------------- #
 
 @app.route("/login", methods=["POST"])
+@app.route("/api/auth/login", methods=["POST"])
 def login():
     try:
         data = request.json
