@@ -67,19 +67,22 @@ export function analyzeReviewText(reviews = [], sentiments = []) {
       if (!isNaN(d.getTime())) dates.push(d);
     }
 
-    // Determine sentiment from AI sentiment array or rating fallback
-    const aiSent = (sentiments[idx] || "").toLowerCase();
-    if (aiSent.includes("pos") || aiSent.includes("happy") || aiSent.includes("label_2")) {
+    // Determine sentiment from review sentiment property, AI sentiment array, or text/rating calculation
+    const revSent = ((rev.sentiment || rev.audioSentiment || sentiments[idx]) || "").toLowerCase();
+    const lowerTxt = (rev.text || rev.audioTranscript || "").toLowerCase();
+
+    if (revSent.includes("pos") || revSent.includes("happy") || revSent.includes("label_2")) {
       posCount++;
-    } else if (aiSent.includes("neg") || aiSent.includes("sad") || aiSent.includes("label_0")) {
+    } else if (revSent.includes("neg") || revSent.includes("sad") || revSent.includes("label_0")) {
       negCount++;
-    } else if (aiSent.includes("neu") || aiSent.includes("label_1")) {
+    } else if (revSent.includes("neu") || revSent.includes("label_1")) {
       neuCount++;
+    } else if (lowerTxt.includes("ok") || lowerTxt.includes("okay") || lowerTxt.includes("average") || lowerTxt.includes("fair") || lowerTxt.includes("decent") || lowerTxt.includes("fine") || lowerTxt.includes("standard") || numRating === 3) {
+      neuCount++;
+    } else if (lowerTxt.includes("bad") || lowerTxt.includes("terrible") || lowerTxt.includes("poor") || lowerTxt.includes("dirty") || numRating <= 2) {
+      negCount++;
     } else {
-      // Fallback based on star rating
-      if (numRating >= 4) posCount++;
-      else if (numRating === 3) neuCount++;
-      else negCount++;
+      posCount++;
     }
   });
 
@@ -100,7 +103,7 @@ export function analyzeReviewText(reviews = [], sentiments = []) {
     { name: "Positive", value: posPct, count: posCount, color: "#10b981" },
     { name: "Neutral", value: neuPct, count: neuCount, color: "#3b82f6" },
     { name: "Negative", value: negPct, count: negCount, color: "#ef4444" },
-  ].filter(d => d.value > 0);
+  ];
 
   // 3. Overall Sentiment Score & Label
   let overallSentimentLabel = "Positive";

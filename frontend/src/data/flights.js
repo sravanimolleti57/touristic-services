@@ -49,6 +49,24 @@ export const FLIGHTS = [
   { id: "UK-717", type: "flight", airline: "Vistara", airlineCode: "UK", from: "Jaipur (JAI)", to: "Bangalore (BLR)", departure: "11:30", arrival: "14:10", duration: "2h 40m", stops: "1 Stop (BOM)", price: 6399, priceNum: 6399, class: "Premium Economy", aircraft: "Boeing 737-800", flightNo: "UK-717", terminal: { dep: "T2", arr: "T1" }, baggage: { cabin: "7 kg", checkin: "25 kg" }, meal: "Complimentary meal", seatPitch: "34 inches", refundable: true, cancellationFee: "₹1,500", reschedule: "Free", wifi: true, usb: true, entertainment: "Personal screens", layover: { airport: "Mumbai (BOM)", duration: "1h 10min" } },
 ];
 
+// ── Buses Database ────────────────────────────────────────────────────────────
+export const BUSES = [
+  { id: "BUS-101", type: "bus", category: "bus", operator: "RedBus Volvo Multi-Axle", airline: "RedBus", flightNo: "RB-101", aircraft: "Scania A/C Sleeper", from: "Delhi (ISBT)", to: "Jaipur (Sindhi Camp)", departure: "22:00", arrival: "04:30", duration: "6h 30m", stops: "Non-stop", price: 799, priceNum: 799, class: "A/C Sleeper (2+1)", terminal: { dep: "Bay 4", arr: "Bay 2" }, baggage: { cabin: "10 kg", checkin: "30 kg" }, meal: "Water bottle included", rating: 4.8, officialWebsite: "https://www.redbus.in", bookingUrl: "https://www.redbus.in" },
+  { id: "BUS-102", type: "bus", category: "bus", operator: "AbhiBus Premium Express", airline: "AbhiBus", flightNo: "AB-204", aircraft: "Volvo B11R Seater", from: "Delhi (Kashmere Gate)", to: "Manali (Mall Road)", departure: "20:00", arrival: "08:00", duration: "12h 00m", stops: "Non-stop", price: 1299, priceNum: 1299, class: "A/C Seater/Sleeper", terminal: { dep: "Bay 12", arr: "Stand 1" }, baggage: { cabin: "10 kg", checkin: "25 kg" }, meal: "Snacks provided", rating: 4.7, officialWebsite: "https://www.abhibus.com", bookingUrl: "https://www.abhibus.com" },
+  { id: "BUS-103", type: "bus", category: "bus", operator: "Zingbus Electric Volvo", airline: "Zingbus", flightNo: "ZB-505", aircraft: "Electric Luxury Bus", from: "Mumbai (Borivali)", to: "Goa (Panjim)", departure: "21:30", arrival: "08:30", duration: "11h 00m", stops: "Non-stop", price: 999, priceNum: 999, class: "Luxury A/C Sleeper", terminal: { dep: "Platform 3", arr: "Panjim Bus Stand" }, baggage: { cabin: "8 kg", checkin: "20 kg" }, meal: "Refreshment Box", rating: 4.9, officialWebsite: "https://www.zingbus.com", bookingUrl: "https://www.zingbus.com" },
+  { id: "BUS-104", type: "bus", category: "bus", operator: "KSRTC FlyBus Express", airline: "KSRTC", flightNo: "KA-808", aircraft: "Volvo Multi-Axle", from: "Bangalore (Majestic)", to: "Mysore (KSRTC)", departure: "06:00", arrival: "09:30", duration: "3h 30m", stops: "Non-stop", price: 450, priceNum: 450, class: "Air Conditioned Seater", terminal: { dep: "Platform 1", arr: "Platform 4" }, baggage: { cabin: "10 kg", checkin: "20 kg" }, meal: "Water bottle", rating: 4.6, officialWebsite: "https://ksrtc.in", bookingUrl: "https://ksrtc.in" },
+  { id: "BUS-105", type: "bus", category: "bus", operator: "SRS Travels Multi-Axle", airline: "SRS Travels", flightNo: "SRS-303", aircraft: "Scania A/C Sleeper", from: "Bangalore (Anand Rao)", to: "Hyderabad (MGBS)", departure: "22:15", arrival: "06:45", duration: "8h 30m", stops: "Non-stop", price: 899, priceNum: 899, class: "A/C Multi-Axle Sleeper", terminal: { dep: "Stand A", arr: "Stand C" }, baggage: { cabin: "10 kg", checkin: "30 kg" }, meal: "Water & Blanket", rating: 4.7, officialWebsite: "https://www.srestravels.com", bookingUrl: "https://www.srestravels.com" }
+];
+
+// ── Trains Database ───────────────────────────────────────────────────────────
+export const TRAINS = [
+  { id: "TRN-201", type: "train", category: "train", trainName: "Vande Bharat Express (20901)", airline: "Vande Bharat Express", flightNo: "VB-20901", aircraft: "Semi-High Speed Train", from: "Mumbai Central (MMCT)", to: "Gandhinagar (GDA)", departure: "06:00", arrival: "12:25", duration: "6h 25m", stops: "Non-stop", price: 1420, priceNum: 1420, class: "AC Chair Car (CC)", terminal: { dep: "PF 1", arr: "PF 2" }, baggage: { cabin: "15 kg", checkin: "40 kg" }, meal: "Breakfast & Tea included", rating: 4.9, officialWebsite: "https://www.irctc.co.in", bookingUrl: "https://www.irctc.co.in" },
+  { id: "TRN-202", type: "train", category: "train", trainName: "Rajdhani Express (12951)", airline: "IRCTC Rajdhani Express", flightNo: "RJ-12951", aircraft: "Superfast LHB Rake", from: "Mumbai Central (MMCT)", to: "Delhi (NDLS)", departure: "17:00", arrival: "08:32", duration: "15h 32m", stops: "3 Technical Stops", price: 2850, priceNum: 2850, class: "3rd AC (3A)", terminal: { dep: "PF 3", arr: "PF 1" }, baggage: { cabin: "15 kg", checkin: "50 kg" }, meal: "Full Dinner & Breakfast", rating: 4.8, officialWebsite: "https://www.irctc.co.in", bookingUrl: "https://www.irctc.co.in" },
+  { id: "TRN-203", type: "train", category: "train", trainName: "Shatabdi Express (12002)", airline: "IRCTC Shatabdi Express", flightNo: "ST-12002", aircraft: "LHB Chair Car", from: "New Delhi (NDLS)", to: "Bhopal (VGLJ)", departure: "06:00", arrival: "14:40", duration: "8h 40m", stops: "Non-stop", price: 1165, priceNum: 1165, class: "AC Executive (EC)", terminal: { dep: "PF 1", arr: "PF 4" }, baggage: { cabin: "15 kg", checkin: "40 kg" }, meal: "Full Meal Service", rating: 4.7, officialWebsite: "https://www.irctc.co.in", bookingUrl: "https://www.irctc.co.in" },
+  { id: "TRN-204", type: "train", category: "train", trainName: "Duronto Express (12260)", airline: "IRCTC Duronto Express", flightNo: "DR-12260", aircraft: "Superfast Non-stop Rake", from: "New Delhi (NDLS)", to: "Kolkata (HWH)", departure: "12:40", arrival: "06:40", duration: "18h 00m", stops: "Non-stop", price: 2450, priceNum: 2450, class: "2nd AC (2A)", terminal: { dep: "PF 8", arr: "PF 9" }, baggage: { cabin: "15 kg", checkin: "50 kg" }, meal: "Complimentary Lunch & Dinner", rating: 4.6, officialWebsite: "https://www.irctc.co.in", bookingUrl: "https://www.irctc.co.in" },
+  { id: "TRN-205", type: "train", category: "train", trainName: "Garib Rath Express (12216)", airline: "ConfirmTkt Garib Rath", flightNo: "GR-12216", aircraft: "AC Economy Express", from: "Delhi (DEE)", to: "Bandra Terminus (BDTS)", departure: "11:00", arrival: "06:15", duration: "19h 15m", stops: "5 Stops", price: 790, priceNum: 790, class: "3AC Garib Rath", terminal: { dep: "PF 2", arr: "PF 5" }, baggage: { cabin: "10 kg", checkin: "35 kg" }, meal: "Buy on train", rating: 4.5, officialWebsite: "https://www.confirmtkt.com", bookingUrl: "https://www.confirmtkt.com" }
+];
+
 // ── Airline Colors & Metadata ─────────────────────────────────────────────────
 export const AIRLINE_META = {
   "Air India": { color: "#E2393D", bg: "rgba(226,57,61,0.12)", icon: "✈️", logo: "AI", officialWebsite: "https://www.airindia.com", bookingUrl: "https://www.airindia.com" },
@@ -59,22 +77,48 @@ export const AIRLINE_META = {
   "Air India Express": { color: "#D32F2F", bg: "rgba(211,47,47,0.12)", icon: "✈️", logo: "IX", officialWebsite: "https://www.airindiaexpress.in", bookingUrl: "https://www.airindiaexpress.in" },
   "Emirates": { color: "#D71921", bg: "rgba(215,25,33,0.12)", icon: "✈️", logo: "EK", officialWebsite: "https://www.emirates.com", bookingUrl: "https://www.emirates.com" },
   "Qatar Airways": { color: "#5C0632", bg: "rgba(92,6,50,0.12)", icon: "✈️", logo: "QR", officialWebsite: "https://www.qatarairways.com", bookingUrl: "https://www.qatarairways.com" },
-  "Singapore Airlines": { color: "#002B49", bg: "rgba(0,43,73,0.12)", icon: "✈️", logo: "SQ", officialWebsite: "https://www.singaporeair.com", bookingUrl: "https://www.singaporeair.com" }
+  "Singapore Airlines": { color: "#002B49", bg: "rgba(0,43,73,0.12)", icon: "✈️", logo: "SQ", officialWebsite: "https://www.singaporeair.com", bookingUrl: "https://www.singaporeair.com" },
+  // Buses
+  "RedBus": { color: "#D32F2F", bg: "rgba(211,47,47,0.12)", icon: "🚌", logo: "RB", officialWebsite: "https://www.redbus.in", bookingUrl: "https://www.redbus.in" },
+  "AbhiBus": { color: "#1976D2", bg: "rgba(25,118,210,0.12)", icon: "🚌", logo: "AB", officialWebsite: "https://www.abhibus.com", bookingUrl: "https://www.abhibus.com" },
+  "Zingbus": { color: "#00897B", bg: "rgba(0,137,123,0.12)", icon: "⚡", logo: "ZB", officialWebsite: "https://www.zingbus.com", bookingUrl: "https://www.zingbus.com" },
+  "KSRTC": { color: "#E65100", bg: "rgba(230,81,0,0.12)", icon: "🚌", logo: "KS", officialWebsite: "https://ksrtc.in", bookingUrl: "https://ksrtc.in" },
+  "SRS Travels": { color: "#7B1FA2", bg: "rgba(123,31,162,0.12)", icon: "🚌", logo: "SRS", officialWebsite: "https://www.srestravels.com", bookingUrl: "https://www.srestravels.com" },
+  // Trains
+  "Vande Bharat Express": { color: "#0284C7", bg: "rgba(2,132,199,0.12)", icon: "🚆", logo: "VB", officialWebsite: "https://www.irctc.co.in", bookingUrl: "https://www.irctc.co.in" },
+  "IRCTC Rajdhani Express": { color: "#B91C1C", bg: "rgba(185,28,28,0.12)", icon: "🚆", logo: "RJ", officialWebsite: "https://www.irctc.co.in", bookingUrl: "https://www.irctc.co.in" },
+  "IRCTC Shatabdi Express": { color: "#15803D", bg: "rgba(21,128,61,0.12)", icon: "🚆", logo: "ST", officialWebsite: "https://www.irctc.co.in", bookingUrl: "https://www.irctc.co.in" },
+  "IRCTC Duronto Express": { color: "#D97706", bg: "rgba(217,119,6,0.12)", icon: "🚆", logo: "DR", officialWebsite: "https://www.irctc.co.in", bookingUrl: "https://www.irctc.co.in" },
+  "ConfirmTkt Garib Rath": { color: "#7C3AED", bg: "rgba(124,58,237,0.12)", icon: "🚆", logo: "GR", officialWebsite: "https://www.confirmtkt.com", bookingUrl: "https://www.confirmtkt.com" }
 };
 
 /**
- * Returns the official flight booking URL for a given flight or airline name.
- * Falls back to Google Flights if no specific airline match is found.
+ * Returns the official booking URL for a given flight, bus, or train item.
  */
-export function getOfficialBookingUrl(flight) {
-  if (!flight) return "https://www.google.com/travel/flights";
-  const name = flight.airline || flight.flightName || "";
-  
+export function getOfficialBookingUrl(item) {
+  if (!item) return "https://www.google.com/travel/flights";
+  if (item.bookingUrl) return item.bookingUrl;
+  if (item.officialWebsite) return item.officialWebsite;
+
+  const name = (item.airline || item.operator || item.trainName || item.flightName || item.name || "").toString();
   if (AIRLINE_META[name] && AIRLINE_META[name].bookingUrl) {
     return AIRLINE_META[name].bookingUrl;
   }
-  
+
   const lower = name.toLowerCase();
+  // Buses
+  if (lower.includes("redbus")) return "https://www.redbus.in";
+  if (lower.includes("abhibus")) return "https://www.abhibus.com";
+  if (lower.includes("zingbus")) return "https://www.zingbus.com";
+  if (lower.includes("ksrtc")) return "https://ksrtc.in";
+  if (lower.includes("srs")) return "https://www.srestravels.com";
+
+  // Trains
+  if (lower.includes("irctc") || lower.includes("vande") || lower.includes("rajdhani") || lower.includes("shatabdi") || lower.includes("duronto") || lower.includes("confirmtkt")) {
+    return "https://www.irctc.co.in";
+  }
+
+  // Flights
   if (lower.includes("indigo")) return "https://www.goindigo.in";
   if (lower.includes("air india express")) return "https://www.airindiaexpress.in";
   if (lower.includes("air india")) return "https://www.airindia.com";
@@ -82,12 +126,6 @@ export function getOfficialBookingUrl(flight) {
   if (lower.includes("spicejet")) return "https://www.spicejet.com";
   if (lower.includes("akasa")) return "https://www.akasaair.com";
   if (lower.includes("emirates")) return "https://www.emirates.com";
-  if (lower.includes("qatar")) return "https://www.qatarairways.com";
-  if (lower.includes("singapore")) return "https://www.singaporeair.com";
-  if (lower.includes("lufthansa")) return "https://www.lufthansa.com";
-  if (lower.includes("etihad")) return "https://www.etihad.com";
-  if (lower.includes("flydubai")) return "https://www.flydubai.com";
-  
   return "https://www.google.com/travel/flights";
 }
 

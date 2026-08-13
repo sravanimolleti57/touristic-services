@@ -52,9 +52,10 @@ export default function SharedNavbar({ activeTab = "" }) {
     { label: "Home", key: "home", action: () => navigate("/home"), icon: <FaHome size={11} /> },
     { label: "Destinations", key: "destinations", action: () => goToTab("places"), icon: <FaMapMarkerAlt size={11} /> },
     { label: "Hotels", key: "hotels", action: () => goToTab("hotels"), icon: <FaHotel size={11} /> },
-    { label: "Flights", key: "flights", action: () => goToTab("flights"), icon: <FaPlane size={11} /> },
+    { label: "Transport & Travel", key: "flights", action: () => goToTab("flights"), icon: <FaPlane size={11} /> },
     { label: "Reviews", key: "reviews", action: () => navigate("/reviews"), icon: <FaComments size={11} /> },
     { label: "Contact", key: "contact", action: () => navigate("/contact"), icon: <FaEnvelope size={11} /> },
+    { label: "My Bookings", key: "my-bookings", action: () => navigate("/my-bookings"), icon: <FaSuitcase size={11} /> },
   ];
 
   return (
@@ -129,6 +130,31 @@ export default function SharedNavbar({ activeTab = "" }) {
 
         {/* Right actions */}
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          {/* Quick My Bookings Link next to Profile Icon */}
+          <div
+            onClick={() => navigate("/my-bookings")}
+            style={{
+              display: "flex", alignItems: "center", gap: 6,
+              padding: "8px 14px", borderRadius: 12, cursor: "pointer",
+              background: activeTab === "my-bookings" ? "rgba(37,99,235,0.12)" : "rgba(37,99,235,0.06)",
+              border: activeTab === "my-bookings" ? "1px solid #2563EB" : "1px solid rgba(37,99,235,0.2)",
+              color: "#2563EB", fontWeight: 700, fontSize: 13, transition: "all 0.2s"
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = "rgba(37,99,235,0.12)"; }}
+            onMouseLeave={e => { if (activeTab !== "my-bookings") e.currentTarget.style.background = "rgba(37,99,235,0.06)"; }}
+          >
+            <FaSuitcase size={12} />
+            <span>My Bookings</span>
+            {(bookedHotelsCount + bookedFlightsCount) > 0 && (
+              <span style={{
+                background: "#2563EB", color: "#FFFFFF", fontSize: 10, fontWeight: 800,
+                padding: "2px 7px", borderRadius: 10, marginLeft: 2
+              }}>
+                {bookedHotelsCount + bookedFlightsCount}
+              </span>
+            )}
+          </div>
+
           {/* Bell */}
           <div style={{
             width: 40, height: 40, borderRadius: "50%",
@@ -207,9 +233,22 @@ export default function SharedNavbar({ activeTab = "" }) {
                   </div>
                 </div>
 
+                <button
+                  onClick={() => { setShowProfile(false); navigate("/my-bookings"); }}
+                  style={{
+                    width: "100%", padding: "10px", borderRadius: 10, border: "none",
+                    background: "linear-gradient(135deg, #2563EB, #3B82F6)", color: "#FFFFFF", marginBottom: 8,
+                    cursor: "pointer", fontWeight: 800, fontSize: 13, fontFamily: "inherit",
+                    display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                    boxShadow: "0 4px 12px rgba(37,99,235,0.25)"
+                  }}
+                >
+                  <FaSuitcase /> My Bookings &amp; Tickets
+                </button>
+
                 {/* Sign out */}
                 <button
-                  onClick={() => { localStorage.removeItem("user"); navigate("/"); }}
+                  onClick={() => { localStorage.removeItem("user"); localStorage.removeItem("role"); navigate("/"); }}
                   style={{
                     width: "100%", padding: "10px", borderRadius: 10, border: "1px solid rgba(220,38,38,0.15)",
                     background: "rgba(220,38,38,0.05)", color: "#DC2626",

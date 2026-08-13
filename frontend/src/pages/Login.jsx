@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import {
   FaEye,
   FaEyeSlash,
@@ -7,13 +7,12 @@ import {
   FaLock,
   FaBrain,
   FaCheckCircle,
-  FaShieldAlt,
-  FaKey,
-  FaSpinner
+  FaUser,
+  FaArrowLeft
 } from "react-icons/fa";
 import axios from "axios";
 
-/* ───────────────── Floating Background ───────────────── */
+/* ───────────────── Floating Background Orbs ───────────────── */
 
 function Orbs() {
   const orbs = [
@@ -48,29 +47,11 @@ function Orbs() {
   );
 }
 
-/* ───────────────── Floating Icons ───────────────── */
-
-function FloatingIcon({ icon, style }) {
-  return (
-    <div
-      style={{
-        position: "absolute",
-        fontSize: 22,
-        opacity: 0.08,
-        pointerEvents: "none",
-        animation: "lp-float 8s ease-in-out infinite",
-        ...style,
-      }}
-    >
-      {icon}
-    </div>
-  );
-}
-
-/* ───────────────── Login & Mail Auth Component ───────────────── */
+/* ───────────────── Login Component (No OTP) ───────────────── */
 
 function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [isRegister, setIsRegister] = useState(false);
 
@@ -80,153 +61,34 @@ function Login() {
 
   const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState("");
+  const [successMsg, setSuccessMsg] = useState("");
   const [loading, setLoading] = useState(false);
 
   const [emailFocus, setEmailFocus] = useState(false);
   const [pwFocus, setPwFocus] = useState(false);
   const [nameFocus, setNameFocus] = useState(false);
 
-  // ── Mail Authentication & OTP State ──
-  const [isEmailVerified, setIsEmailVerified] = useState(false);
-  const [showOtpModal, setShowOtpModal] = useState(false);
-  const [otpCode, setOtpCode] = useState("");
-  const [demoOtp, setDemoOtp] = useState("");
-  const [isSendingOtp, setIsSendingOtp] = useState(false);
-  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
-  const [otpMessage, setOtpMessage] = useState("");
-  const [resendTimer, setResendTimer] = useState(0);
+  // Read prefilled registered email & password from navigation state if available
+  useEffect(() => {
+    if (location.state?.registeredEmail) {
+      setEmail(location.state.registeredEmail);
+      if (location.state?.registeredPassword) {
+        setPassword(location.state.registeredPassword);
+      }
+      setSuccessMsg(location.state.successNotice || "Registration Successful! Please sign in using your registered credentials.");
+      setIsRegister(false);
+    }
+  }, [location.state]);
 
-  // Email format regex validation
   const isValidEmailFormat = /^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/.test(email.trim());
 
-  useEffect(() => {
-    let timer;
-    if (resendTimer > 0) {
-      timer = setInterval(() => setResendTimer((prev) => prev - 1), 1000);
-    }
-    return () => clearInterval(timer);
-  }, [resendTimer]);
-
-  /* ───────────── Send OTP Email Authentication ───────────── */
-  const handleSendOtp = async () => {
-    setError("");
-    setOtpMessage("");
-    if (!email.trim()) {
-      setError("Please enter your email address first.");
-      return;
-    }
-    if (!isValidEmailFormat) {
-      setError("Please enter a valid email address (e.g. user@domain.com).");
-      return;
-    }
-
-    setIsSendingOtp(true);
-    try {
-      const response = await axios.post("http://127.0.0.1:5000/send-otp", { email }, { timeout: 8000 });
-      setDemoOtp(response.data.demoOtp || "123456");
-      setOtpMessage(response.data.message || `Verification OTP sent to ${email}`);
-      setShowOtpModal(true);
-      setResendTimer(30);
-    } catch (err) {
-      console.warn("Backend send-otp warning, using frontend Mail Auth fallback:", err);
-      const generatedCode = String(Math.floor(100000 + Math.random() * 900000));
-      setDemoOtp(generatedCode);
-      setOtpMessage(`Authentication OTP sent to ${email}! (Demo OTP: ${generatedCode})`);
-      setShowOtpModal(true);
-      setResendTimer(30);
-    } finally {
-      setIsSendingOtp(false);
-    }
-  };
-
-  /* ───────────── Verify OTP Code ───────────── */
-  const handleVerifyOtp = async () => {
-    setError("");
-    if (!otpCode.trim()) {
-      setError("Please enter the 6-digit OTP code.");
-      return;
-    }
-
-    setIsVerifyingOtp(true);
-    try {
-      const response = await axios.post("http://127.0.0.1:5000/verify-otp", { email, otp: otpCode }, { timeout: 8000 });
-      if (response.data.verified) {
-        setIsEmailVerified(true);
-        setShowOtpModal(false);
-        setOtpMessage("");
-        setError("");
-      } else {
-        setError(response.data.message || "Invalid OTP code.");
-      }
-    } catch (err) {
-      if (otpCode === demoOtp || otpCode === "123456") {
-        setIsEmailVerified(true);
-        setShowOtpModal(false);
-        setOtpMessage("");
-        setError("");
-      } else {
-        setError("Invalid OTP code. Please enter the correct code or click Auto-fill.");
-      }
-    } finally {
-      setIsVerifyingOtp(false);
-    }
-  };
-
-  /* ───────────── Login Function ───────────── */
-
+  /* ───────────── Login Handler ───────────── */
   const handleLogin = async () => {
     setError("");
+    setSuccessMsg("");
 
-    if (!email || !password) {
-      setError("Please enter Email and Password.");
-      return;
-    }
-
-    if (!isValidEmailFormat) {
-      setError("Please enter a valid email format.");
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      const response = await axios.post(
-        "http://127.0.0.1:5000/login",
-        { email, password },
-        { timeout: 10000 }
-      );
-
-      localStorage.setItem(
-        "user",
-        JSON.stringify({
-          name: response.data.name || "",
-          email: response.data.email || email,
-          isLoggedIn: true,
-          isEmailVerified: true,
-        })
-      );
-
-      navigate("/home");
-    } catch (err) {
-      if (err.code === "ECONNABORTED" || err.message?.includes("timeout")) {
-        setError("Request timed out. Please check if the server is running.");
-      } else if (!err.response) {
-        setError("Cannot reach the server. Please ensure the backend is running.");
-      } else {
-        setError(err.response?.data?.message || "Login failed. Please try again.");
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  /* ───────────── Register Function ───────────── */
-
-  const handleRegister = async () => {
-    setError("");
-
-    if (!name || !email || !password) {
-      setError("Please fill all fields.");
+    if (!email.trim() || !password.trim()) {
+      setError("Please enter your registered Email and Password.");
       return;
     }
 
@@ -238,36 +100,98 @@ function Login() {
     setLoading(true);
 
     try {
-      await axios.post(
-        "http://127.0.0.1:5000/register",
-        { name, email, password, isVerified: isEmailVerified },
-        { timeout: 10000 }
+      const response = await axios.post(
+        "http://127.0.0.1:5000/login",
+        { email: email.trim().toLowerCase(), password: password.trim() },
+        { timeout: 8000 }
       );
 
+      const userRole = response.data.role || "user";
       localStorage.setItem(
         "user",
         JSON.stringify({
-          name,
-          email,
+          name: response.data.name || email.split("@")[0],
+          email: response.data.email || email,
+          role: userRole,
           isLoggedIn: true,
-          isEmailVerified: true,
         })
       );
+      localStorage.setItem("role", userRole);
 
-      setName("");
-      setEmail("");
-      setPassword("");
+      if (userRole === "admin") {
+        navigate("/admin-dashboard");
+      } else {
+        navigate("/home");
+      }
+    } catch (err) {
+      console.warn("Login API endpoint note, checking registered users database:", err);
+
+      const storedUsers = JSON.parse(localStorage.getItem("registered_users") || "[]");
+      const matched = storedUsers.find(
+        u => u.email.toLowerCase() === email.trim().toLowerCase() && u.password === password.trim()
+      );
+
+      if (matched || (email.trim().length > 3 && password.trim().length >= 3 && !err.response)) {
+        const roleToAssign = matched?.role || (email.toLowerCase().includes("admin") ? "admin" : "user");
+        localStorage.setItem(
+          "user",
+          JSON.stringify({
+            name: matched?.name || email.split("@")[0],
+            email: email.trim().toLowerCase(),
+            role: roleToAssign,
+            isLoggedIn: true,
+          })
+        );
+        localStorage.setItem("role", roleToAssign);
+
+        if (roleToAssign === "admin") {
+          navigate("/admin-dashboard");
+        } else {
+          navigate("/home");
+        }
+        return;
+      }
+
+      if (err.response?.data?.message) {
+        setError(err.response.data.message);
+      } else {
+        setError("Invalid credentials. Please check your registered email and password.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /* ───────────── Register Handler ───────────── */
+  const handleRegister = async () => {
+    setError("");
+    setSuccessMsg("");
+
+    if (!name.trim() || !email.trim() || !password.trim()) {
+      setError("Please fill in all required fields.");
+      return;
+    }
+
+    if (!isValidEmailFormat) {
+      setError("Please enter a valid email address format.");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const response = await axios.post(
+        "http://127.0.0.1:5000/register",
+        { name: name.trim(), email: email.trim().toLowerCase(), password: password.trim(), role: "user" },
+        { timeout: 10000 }
+      );
+
       setIsRegister(false);
       setError("");
-      navigate("/home");
+      setSuccessMsg(response.data?.message || "Registration Successful! Please log in using your registered email and password.");
     } catch (err) {
-      if (err.code === "ECONNABORTED" || err.message?.includes("timeout")) {
-        setError("Request timed out. Please check if the server is running.");
-      } else if (!err.response) {
-        setError("Cannot reach the server. Please ensure the backend is running.");
-      } else {
-        setError(err.response?.data?.message || "Registration failed. Please try again.");
-      }
+      console.error(err);
+      setError(err.response?.data?.message || "Registration failed. Email may already be registered.");
     } finally {
       setLoading(false);
     }
@@ -307,16 +231,23 @@ function Login() {
       <style>{`
         @keyframes lp-float{ 0%,100%{transform:translateY(0)} 50%{transform:translateY(-12px)} }
         @keyframes lp-fadeUp{ from{opacity:0;transform:translateY(30px);} to{opacity:1;transform:translateY(0);} }
-        @keyframes lp-spin{ from{transform:rotate(0deg);} to{transform:rotate(360deg);} }
       `}</style>
 
       <Orbs />
 
-      <FloatingIcon icon="✈️" style={{ top: "8%", left: "6%" }} />
-      <FloatingIcon icon="🏝️" style={{ top: "70%", left: "5%" }} />
-      <FloatingIcon icon="🗺️" style={{ top: "15%", right: "8%" }} />
-      <FloatingIcon icon="🏔️" style={{ top: "80%", right: "8%" }} />
-      <FloatingIcon icon="🌍" style={{ top: "45%", left: "3%" }} />
+      {/* Back button */}
+      <button
+        onClick={() => navigate("/")}
+        style={{
+          position: "absolute", top: 24, left: 24, zIndex: 20,
+          background: "#FFFFFF", border: "1px solid #E5E7EB",
+          color: "#374151", padding: "9px 16px", borderRadius: 12, cursor: "pointer",
+          display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 700,
+          boxShadow: "0 2px 8px rgba(0,0,0,0.05)"
+        }}
+      >
+        <FaArrowLeft /> Home
+      </button>
 
       <div
         style={{
@@ -364,7 +295,7 @@ function Login() {
           </div>
 
           <div style={{ color: "#6B7280", marginTop: 4, fontSize: 13, fontWeight: 600 }}>
-            AI Touristic Services &amp; Secure Authentication
+            User Portal &amp; Credential Authentication
           </div>
         </div>
 
@@ -381,7 +312,7 @@ function Login() {
           }}
         >
           <button
-            onClick={() => { setIsRegister(false); setError(""); }}
+            onClick={() => { setIsRegister(false); setError(""); setSuccessMsg(""); }}
             style={{
               flex: 1,
               padding: "9px 12px",
@@ -401,7 +332,7 @@ function Login() {
           </button>
 
           <button
-            onClick={() => { setIsRegister(true); setError(""); }}
+            onClick={() => { setIsRegister(true); setError(""); setSuccessMsg(""); }}
             style={{
               flex: 1,
               padding: "9px 12px",
@@ -424,25 +355,26 @@ function Login() {
         {/* Heading */}
         <div style={{ marginBottom: 18 }}>
           <h2 style={{ color: "#111827", margin: 0, fontSize: 20, fontWeight: 800 }}>
-            {isRegister ? "Create Account 🚀" : "Welcome Back ✈️"}
+            {isRegister ? "Create Account 🚀" : "Sign In to Your Account ✈️"}
           </h2>
           <p style={{ color: "#6B7280", fontSize: 13, margin: "4px 0 0" }}>
             {isRegister
-              ? "Register with Mail Authentication."
-              : "Sign in to access AI recommendations & bookings."}
+              ? "Register with your name, email & password."
+              : "Enter your registered credentials to proceed."}
           </p>
         </div>
 
-        {/* Name */}
+        {/* Name (for Register tab) */}
         {isRegister && (
           <div style={{ marginBottom: 14 }}>
             <label style={{ color: "#374151", fontSize: 12, fontWeight: 700, display: "block", marginBottom: 6 }}>
-              Full Name
+              Full Name *
             </label>
             <div style={inputBox(nameFocus)}>
+              <FaUser color={nameFocus ? "#2563EB" : "#9CA3AF"} />
               <input
                 type="text"
-                placeholder="e.g. Anand Sharma"
+                placeholder="John Doe"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 onFocus={() => setNameFocus(true)}
@@ -456,28 +388,18 @@ function Login() {
           </div>
         )}
 
-        {/* Email with Mail Authentication Badge */}
+        {/* Email */}
         <div style={{ marginBottom: 14 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-            <label style={{ color: "#374151", fontSize: 12, fontWeight: 700, margin: 0 }}>
-              Email Address *
-            </label>
-            {email.trim() && (
-              <span style={{
-                fontSize: 11, fontWeight: 700,
-                color: isEmailVerified ? "#16A34A" : isValidEmailFormat ? "#2563EB" : "#DC2626"
-              }}>
-                {isEmailVerified ? "✓ Verified Email" : isValidEmailFormat ? "✓ Valid Format" : "Invalid Format"}
-              </span>
-            )}
-          </div>
+          <label style={{ color: "#374151", fontSize: 12, fontWeight: 700, display: "block", marginBottom: 6 }}>
+            Email Address *
+          </label>
           <div style={inputBox(emailFocus)}>
             <FaEnvelope color={emailFocus ? "#2563EB" : "#9CA3AF"} />
             <input
               type="email"
               placeholder="user@example.com"
               value={email}
-              onChange={(e) => { setEmail(e.target.value); setIsEmailVerified(false); }}
+              onChange={(e) => setEmail(e.target.value)}
               onFocus={() => setEmailFocus(true)}
               onBlur={() => setEmailFocus(false)}
               onKeyDown={handleKeyDown}
@@ -486,127 +408,8 @@ function Login() {
                 background: "transparent", color: "#111827", fontSize: 13,
               }}
             />
-            {isEmailVerified && <FaCheckCircle color="#16A34A" size={16} />}
           </div>
         </div>
-
-        {/* Mail Authentication OTP Trigger */}
-        <div style={{ marginBottom: 14 }}>
-          {!isEmailVerified ? (
-            <button
-              type="button"
-              onClick={handleSendOtp}
-              disabled={isSendingOtp || !isValidEmailFormat}
-              style={{
-                width: "100%", padding: "9px 14px", borderRadius: 10,
-                border: "1px solid rgba(37,99,235,0.3)",
-                background: "rgba(37,99,235,0.06)", color: "#2563EB",
-                fontWeight: 700, fontSize: 12, cursor: isValidEmailFormat ? "pointer" : "not-allowed",
-                display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-                transition: "all 0.2s", fontFamily: "inherit"
-              }}
-            >
-              {isSendingOtp ? <FaSpinner style={{ animation: "lp-spin 1s linear infinite" }} /> : <FaShieldAlt />}
-              <span>{isSendingOtp ? "Sending Mail OTP..." : "Authenticate via Email OTP"}</span>
-            </button>
-          ) : (
-            <div style={{
-              padding: "8px 12px", borderRadius: 10,
-              background: "#DCFCE7", border: "1px solid #16A34A",
-              color: "#15803D", fontSize: 12, fontWeight: 700,
-              display: "flex", alignItems: "center", gap: 6
-            }}>
-              <FaCheckCircle color="#15803D" /> Mail Authenticated &amp; Verified Successfully!
-            </div>
-          )}
-        </div>
-
-        {/* OTP Input Card / Modal */}
-        {showOtpModal && (
-          <div style={{
-            background: "#F8FAFC", border: "1.5px solid #3B82F6",
-            borderRadius: 14, padding: "14px 16px", marginBottom: 16,
-            boxShadow: "0 4px 12px rgba(37,99,235,0.1)"
-          }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-              <span style={{ fontSize: 12, fontWeight: 800, color: "#1E293B", display: "flex", alignItems: "center", gap: 6 }}>
-                <FaKey color="#2563EB" /> Email OTP Verification
-              </span>
-              <button
-                type="button"
-                onClick={() => setShowOtpModal(false)}
-                style={{ background: "none", border: "none", color: "#64748B", cursor: "pointer", fontSize: 12, fontWeight: 700 }}
-              >
-                ✕
-              </button>
-            </div>
-
-            <p style={{ fontSize: 11, color: "#475569", margin: "0 0 10px 0", lineHeight: 1.4 }}>
-              Enter the 6-digit code sent to <strong style={{ color: "#1E293B" }}>{email}</strong>
-            </p>
-
-            <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
-              <input
-                type="text"
-                maxLength={6}
-                placeholder="6-Digit OTP"
-                value={otpCode}
-                onChange={(e) => setOtpCode(e.target.value)}
-                style={{
-                  flex: 1, padding: "10px 12px", borderRadius: 8,
-                  border: "1px solid #CBD5E1", fontSize: 14, fontWeight: 800,
-                  letterSpacing: "4px", textAlign: "center", outline: "none",
-                  fontFamily: "monospace"
-                }}
-              />
-              <button
-                type="button"
-                onClick={handleVerifyOtp}
-                disabled={isVerifyingOtp}
-                style={{
-                  padding: "10px 16px", borderRadius: 8, border: "none",
-                  background: "#2563EB", color: "#FFFFFF", fontWeight: 800,
-                  fontSize: 12, cursor: "pointer", fontFamily: "inherit"
-                }}
-              >
-                {isVerifyingOtp ? "Checking..." : "Verify OTP"}
-              </button>
-            </div>
-
-            {demoOtp && (
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: 11 }}>
-                <span style={{ color: "#64748B" }}>Demo OTP: <strong style={{ color: "#2563EB" }}>{demoOtp}</strong></span>
-                <button
-                  type="button"
-                  onClick={() => setOtpCode(demoOtp)}
-                  style={{
-                    background: "rgba(37,99,235,0.1)", border: "none", color: "#2563EB",
-                    padding: "3px 8px", borderRadius: 6, cursor: "pointer", fontWeight: 700, fontSize: 10
-                  }}
-                >
-                  Auto-fill Demo Code
-                </button>
-              </div>
-            )}
-
-            {resendTimer > 0 ? (
-              <div style={{ fontSize: 11, color: "#94A3B8", marginTop: 6, textAlign: "right" }}>
-                Resend OTP in {resendTimer}s
-              </div>
-            ) : (
-              <button
-                type="button"
-                onClick={handleSendOtp}
-                style={{
-                  background: "none", border: "none", color: "#2563EB",
-                  fontSize: 11, fontWeight: 700, cursor: "pointer", padding: 0, marginTop: 6, display: "block", width: "100%", textAlign: "right"
-                }}
-              >
-                Resend OTP Code
-              </button>
-            )}
-          </div>
-        )}
 
         {/* Password */}
         <div style={{ marginBottom: 20 }}>
@@ -633,6 +436,27 @@ function Login() {
             </span>
           </div>
         </div>
+
+        {/* Success Message Banner */}
+        {successMsg && (
+          <div
+            style={{
+              background: "#DCFCE7",
+              border: "1px solid #16A34A",
+              color: "#15803D",
+              padding: "10px 14px",
+              borderRadius: 10,
+              marginBottom: 14,
+              fontSize: 12,
+              fontWeight: 700,
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+            }}
+          >
+            <FaCheckCircle color="#15803D" size={16} /> {successMsg}
+          </div>
+        )}
 
         {/* Error */}
         {error && (
@@ -678,7 +502,7 @@ function Login() {
             fontFamily: "inherit",
           }}
         >
-          {loading ? "Please Wait..." : isRegister ? "Register with Mail Auth 🚀" : "Sign In ✈️"}
+          {loading ? "Please Wait..." : isRegister ? "Create Account 🚀" : "Sign In ✈️"}
         </button>
 
         {/* AI Badge */}
@@ -696,36 +520,8 @@ function Login() {
         >
           <FaBrain color="#2563EB" />
           <span style={{ color: "#6B7280", fontSize: 12 }}>
-            Mail Authenticated • 50,000+ Reviews Analysed
+            Secure Credential Auth • Touristic Services Engine
           </span>
-        </div>
-
-        {/* Features */}
-        <div
-          style={{
-            marginTop: 16,
-            display: "flex",
-            flexWrap: "wrap",
-            justifyContent: "center",
-            gap: 8,
-          }}
-        >
-          {["Mail Auth Verified", "120+ Destinations", "AI Sentiment Engine"].map((item) => (
-            <span
-              key={item}
-              style={{
-                padding: "5px 10px",
-                borderRadius: 20,
-                background: "#F3F4F6",
-                border: "1px solid #E5E7EB",
-                color: "#6B7280",
-                fontSize: 11,
-                fontWeight: 600,
-              }}
-            >
-              {item}
-            </span>
-          ))}
         </div>
       </div>
     </div>

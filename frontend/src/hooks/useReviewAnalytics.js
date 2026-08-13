@@ -37,8 +37,10 @@ export function useReviewAnalytics(reviews = []) {
         } catch (err) {
           // Fallback logic if ports are offline
           const lower = text.toLowerCase();
-          if (lower.includes("bad") || lower.includes("worst") || lower.includes("dirty")) return "negative";
-          if (lower.includes("ok") || lower.includes("average")) return "neutral";
+          const ratingNum = parseInt(rev.rating || "5", 10);
+          if (lower.includes("bad") || lower.includes("terrible") || lower.includes("worst") || lower.includes("dirty") || lower.includes("poor") || lower.includes("disappointed")) return "negative";
+          if (lower.includes("ok") || lower.includes("okay") || lower.includes("average") || lower.includes("fair") || lower.includes("decent") || lower.includes("fine") || lower.includes("normal") || lower.includes("standard") || ratingNum === 3) return "neutral";
+          if (ratingNum <= 2) return "negative";
           return "positive";
         }
       });

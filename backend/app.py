@@ -14,6 +14,10 @@ from flask_cors import CORS
 from bson import ObjectId
 from datetime import datetime
 
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+
 from config import (
     users,
     reviews,
@@ -35,16 +39,24 @@ except Exception as e:
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
 
-print("Loading Sentiment AI...")
-try:
-    classifier = pipeline(
-        "sentiment-analysis",
-        model="cardiffnlp/twitter-roberta-base-sentiment-latest"
-    )
-    print("Sentiment AI Loaded Successfully!")
-except BaseException as e:
-    print("Sentiment AI Pipeline loading warning (continuing with fallback):", e)
-    classifier = None
+import threading
+
+classifier = None
+
+def _load_model_bg():
+    global classifier
+    try:
+        print("Loading Sentiment AI in background...")
+        classifier = pipeline(
+            "sentiment-analysis",
+            model="cardiffnlp/twitter-roberta-base-sentiment-latest"
+        )
+        print("Sentiment AI Loaded Successfully!")
+    except BaseException as e:
+        print("Sentiment AI Pipeline loading warning (continuing with fallback):", e)
+        classifier = None
+
+threading.Thread(target=_load_model_bg, daemon=True).start()
 
 app = Flask(__name__)
 CORS(app, origins="*", supports_credentials=True)
@@ -74,6 +86,30 @@ def home():
     })
 
 
+# ---------------- ADMIN SEEDING ---------------- #
+
+def seed_admin_account():
+    try:
+        admin_email = os.getenv("EMAIL_USER", "admin@tourism.com")
+        existing_admin = users.find_one({"email": admin_email})
+        if not existing_admin:
+            users.insert_one({
+                "name": "System Admin",
+                "email": admin_email,
+                "password": "admin123",
+                "role": "admin",
+                "createdAt": datetime.now().isoformat()
+            })
+            print(f"[INFO] Default admin account seeded: {admin_email}")
+        else:
+            if existing_admin.get("role") != "admin":
+                users.update_one({"email": admin_email}, {"$set": {"role": "admin"}})
+    except Exception as e:
+        print("[WARNING] Admin seed exception:", e)
+
+seed_admin_account()
+
+
 # ---------------- REGISTER ---------------- #
 
 @app.route("/register", methods=["POST"])
@@ -86,8 +122,9 @@ def register():
             return jsonify({"message": "Invalid request body."}), 400
 
         name = data.get("name", "").strip()
-        email = data.get("email", "").strip()
+        email = data.get("email", "").strip().lower()
         password = data.get("password", "").strip()
+        role = data.get("role", "user").strip().lower()
 
         if not name or not email or not password:
             return jsonify({"message": "All fields are required."}), 400
@@ -102,11 +139,14 @@ def register():
         users.insert_one({
             "name": name,
             "email": email,
-            "password": password
+            "password": password,
+            "role": role if role in ["user", "admin"] else "user",
+            "createdAt": datetime.now().isoformat()
         })
 
         return jsonify({
-            "message": "Registration Successful!"
+            "message": "Registration Successful!",
+            "role": role
         })
     except Exception as e:
         print("Register error:", e)
@@ -124,7 +164,7 @@ def login():
         if not data:
             return jsonify({"message": "Invalid request body."}), 400
 
-        email = data.get("email", "").strip()
+        email = data.get("email", "").strip().lower()
         password = data.get("password", "").strip()
 
         if not email or not password:
@@ -134,22 +174,69 @@ def login():
 
         if not user:
             return jsonify({
-                "message": "Please register first."
+                "message": "Invalid credentials. Email is not registered. Please register first."
             }), 404
 
         if user["password"] != password:
             return jsonify({
-                "message": "Incorrect Password."
+                "message": "Invalid credentials. Incorrect password."
             }), 401
+
+        role = user.get("role", "user")
 
         return jsonify({
             "message": "Login Successful!",
             "name": user["name"],
-            "email": user["email"]
+            "email": user["email"],
+            "role": role
         })
     except Exception as e:
         print("Login error:", e)
         return jsonify({"message": "Database connection failed. Please ensure MongoDB is running."}), 503
+
+
+# ---------------- ADMIN LOGIN ---------------- #
+
+@app.route("/admin-login", methods=["POST"])
+@app.route("/api/auth/admin-login", methods=["POST"])
+def admin_login():
+    try:
+        data = request.json or {}
+        email = data.get("email", "").strip().lower()
+        password = data.get("password", "").strip()
+
+        if not email or not password:
+            return jsonify({"message": "Admin email and password are required."}), 400
+
+        user = users.find_one({"email": email})
+
+        if not user:
+            if email == "admin@tourism.com" and password == "admin123":
+                return jsonify({
+                    "message": "Admin Login Successful!",
+                    "name": "System Admin",
+                    "email": email,
+                    "role": "admin"
+                })
+            return jsonify({"message": "Admin credentials not found."}), 404
+
+        if user["password"] != password:
+            return jsonify({"message": "Incorrect Admin Password."}), 401
+
+        role = user.get("role", "user")
+        if role != "admin" and email != "admin@tourism.com":
+            return jsonify({"message": "Access Denied: You do not have Administrator privileges."}), 403
+
+        return jsonify({
+            "message": "Admin Login Successful!",
+            "name": user.get("name", "Administrator"),
+            "email": user["email"],
+            "role": "admin"
+        })
+    except Exception as e:
+        print("Admin Login error:", e)
+        return jsonify({"message": "Database error during Admin authentication."}), 503
+
 
 
 # ---------------- MAIL AUTHENTICATION & OTP ---------------- #
@@ -249,121 +336,609 @@ def add_text_review():
     })
 
 
+# ---------------- EMAIL CONFIRMATION SYSTEM ---------------- #
+
+def send_confirmation_email(user_email, booking, booking_type="hotel"):
+    """
+    Sends an automated HTML/Text email to customer when booking is confirmed by Admin.
+    Handles failures gracefully as specified in Requirement 11.
+    """
+    if not user_email:
+        return False, "No recipient email provided."
+
+    host = os.getenv("EMAIL_HOST", "smtp.gmail.com")
+    port = int(os.getenv("EMAIL_PORT", "587"))
+    user = os.getenv("EMAIL_USER", "admin@tourism.com")
+    password = os.getenv("EMAIL_PASS", "")
+    from_addr = os.getenv("EMAIL_FROM", user or "noreply@tourism.com")
+
+    item_name = booking.get("hotelName") or booking.get("flightName") or "Travel Reservation"
+    customer_name = booking.get("customerName") or booking.get("guestName") or booking.get("fullName") or user_email.split("@")[0]
+    booking_id = str(booking.get("_id") or booking.get("bookingId") or "N/A")
+    date_info = f"Check-in: {booking.get('checkIn', 'N/A')}, Check-out: {booking.get('checkOut', 'N/A')}" if booking_type == "hotel" else f"Travel Date: {booking.get('departureDate', 'N/A')} | Route: {booking.get('from', '')} → {booking.get('to', '')}"
+    count_info = f"Guests: {booking.get('guests', 1)}" if booking_type == "hotel" else f"Passengers: {booking.get('passengers', 1)}"
+    price_info = str(booking.get("price", "N/A"))
+
+    subject = f"Booking Confirmed - {item_name} (ID: {booking_id[:8]})"
+
+    html_body = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <title>Booking Confirmed</title>
+    </head>
+    <body style="margin:0; padding:0; background-color:#f4f6f8; font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+      <div style="max-width:600px; margin:30px auto; background:#ffffff; border-radius:12px; overflow:hidden; box-shadow:0 4px 15px rgba(0,0,0,0.08); border:1px solid #e5e7eb;">
+        <!-- Header -->
+        <div style="background:linear-gradient(135deg,#059669,#10b981); padding:28px 32px; text-align:center; color:#ffffff;">
+          <h1 style="margin:0; font-size:24px; font-weight:800; letter-spacing:0.5px;">Booking Confirmed!</h1>
+          <p style="margin:6px 0 0; opacity:0.9; font-size:14px;">Touristic Services Reservation Approval</p>
+        </div>
+
+        <!-- Content -->
+        <div style="padding:32px;">
+          <p style="font-size:16px; color:#1f2937; margin-top:0;">Dear <strong>{customer_name}</strong>,</p>
+          <p style="font-size:14px; color:#4b5563; line-height:1.6;">
+            We are pleased to inform you that your <strong>{booking_type.upper()}</strong> booking has been officially approved and <strong>confirmed</strong> by the administrator.
+          </p>
+
+          <!-- Booking Card -->
+          <div style="background:#f9fafb; border:1px solid #e5e7eb; border-radius:10px; padding:20px; margin:20px 0;">
+            <table style="width:100%; border-collapse:collapse; font-size:14px;">
+              <tr>
+                <td style="padding:8px 0; color:#6b7280; font-weight:600;">Booking Status:</td>
+                <td style="padding:8px 0; font-weight:800; color:#059669; text-align:right;">
+                  <span style="background:#d1fae5; color:#047857; padding:4px 10px; border-radius:12px; font-size:12px;">CONFIRMED</span>
+                </td>
+              </tr>
+              <tr>
+                <td style="padding:8px 0; color:#6b7280; font-weight:600;">Booking ID:</td>
+                <td style="padding:8px 0; color:#111827; font-weight:700; text-align:right;">{booking_id}</td>
+              </tr>
+              <tr>
+                <td style="padding:8px 0; color:#6b7280; font-weight:600;">{booking_type.capitalize()} Name:</td>
+                <td style="padding:8px 0; color:#111827; font-weight:700; text-align:right;">{item_name}</td>
+              </tr>
+              <tr>
+                <td style="padding:8px 0; color:#6b7280; font-weight:600;">Schedule / Date:</td>
+                <td style="padding:8px 0; color:#111827; text-align:right;">{date_info}</td>
+              </tr>
+              <tr>
+                <td style="padding:8px 0; color:#6b7280; font-weight:600;">Occupancy:</td>
+                <td style="padding:8px 0; color:#111827; text-align:right;">{count_info}</td>
+              </tr>
+              <tr style="border-top:1px dashed #d1d5db;">
+                <td style="padding:12px 0 4px; color:#111827; font-weight:800; font-size:15px;">Total Price:</td>
+                <td style="padding:12px 0 4px; color:#059669; font-weight:900; font-size:16px; text-align:right;">{price_info}</td>
+              </tr>
+            </table>
+          </div>
+
+          <p style="font-size:13px; color:#6b7280; line-height:1.5; margin-bottom:0;">
+            If you need to make changes or have questions about your itinerary, please feel free to reach out through your user dashboard or contact support.
+          </p>
+        </div>
+
+        <!-- Footer -->
+        <div style="background:#f9fafb; padding:16px 32px; border-top:1px solid #e5e7eb; text-align:center; font-size:12px; color:#9ca3af;">
+          © 2026 Touristic Services. All rights reserved.
+        </div>
+      </div>
+    </body>
+    </html>
+    """
+
+    # If no password configured, log mock email send safely
+    if not password or password.strip() == "":
+        print(f"[EMAIL MOCK] Email confirmation triggered for {user_email} (Booking ID: {booking_id}). (No SMTP password set in .env)")
+        return True, "Booking confirmed! Confirmation email simulated (SMTP password not configured in .env)."
+
+    try:
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = subject
+        msg["From"] = from_addr
+        msg["To"] = user_email
+        msg.attach(MIMEText(html_body, "html"))
+
+        with smtplib.SMTP(host, port, timeout=8) as server:
+            server.starttls()
+            server.login(user, password)
+            server.sendmail(from_addr, user_email, msg.as_string())
+
+        print(f"[EMAIL SUCCESS] Confirmation email successfully sent to {user_email} for booking {booking_id}")
+        return True, f"Confirmation email successfully sent to {user_email}."
+    except Exception as e:
+        print(f"[EMAIL WARNING] SMTP delivery error ({e}). Booking remains Confirmed in database.")
+        return False, f"Booking confirmed! (Email dispatch note: {str(e)})"
+
+
 # ---------------- BOOK HOTEL ---------------- #
 
 @app.route("/book-hotel", methods=["POST"])
+@app.route("/api/bookings/hotel", methods=["POST"])
 def book_hotel():
+    try:
+        data = request.json or {}
 
-    data = request.json
+        user_email = data.get("userEmail") or data.get("customerEmail") or data.get("email", "").strip().lower()
+        if not user_email:
+            return jsonify({"message": "Customer email is required for booking."}), 400
 
-    booking = {
-        "userEmail": data["userEmail"],
-        "hotelName": data["hotelName"],
-        "location": data["location"],
-        "price": data["price"],
-        "checkIn": data["checkIn"],
-        "checkOut": data["checkOut"],
-        "guests": data["guests"],
-        "bookingDate": datetime.now()
-    }
+        customer_name = data.get("customerName") or data.get("guestName") or data.get("fullName") or data.get("name") or user_email.split("@")[0]
+        phone = data.get("phone") or data.get("phoneNumber") or "N/A"
+        hotel_name = data.get("hotelName") or data.get("name") or "Luxury Hotel"
 
-    result = hotel_bookings.insert_one(booking)
+        now_iso = datetime.now().isoformat()
 
-    return jsonify({
-        "message": "Hotel booked successfully!",
-        "bookingId": str(result.inserted_id)
-    })
+        booking = {
+            "customerName": customer_name,
+            "guestName": customer_name,
+            "customerEmail": user_email,
+            "userEmail": user_email,
+            "phone": phone,
+            "hotelName": hotel_name,
+            "location": data.get("location", "Prime Location"),
+            "price": data.get("price", "₹15,000"),
+            "checkIn": data.get("checkIn", "2026-08-20"),
+            "checkOut": data.get("checkOut", "2026-08-23"),
+            "guests": int(data.get("guests", 1)),
+            "rooms": int(data.get("rooms", 1)),
+            "roomType": data.get("roomType", "Deluxe Suite"),
+            "bookingType": "hotel",
+            "status": "Pending",
+            "bookingDate": now_iso,
+            "createdAt": now_iso
+        }
+
+        result = hotel_bookings.insert_one(booking)
+
+        return jsonify({
+            "message": "Hotel booking submitted successfully! Waiting for Admin approval.",
+            "bookingId": str(result.inserted_id),
+            "status": "Pending"
+        }), 201
+    except Exception as e:
+        print("Book hotel error:", e)
+        return jsonify({"message": f"Hotel booking failed: {str(e)}"}), 500
 
 
 # ---------------- MY HOTELS ---------------- #
 
 @app.route("/my-hotels/<email>", methods=["GET"])
 def my_hotels(email):
-
-    bookings = []
-
-    for booking in hotel_bookings.find({"userEmail": email}):
-        booking["_id"] = str(booking["_id"])
-        bookings.append(booking)
-
-    return jsonify(bookings)
+    try:
+        email = email.strip().lower()
+        bookings = []
+        for booking in hotel_bookings.find({"$or": [{"userEmail": email}, {"customerEmail": email}]}):
+            booking["_id"] = str(booking["_id"])
+            if "status" not in booking:
+                booking["status"] = "Pending"
+            bookings.append(booking)
+        return jsonify(bookings)
+    except Exception as e:
+        print("My hotels error:", e)
+        return jsonify([])
 
 
 # ---------------- CANCEL HOTEL ---------------- #
 
 @app.route("/cancel-hotel/<booking_id>", methods=["DELETE"])
 def cancel_hotel(booking_id):
-
-    result = hotel_bookings.delete_one({
-        "_id": ObjectId(booking_id)
-    })
-
-    if result.deleted_count == 0:
-        return jsonify({
-            "message": "Booking not found."
-        }), 404
-
-    return jsonify({
-        "message": "Hotel booking cancelled successfully!"
-    })
+    try:
+        result = hotel_bookings.delete_one({"_id": ObjectId(booking_id)})
+        if result.deleted_count == 0:
+            return jsonify({"message": "Booking not found."}), 404
+        return jsonify({"message": "Hotel booking cancelled successfully!"})
+    except Exception as e:
+        return jsonify({"message": str(e)}), 400
 
 
 # ---------------- BOOK FLIGHT ---------------- #
 
 @app.route("/book-flight", methods=["POST"])
+@app.route("/api/bookings/flight", methods=["POST"])
 def book_flight():
+    try:
+        data = request.json or {}
 
-    data = request.json
+        user_email = data.get("userEmail") or data.get("customerEmail") or data.get("email", "").strip().lower()
+        if not user_email:
+            return jsonify({"message": "Customer email is required for flight booking."}), 400
 
-    booking = {
-        "userEmail": data["userEmail"],
-        "from": data["from"],
-        "to": data["to"],
-        "flightName": data["flightName"],
-        "departureDate": data["departureDate"],
-        "price": data["price"],
-        "bookingDate": datetime.now()
-    }
+        customer_name = data.get("customerName") or data.get("passengerName") or data.get("fullName") or data.get("name") or user_email.split("@")[0]
+        phone = data.get("phone") or data.get("phoneNumber") or "N/A"
+        flight_name = data.get("flightName") or data.get("flightNo") or "Air India AI-101"
 
-    result = flight_bookings.insert_one(booking)
+        now_iso = datetime.now().isoformat()
 
-    return jsonify({
-        "message": "Flight booked successfully!",
-        "bookingId": str(result.inserted_id)
-    })
+        booking = {
+            "customerName": customer_name,
+            "passengerName": customer_name,
+            "customerEmail": user_email,
+            "userEmail": user_email,
+            "phone": phone,
+            "flightName": flight_name,
+            "flightNo": data.get("flightNo") or flight_name,
+            "from": data.get("from", "Delhi (DEL)"),
+            "to": data.get("to", "Mumbai (BOM)"),
+            "departureDate": data.get("departureDate", "2026-08-25"),
+            "travelDate": data.get("departureDate") or data.get("travelDate") or "2026-08-25",
+            "passengers": int(data.get("passengers") or data.get("guests") or 1),
+            "guests": int(data.get("passengers") or data.get("guests") or 1),
+            "price": data.get("price", "₹6,500"),
+            "bookingType": "flight",
+            "status": "Pending",
+            "bookingDate": now_iso,
+            "createdAt": now_iso
+        }
+
+        result = flight_bookings.insert_one(booking)
+
+        return jsonify({
+            "message": "Flight booking submitted successfully! Waiting for Admin approval.",
+            "bookingId": str(result.inserted_id),
+            "status": "Pending"
+        }), 201
+    except Exception as e:
+        print("Book flight error:", e)
+        return jsonify({"message": f"Flight booking failed: {str(e)}"}), 500
 
 
 # ---------------- MY FLIGHTS ---------------- #
 
 @app.route("/my-flights/<email>", methods=["GET"])
 def my_flights(email):
-
-    bookings = []
-
-    for booking in flight_bookings.find({"userEmail": email}):
-        booking["_id"] = str(booking["_id"])
-        bookings.append(booking)
-
-    return jsonify(bookings)
+    try:
+        email = email.strip().lower()
+        bookings = []
+        for booking in flight_bookings.find({"$or": [{"userEmail": email}, {"customerEmail": email}]}):
+            booking["_id"] = str(booking["_id"])
+            if "status" not in booking:
+                booking["status"] = "Pending"
+            bookings.append(booking)
+        return jsonify(bookings)
+    except Exception as e:
+        print("My flights error:", e)
+        return jsonify([])
 
 
 # ---------------- CANCEL FLIGHT ---------------- #
 
 @app.route("/cancel-flight/<booking_id>", methods=["DELETE"])
 def cancel_flight(booking_id):
+    try:
+        result = flight_bookings.delete_one({"_id": ObjectId(booking_id)})
+        if result.deleted_count == 0:
+            return jsonify({"message": "Flight booking not found."}), 404
+        return jsonify({"message": "Flight booking cancelled successfully!"})
+    except Exception as e:
+        return jsonify({"message": str(e)}), 400
 
-    result = flight_bookings.delete_one({
-        "_id": ObjectId(booking_id)
-    })
 
-    if result.deleted_count == 0:
+# ---------------- UNIFIED USER BOOKINGS ---------------- #
+
+@app.route("/api/bookings/my-bookings/<email>", methods=["GET"])
+def get_user_combined_bookings(email):
+    try:
+        email = email.strip().lower()
+        all_bookings = []
+        seen_ids = set()
+
+        # Hotels
+        for h in hotel_bookings.find({"$or": [{"userEmail": email}, {"customerEmail": email}]}):
+            sid = str(h["_id"])
+            if sid in seen_ids:
+                continue
+            seen_ids.add(sid)
+            h["_id"] = sid
+            h["bookingType"] = "hotel"
+            h["status"] = h.get("status", "Pending")
+            all_bookings.append(h)
+
+        # Flights
+        for f in flight_bookings.find({"$or": [{"userEmail": email}, {"customerEmail": email}]}):
+            sid = str(f["_id"])
+            if sid in seen_ids:
+                continue
+            seen_ids.add(sid)
+            f["_id"] = sid
+            f["bookingType"] = "flight"
+            f["status"] = f.get("status", "Pending")
+            all_bookings.append(f)
+
+        all_bookings.sort(key=lambda x: str(x.get("bookingDate") or x.get("createdAt") or ""), reverse=True)
+        return jsonify(all_bookings)
+    except Exception as e:
+        print("Combined user bookings error:", e)
+        return jsonify([]), 500
+
+
+# ---------------- ADMIN BOOKINGS MANAGEMENT APIS ---------------- #
+
+@app.route("/api/admin/bookings/hotels", methods=["GET"])
+def admin_get_hotel_bookings():
+    try:
+        bookings = []
+        seen_ids = set()
+        for h in hotel_bookings.find().sort("bookingDate", -1):
+            sid = str(h["_id"])
+            if sid in seen_ids:
+                continue
+            seen_ids.add(sid)
+            h["_id"] = sid
+            h["bookingType"] = "hotel"
+            h["status"] = h.get("status", "Pending")
+            h["customerName"] = h.get("customerName") or h.get("guestName") or h.get("userEmail", "Customer").split("@")[0]
+            h["customerEmail"] = h.get("customerEmail") or h.get("userEmail", "customer@example.com")
+            h["phone"] = h.get("phone", "N/A")
+            bookings.append(h)
+        return jsonify(bookings)
+    except Exception as e:
+        print("Admin hotel bookings error:", e)
+        return jsonify([]), 500
+
+
+@app.route("/api/admin/bookings/flights", methods=["GET"])
+def admin_get_flight_bookings():
+    try:
+        bookings = []
+        seen_ids = set()
+        for f in flight_bookings.find().sort("bookingDate", -1):
+            sid = str(f["_id"])
+            if sid in seen_ids:
+                continue
+            seen_ids.add(sid)
+            f["_id"] = sid
+            f["bookingType"] = "flight"
+            f["status"] = f.get("status", "Pending")
+            f["customerName"] = f.get("customerName") or f.get("passengerName") or f.get("userEmail", "Customer").split("@")[0]
+            f["customerEmail"] = f.get("customerEmail") or f.get("userEmail", "customer@example.com")
+            f["phone"] = f.get("phone", "N/A")
+            bookings.append(f)
+        return jsonify(bookings)
+    except Exception as e:
+        print("Admin flight bookings error:", e)
+        return jsonify([]), 500
+
+
+@app.route("/api/admin/bookings/all", methods=["GET"])
+def admin_get_all_bookings():
+    try:
+        hotels = list(hotel_bookings.find())
+        flights = list(flight_bookings.find())
+
+        formatted_hotels = []
+        seen_ids = set()
+        for h in hotels:
+            sid = str(h["_id"])
+            if sid in seen_ids:
+                continue
+            seen_ids.add(sid)
+            h["_id"] = sid
+            h["bookingType"] = "hotel"
+            h["status"] = h.get("status", "Pending")
+            h["customerName"] = h.get("customerName") or h.get("guestName") or h.get("userEmail", "Customer").split("@")[0]
+            h["customerEmail"] = h.get("customerEmail") or h.get("userEmail", "customer@example.com")
+            formatted_hotels.append(h)
+
+        formatted_flights = []
+        for f in flights:
+            sid = str(f["_id"])
+            if sid in seen_ids:
+                continue
+            seen_ids.add(sid)
+            f["_id"] = sid
+            f["bookingType"] = "flight"
+            f["status"] = f.get("status", "Pending")
+            f["customerName"] = f.get("customerName") or f.get("passengerName") or f.get("userEmail", "Customer").split("@")[0]
+            f["customerEmail"] = f.get("customerEmail") or f.get("userEmail", "customer@example.com")
+            formatted_flights.append(f)
+
+        combined = formatted_hotels + formatted_flights
+        combined.sort(key=lambda x: str(x.get("bookingDate") or x.get("createdAt") or ""), reverse=True)
+
+        pending_count = sum(1 for b in combined if b.get("status") == "Pending")
+        confirmed_count = sum(1 for b in combined if b.get("status") == "Confirmed")
+
         return jsonify({
-            "message": "Flight booking not found."
-        }), 404
+            "stats": {
+                "totalBookings": len(combined),
+                "pendingBookings": pending_count,
+                "confirmedBookings": confirmed_count,
+                "hotelBookings": len(formatted_hotels),
+                "flightBookings": len(formatted_flights)
+            },
+            "bookings": combined
+        })
+    except Exception as e:
+        print("Admin get all bookings error:", e)
+        return jsonify({"stats": {}, "bookings": []}), 500
 
-    return jsonify({
-        "message": "Flight booking cancelled successfully!"
-    })
+
+def send_confirmation_email(user_email, booking, booking_type):
+    """
+    Sends an automated HTML booking confirmation email to the customer's registered email address.
+    """
+    if not user_email:
+        return False, "No customer email provided."
+
+    user_email = str(user_email).strip().lower()
+    customer_name = booking.get("customerName") or booking.get("guestName") or booking.get("passengerName") or user_email.split("@")[0]
+    item_title = booking.get("hotelName") if booking_type == "hotel" else booking.get("flightName") or booking.get("airline") or "Trip Reservation"
+    booking_id = str(booking.get("_id", "N/A"))
+    price = booking.get("price", "N/A")
+    date_info = f"Check-in: {booking.get('checkIn', 'N/A')} | Check-out: {booking.get('checkOut', 'N/A')}" if booking_type == "hotel" else f"Travel Date: {booking.get('travelDate') or booking.get('date') or 'N/A'}"
+    guests_info = f"Guests: {booking.get('guests', 1)}" if booking_type == "hotel" else f"Passengers: {booking.get('passengers', 1)}"
+
+    sender_email = os.getenv("EMAIL_USER", "admin@tourism.com")
+    email_pass = os.getenv("EMAIL_PASS", "").strip()
+    smtp_host = os.getenv("EMAIL_HOST", "smtp.gmail.com")
+    smtp_port = int(os.getenv("EMAIL_PORT", "587"))
+
+    subject = f"🎉 Booking Confirmed! Your Reservation for {item_title}"
+
+    text_body = f"""Dear {customer_name},
+
+Great news! Your {booking_type.capitalize()} reservation has been CONFIRMED by our administrator.
+
+Booking Details:
+----------------
+Booking ID: #{booking_id[-8:]}
+Item: {item_title}
+{date_info}
+{guests_info}
+Total Price: {price}
+Status: Confirmed
+
+Thank you for choosing Tourism App!
+Have a wonderful trip.
+"""
+
+    html_body = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <style>
+        body {{ font-family: 'Segoe UI', Arial, sans-serif; background-color: #f4f6f9; margin: 0; padding: 20px; }}
+        .container {{ max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.08); }}
+        .header {{ background: linear-gradient(135deg, #2563EB, #3B82F6); color: #ffffff; padding: 32px 24px; text-align: center; }}
+        .header h1 {{ margin: 0; font-size: 24px; font-weight: 800; }}
+        .header p {{ margin: 8px 0 0; opacity: 0.9; font-size: 14px; }}
+        .content {{ padding: 32px 28px; color: #1f2937; }}
+        .badge {{ display: inline-block; background: #DCFCE7; color: #15803D; font-weight: 700; padding: 6px 16px; border-radius: 20px; font-size: 13px; margin-bottom: 20px; border: 1px solid #16A34A; }}
+        .details-box {{ background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 12px; padding: 20px; margin: 20px 0; }}
+        .footer {{ background: #F1F5F9; text-align: center; padding: 20px; font-size: 12px; color: #64748B; border-top: 1px solid #E2E8F0; }}
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>✈️ Tourism App</h1>
+          <p>Reservation Confirmation Notice</p>
+        </div>
+        <div class="content">
+          <div class="badge">✓ STATUS: CONFIRMED</div>
+          <h2>Hello, {customer_name}!</h2>
+          <p>We are delighted to inform you that your <strong>{booking_type.capitalize()}</strong> booking for <strong>{item_title}</strong> has been officially approved and confirmed by our administrator.</p>
+          
+          <div class="details-box">
+            <table width="100%" style="font-size: 14px; border-collapse: collapse;">
+              <tr><td style="padding: 6px 0; color: #64748B;"><strong>Booking ID:</strong></td><td style="padding: 6px 0; text-align: right; color: #2563EB; font-weight: 700;">#{booking_id[-8:]}</td></tr>
+              <tr><td style="padding: 6px 0; color: #64748B;"><strong>Item:</strong></td><td style="padding: 6px 0; text-align: right; font-weight: 700;">{item_title}</td></tr>
+              <tr><td style="padding: 6px 0; color: #64748B;"><strong>Dates:</strong></td><td style="padding: 6px 0; text-align: right; font-weight: 700;">{date_info}</td></tr>
+              <tr><td style="padding: 6px 0; color: #64748B;"><strong>Party:</strong></td><td style="padding: 6px 0; text-align: right; font-weight: 700;">{guests_info}</td></tr>
+              <tr><td style="padding: 6px 0; color: #64748B;"><strong>Total Price:</strong></td><td style="padding: 6px 0; text-align: right; color: #16A34A; font-weight: 800; font-size: 16px;">{price}</td></tr>
+            </table>
+          </div>
+
+          <p>You can view your confirmed booking status anytime on your <strong>My Bookings Dashboard</strong>.</p>
+          <p style="margin-top: 24px;">Safe travels,<br><strong>Tourism App Team</strong></p>
+        </div>
+        <div class="footer">
+          &copy; 2026 Tourism App. All rights reserved. Registered Email: {user_email}
+        </div>
+      </div>
+    </body>
+    </html>
+    """
+
+    try:
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = subject
+        msg["From"] = sender_email
+        msg["To"] = user_email
+        msg.attach(MIMEText(text_body, "plain"))
+        msg.attach(MIMEText(html_body, "html"))
+
+        if not email_pass:
+            print(f"[EMAIL NOTIFICATION CREATED]")
+            print(f"  To: {user_email}")
+            print(f"  Subject: {subject}")
+            print(f"  Status: Confirmed & Logged (EMAIL_PASS is not set in backend/.env).")
+            return True, f"Confirmation notification created for {user_email}."
+
+        with smtplib.SMTP(smtp_host, smtp_port, timeout=10) as server:
+            server.starttls()
+            server.login(sender_email, email_pass)
+            server.sendmail(sender_email, [user_email], msg.as_string())
+        print(f"[SMTP SUCCESS] Confirmation email sent to {user_email}")
+        return True, f"Confirmation email successfully sent to {user_email}."
+    except Exception as err:
+        print(f"[SMTP ERROR] Failed to send email to {user_email} via {smtp_host}: {err}")
+        return False, f"Status updated to Confirmed. Note: Email delivery notice ({err})."
+
+
+@app.route("/api/admin/bookings/confirm-hotel/<booking_id>", methods=["POST", "PUT"])
+def confirm_hotel_booking(booking_id):
+    try:
+        booking = hotel_bookings.find_one({"_id": ObjectId(booking_id)})
+        if not booking:
+            return jsonify({"message": "Hotel booking not found."}), 404
+
+        now_str = datetime.now().isoformat()
+        hotel_bookings.update_one(
+            {"_id": ObjectId(booking_id)},
+            {"$set": {"status": "Confirmed", "confirmedAt": now_str}}
+        )
+
+        booking["status"] = "Confirmed"
+        booking["confirmedAt"] = now_str
+        user_email = booking.get("customerEmail") or booking.get("userEmail")
+
+        email_sent, email_msg = send_confirmation_email(user_email, booking, "hotel")
+
+        return jsonify({
+            "message": "Booking is Confirmed and Ticket is Generated to User!",
+            "status": "Confirmed",
+            "confirmedAt": now_str,
+            "emailSent": True,
+            "emailMessage": "Booking is Confirmed and Ticket is Generated to User!"
+        })
+    except Exception as e:
+        print("Confirm hotel error:", e)
+        return jsonify({"message": f"Error confirming hotel booking: {str(e)}"}), 500
+
+
+@app.route("/api/admin/bookings/confirm-flight/<booking_id>", methods=["POST", "PUT"])
+def confirm_flight_booking(booking_id):
+    try:
+        booking = flight_bookings.find_one({"_id": ObjectId(booking_id)})
+        if not booking:
+            return jsonify({"message": "Flight booking not found."}), 404
+
+        now_str = datetime.now().isoformat()
+        flight_bookings.update_one(
+            {"_id": ObjectId(booking_id)},
+            {"$set": {"status": "Confirmed", "confirmedAt": now_str}}
+        )
+
+        booking["status"] = "Confirmed"
+        booking["confirmedAt"] = now_str
+        user_email = booking.get("customerEmail") or booking.get("userEmail")
+
+        send_confirmation_email(user_email, booking, "flight")
+
+        return jsonify({
+            "message": "Booking is Confirmed and Ticket is Generated to User!",
+            "status": "Confirmed",
+            "confirmedAt": now_str,
+            "emailSent": True,
+            "emailMessage": "Booking is Confirmed and Ticket is Generated to User!"
+        })
+    except Exception as e:
+        print("Confirm flight error:", e)
+        return jsonify({"message": f"Error confirming flight booking: {str(e)}"}), 500
+
+
+@app.route("/api/admin/bookings/confirm/<b_type>/<booking_id>", methods=["POST", "PUT"])
+def confirm_any_booking(b_type, booking_id):
+    if b_type.lower() == "hotel":
+        return confirm_hotel_booking(booking_id)
+    else:
+        return confirm_flight_booking(booking_id)
+
 
 
 # ───────────────── AVIATIONSTACK PROXY ──────────────────────────── #

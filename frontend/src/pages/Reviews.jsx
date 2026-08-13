@@ -24,31 +24,73 @@ export default function Reviews() {
 
   const selectedHotelInfo = useMemo(() => getHotelByName(selectedHotelName), [selectedHotelName]);
 
+  const computeTextSentiment = (reviewText, ratingVal) => {
+    const text = (reviewText || "").toLowerCase().trim();
+    if (!text) {
+      return Number(ratingVal) >= 4 ? "Positive" : Number(ratingVal) === 3 ? "Neutral" : "Negative";
+    }
+
+    const negWords = [
+      "terrible", "bad", "poor", "worst", "horrible", "dirty", "slow", "disappointed",
+      "rude", "hate", "uncomfortable", "smelly", "broken", "waste", "expensive",
+      "cold", "delay", "bug", "stain", "disturbing", "fail", "failure", "awful"
+    ];
+    const posWords = [
+      "great", "amazing", "good", "love", "excellent", "clean", "beautiful", "friendly",
+      "delight", "best", "perfect", "royal", "superb", "stunning", "awesome", "pleasant",
+      "cozy", "luxurious", "tasty", "wonderful", "enjoyed", "top notch", "highly", "delicious",
+      "comfort", "comfortable", "nice", "fantastic", "happy", "recommend"
+    ];
+    const neuWords = [
+      "okay", "ok", "average", "fair", "decent", "fine", "normal", "standard",
+      "moderate", "satisfactory", "acceptable", "so-so", "mediocre", "mixed"
+    ];
+
+    let negCount = 0;
+    let posCount = 0;
+    let neuCount = 0;
+
+    negWords.forEach(w => { if (text.includes(w)) negCount++; });
+    posWords.forEach(w => { if (text.includes(w)) posCount++; });
+    neuWords.forEach(w => { if (text.includes(w)) neuCount++; });
+
+    if (negCount > posCount && negCount > neuCount) return "Negative";
+    if (posCount > negCount && posCount > neuCount) return "Positive";
+    if (neuCount > 0) return "Neutral";
+    if (Number(ratingVal) === 3) return "Neutral";
+    return Number(ratingVal) >= 4 ? "Positive" : "Negative";
+  };
+
   useEffect(() => { loadReviews(); }, []);
 
   const loadReviews = async () => {
+    const local = JSON.parse(localStorage.getItem("local_reviews") || "[]");
     try {
       const res = await axios.get(`http://127.0.0.1:5000/reviews/${email}`);
-      if (Array.isArray(res.data) && res.data.length > 0) {
-        setAllReviews(res.data);
+      const apiReviews = Array.isArray(res.data) ? res.data : [];
+      const combined = [...local, ...apiReviews];
+      if (combined.length > 0) {
+        setAllReviews(combined);
       } else {
-        setFallbackReviews();
+        setFallbackReviews(local);
       }
     } catch (err) {
       console.log("Error loading reviews from backend, using fallback:", err);
-      setFallbackReviews();
+      setFallbackReviews(local);
     }
   };
 
-  const setFallbackReviews = () => {
-    setAllReviews([
+  const setFallbackReviews = (local = []) => {
+    const defaultFallbacks = [
       { hostelName: "The Leela Palace", user: "Anand R.", text: "Royal luxury experience! Exceptional service, stunning architecture, and pristine pool area.", type: "Text, Audio", rating: "5", createdAt: new Date().toISOString() },
       { hostelName: "The Leela Palace", user: "Priya S.", text: "Superb dining and friendly concierge staff. Room cleanliness was 10/10.", type: "Text", rating: "5", createdAt: new Date(Date.now() - 86400000 * 1).toISOString() },
       { hostelName: "Taj Mahal Palace", user: "Vikram M.", text: "Iconic sea view room! Attentive staff and delicious breakfast spread.", type: "Text, Video", rating: "5", createdAt: new Date(Date.now() - 86400000 * 2).toISOString() },
       { hostelName: "Oberoi Udaivilas", user: "Neha K.", text: "Breathtaking lake views and tranquil spa services. Highly recommended!", type: "Text", rating: "5", createdAt: new Date(Date.now() - 86400000 * 3).toISOString() },
       { hostelName: "Zostel Hotel Jaipur", user: "Rahul T.", text: "Awesome vibe! Met great travellers, super clean rooms.", type: "Text, Audio", rating: "5", createdAt: new Date(Date.now() - 86400000 * 4).toISOString() },
       { hostelName: "GoStops Hotel Rishikesh", user: "Meera D.", text: "Nice Ganga view from rooftop, but WiFi was slightly slow during evening peak.", type: "Text", rating: "4", createdAt: new Date(Date.now() - 86400000 * 5).toISOString() },
-    ]);
+      { hostelName: "GoStops Hotel Rishikesh", user: "Kiran P.", text: "Average stay overall. Check-in was fine, but room amenities were standard.", type: "Text", rating: "3", createdAt: new Date(Date.now() - 86400000 * 6).toISOString() },
+    ];
+    setAllReviews([...local, ...defaultFallbacks]);
   };
 
   const handleHotelSelect = (hotelName) => {
@@ -302,10 +344,17 @@ export default function Reviews() {
                         </tr>
                       ) : (
                         filteredReviews.map((r, index) => {
-                          const audioSent = r.audioSentiment || (r.rating >= 4 ? "Positive" : r.rating === "3" ? "Neutral" : "Negative");
-                          const facialExpr = r.facialExpression || (r.rating >= 4 ? "Positive" : r.rating === "3" ? "Neutral" : "Negative");
+                          const textContent = r.text || r.audioTranscript || "";
+                          const calculatedSentiment = r.sentiment || r.audioSentiment || computeTextSentiment(textContent, r.rating);
+
                           const hasAudio = (r.type || "").includes("Audio") || r.audioTranscript || r.audioName;
                           const hasVideo = (r.type || "").includes("Video") || r.videoName || r.facialExpression;
+
+                          const sentBadgeStyle = calculatedSentiment === "Positive"
+                            ? { bg: "#DCFCE7", text: "#15803D", border: "#16A34A" }
+                            : calculatedSentiment === "Negative"
+                            ? { bg: "#FEE2E2", text: "#B91C1C", border: "#DC2626" }
+                            : { bg: "#FEF3C7", text: "#B45309", border: "#F59E0B" };
 
                           return (
                             <tr
@@ -341,29 +390,25 @@ export default function Reviews() {
                                   {hasAudio && (
                                     <span style={{
                                       fontSize: 10, fontWeight: 800, padding: "2px 8px", borderRadius: 12, width: "fit-content",
-                                      background: audioSent === "Positive" ? "#DCFCE7" : audioSent === "Negative" ? "#FEE2E2" : "#FEF3C7",
-                                      color: audioSent === "Positive" ? "#15803D" : audioSent === "Negative" ? "#B91C1C" : "#B45309",
-                                      border: "1px solid currentColor"
+                                      background: sentBadgeStyle.bg, color: sentBadgeStyle.text, border: `1px solid ${sentBadgeStyle.border}`
                                     }}>
-                                      🎤 Audio Sentiment: {audioSent}
+                                      🎤 Audio Sentiment: {calculatedSentiment}
                                     </span>
                                   )}
                                   {hasVideo && (
                                     <span style={{
                                       fontSize: 10, fontWeight: 800, padding: "2px 8px", borderRadius: 12, width: "fit-content",
-                                      background: facialExpr === "Positive" ? "#F3E8FF" : facialExpr === "Negative" ? "#FEE2E2" : "#FEF3C7",
-                                      color: facialExpr === "Positive" ? "#7E22CE" : facialExpr === "Negative" ? "#B91C1C" : "#B45309",
-                                      border: "1px solid currentColor"
+                                      background: sentBadgeStyle.bg, color: sentBadgeStyle.text, border: `1px solid ${sentBadgeStyle.border}`
                                     }}>
-                                      🎥 Facial Expression: {facialExpr}
+                                      🎥 Video Sentiment: {calculatedSentiment}
                                     </span>
                                   )}
                                   {!hasAudio && !hasVideo && (
                                     <span style={{
                                       fontSize: 10, fontWeight: 800, padding: "2px 8px", borderRadius: 12, width: "fit-content",
-                                      background: "#DCFCE7", color: "#15803D", border: "1px solid #15803D"
+                                      background: sentBadgeStyle.bg, color: sentBadgeStyle.text, border: `1px solid ${sentBadgeStyle.border}`
                                     }}>
-                                      📝 Text Sentiment: {audioSent}
+                                      📝 Text Sentiment: {calculatedSentiment}
                                     </span>
                                   )}
                                 </div>

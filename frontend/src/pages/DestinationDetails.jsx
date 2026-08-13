@@ -418,16 +418,24 @@ export default function DestinationDetails() {
               </p>
             </div>
             <div style={{ display: "flex", gap: 12 }}>
-              <button onClick={() => goToTab("hotels")} style={{
-                padding: "12px 24px", borderRadius: 12,
-                border: "1px solid #E5E7EB", background: "#FFFFFF",
-                color: "#374151", fontWeight: 600, cursor: "pointer", fontSize: 14, fontFamily: "inherit",
-                transition: "all .2s",
-              }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = "#2563EB"; e.currentTarget.style.color = "#2563EB"; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = "#E5E7EB"; e.currentTarget.style.color = "#374151"; }}
+              <button
+                onClick={() => {
+                  const locName = place.name || "";
+                  const parts = locName.split(",").map(s => s.trim());
+                  const country = parts.length > 1 ? parts[parts.length - 1] : locName;
+                  const city = parts[0];
+                  navigate(`/search?tab=hotels&location=${encodeURIComponent(city)}&country=${encodeURIComponent(country)}`);
+                }}
+                style={{
+                  padding: "12px 24px", borderRadius: 12,
+                  border: "1px solid #2563EB", background: "rgba(37,99,235,0.06)",
+                  color: "#2563EB", fontWeight: 700, cursor: "pointer", fontSize: 14, fontFamily: "inherit",
+                  transition: "all .2s",
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = "rgba(37,99,235,0.12)"; }}
+                onMouseLeave={e => { e.currentTarget.style.background = "rgba(37,99,235,0.06)"; }}
               >
-                Find Hotels
+                🏨 Book Hotels in {place.name.split(",")[0]}
               </button>
               <button onClick={() => goToTab("flights")} style={{
                 padding: "12px 24px", borderRadius: 12, border: "none",
@@ -435,7 +443,7 @@ export default function DestinationDetails() {
                 color: "white", fontWeight: 700, cursor: "pointer", fontSize: 14, fontFamily: "inherit",
                 boxShadow: "0 4px 14px rgba(37,99,235,0.25)",
               }}>
-                Book Flights
+                ✈️ Book Flights
               </button>
             </div>
           </div>

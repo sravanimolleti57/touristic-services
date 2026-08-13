@@ -11,11 +11,11 @@ import {
   FaCreditCard, FaLock, FaSuitcase, FaChair,
   FaInfoCircle, FaTicketAlt, FaSatelliteDish, FaSlidersH,
   FaMapMarkedAlt, FaShieldAlt, FaSmile, FaSuitcaseRolling, FaChartPie,
-  FaExternalLinkAlt
+  FaExternalLinkAlt, FaBus, FaTrain
 } from "react-icons/fa";
 
 import { PLACES } from "../data/destinations";
-import { FLIGHTS, AIRLINE_META, getOfficialBookingUrl, fetchLiveFlights, searchFlights, getFlightStatus } from "../data/flights";
+import { FLIGHTS, BUSES, TRAINS, AIRLINE_META, getOfficialBookingUrl, fetchLiveFlights, searchFlights, getFlightStatus } from "../data/flights";
 import CalendarWidget from "../components/CalendarWidget";
 import SharedNavbar from "../components/SharedNavbar";
 import FeedbackAnalysisModal from "../components/FeedbackAnalysisModal";
@@ -62,18 +62,25 @@ const HOTEL_AVAILABILITY = generateAvailabilityData("hotels");
 const FLIGHT_AVAILABILITY = generateAvailabilityData("flights");
 
 const HOTELS = [
-  { id: 7, type: "hotel", name: "The Leela Palace", location: "New Delhi, India", rating: 4.9, reviews: 1234, price: "₹28,000/night", img: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400&q=80", amenities: ["wifi", "pool", "gym", "parking", "restaurant", "ac"], sentiment: "98% Positive" },
-  { id: 8, type: "hotel", name: "Taj Mahal Palace", location: "Mumbai, India", rating: 4.8, reviews: 3456, price: "₹35,000/night", img: "https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?w=400&q=80", amenities: ["wifi", "pool", "gym", "restaurant", "ac"], sentiment: "96% Positive" },
-  { id: 9, type: "hotel", name: "ITC Grand Chola", location: "Chennai, India", rating: 4.7, reviews: 987, price: "₹22,000/night", img: "https://images.unsplash.com/photo-1578683010236-d716f9a3f461?w=400&q=80", amenities: ["wifi", "pool", "gym", "parking", "ac"], sentiment: "94% Positive" },
-  { id: 10, type: "hotel", name: "Oberoi Udaivilas", location: "Udaipur, India", rating: 4.9, reviews: 2105, price: "₹55,000/night", img: "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=400&q=80", amenities: ["wifi", "pool", "restaurant", "ac"], sentiment: "99% Positive" },
-  { id: 11, type: "hotel", name: "Six Senses Vana", location: "Dehradun, India", rating: 4.8, reviews: 765, price: "₹42,000/night", img: "https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=400&q=80", amenities: ["wifi", "pool", "gym", "restaurant"], sentiment: "97% Positive" },
-  { id: 12, type: "hotel", name: "Amanbagh Resort", location: "Alwar, Rajasthan", rating: 4.7, reviews: 543, price: "₹38,000/night", img: "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=400&q=80", amenities: ["wifi", "pool", "parking", "restaurant", "ac"], sentiment: "95% Positive" },
-  { id: 13, type: "hotel", name: "Burj Al Arab Jumeirah", location: "Dubai, UAE", rating: 4.9, reviews: 4120, price: "₹1,20,000/night", img: "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=400&q=80", amenities: ["wifi", "pool", "gym", "restaurant", "ac"], sentiment: "99% Positive" },
-  { id: 14, type: "hotel", name: "Marina Bay Sands Hotel", location: "Singapore", rating: 4.8, reviews: 3890, price: "₹68,000/night", img: "https://images.unsplash.com/photo-1525625293386-3f8f99389edd?w=400&q=80", amenities: ["wifi", "pool", "gym", "restaurant", "ac"], sentiment: "98% Positive" },
-  { id: 15, type: "hotel", name: "The Plaza Hotel", location: "New York City, USA", rating: 4.9, reviews: 2950, price: "₹95,000/night", img: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400&q=80", amenities: ["wifi", "gym", "restaurant", "ac"], sentiment: "97% Positive" },
-  { id: 16, type: "hotel", name: "Kumarakom Lake Resort", location: "Kerala, India", rating: 4.8, reviews: 1840, price: "₹32,000/night", img: "https://images.unsplash.com/photo-1602216056096-3b40cc0c9944?w=400&q=80", amenities: ["wifi", "pool", "restaurant", "ac"], sentiment: "96% Positive" },
-  { id: 17, type: "hotel", name: "Grand Hotel Tremezzo", location: "Lake Como, Italy", rating: 4.9, reviews: 1420, price: "₹85,000/night", img: "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=400&q=80", amenities: ["wifi", "pool", "gym", "restaurant", "ac"], sentiment: "99% Positive" },
-  { id: 18, type: "hotel", name: "The Oberoi Amarvilas", location: "Agra, India", rating: 4.9, reviews: 2510, price: "₹48,000/night", img: "https://images.unsplash.com/photo-1578683010236-d716f9a3f461?w=400&q=80", amenities: ["wifi", "pool", "gym", "restaurant", "ac"], sentiment: "98% Positive" },
+  { id: 7, type: "hotel", name: "The Leela Palace", location: "New Delhi, India", country: "India", rating: 4.9, reviews: 1234, price: "₹28,000/night", img: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400&q=80", amenities: ["wifi", "pool", "gym", "parking", "restaurant", "ac"], sentiment: "98% Positive" },
+  { id: 8, type: "hotel", name: "Taj Mahal Palace", location: "Mumbai, India", country: "India", rating: 4.8, reviews: 3456, price: "₹35,000/night", img: "https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?w=400&q=80", amenities: ["wifi", "pool", "gym", "restaurant", "ac"], sentiment: "96% Positive" },
+  { id: 9, type: "hotel", name: "ITC Grand Chola", location: "Chennai, India", country: "India", rating: 4.7, reviews: 987, price: "₹22,000/night", img: "https://images.unsplash.com/photo-1578683010236-d716f9a3f461?w=400&q=80", amenities: ["wifi", "pool", "gym", "parking", "ac"], sentiment: "94% Positive" },
+  { id: 10, type: "hotel", name: "Oberoi Udaivilas", location: "Udaipur, Rajasthan, India", country: "India", rating: 4.9, reviews: 2105, price: "₹55,000/night", img: "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=400&q=80", amenities: ["wifi", "pool", "restaurant", "ac"], sentiment: "99% Positive" },
+  { id: 11, type: "hotel", name: "Six Senses Vana", location: "Dehradun, India", country: "India", rating: 4.8, reviews: 765, price: "₹42,000/night", img: "https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=400&q=80", amenities: ["wifi", "pool", "gym", "restaurant"], sentiment: "97% Positive" },
+  { id: 12, type: "hotel", name: "Amanbagh Resort", location: "Alwar, Rajasthan, India", country: "India", rating: 4.7, reviews: 543, price: "₹38,000/night", img: "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=400&q=80", amenities: ["wifi", "pool", "parking", "restaurant", "ac"], sentiment: "95% Positive" },
+  { id: 13, type: "hotel", name: "Burj Al Arab Jumeirah", location: "Dubai, UAE", country: "UAE", rating: 4.9, reviews: 4120, price: "₹1,20,000/night", img: "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=400&q=80", amenities: ["wifi", "pool", "gym", "restaurant", "ac"], sentiment: "99% Positive" },
+  { id: 14, type: "hotel", name: "Marina Bay Sands Hotel", location: "Singapore", country: "Singapore", rating: 4.8, reviews: 3890, price: "₹68,000/night", img: "https://images.unsplash.com/photo-1525625293386-3f8f99389edd?w=400&q=80", amenities: ["wifi", "pool", "gym", "restaurant", "ac"], sentiment: "98% Positive" },
+  { id: 15, type: "hotel", name: "The Plaza Hotel", location: "New York City, USA", country: "USA", rating: 4.9, reviews: 2950, price: "₹95,000/night", img: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400&q=80", amenities: ["wifi", "gym", "restaurant", "ac"], sentiment: "97% Positive" },
+  { id: 16, type: "hotel", name: "Kumarakom Lake Resort", location: "Kerala, India", country: "India", rating: 4.8, reviews: 1840, price: "₹32,000/night", img: "https://images.unsplash.com/photo-1602216056096-3b40cc0c9944?w=400&q=80", amenities: ["wifi", "pool", "restaurant", "ac"], sentiment: "96% Positive" },
+  { id: 17, type: "hotel", name: "Grand Hotel Tremezzo", location: "Lake Como, Italy", country: "Italy", rating: 4.9, reviews: 1420, price: "₹85,000/night", img: "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=400&q=80", amenities: ["wifi", "pool", "gym", "restaurant", "ac"], sentiment: "99% Positive" },
+  { id: 18, type: "hotel", name: "The Oberoi Amarvilas", location: "Agra, India", country: "India", rating: 4.9, reviews: 2510, price: "₹48,000/night", img: "https://images.unsplash.com/photo-1578683010236-d716f9a3f461?w=400&q=80", amenities: ["wifi", "pool", "gym", "restaurant", "ac"], sentiment: "98% Positive" },
+  { id: 19, type: "hotel", name: "Four Seasons Resort Bali at Sayan", location: "Ubud, Bali, Indonesia", country: "Indonesia", rating: 4.9, reviews: 1890, price: "₹62,000/night", img: "https://images.unsplash.com/photo-1537996194471-e657df975ab4?w=400&q=80", amenities: ["wifi", "pool", "gym", "restaurant", "ac"], sentiment: "99% Positive" },
+  { id: 20, type: "hotel", name: "The St. Regis Bali Resort", location: "Nusa Dua, Bali, Indonesia", country: "Indonesia", rating: 4.8, reviews: 1430, price: "₹58,000/night", img: "https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=400&q=80", amenities: ["wifi", "pool", "gym", "restaurant", "ac"], sentiment: "97% Positive" },
+  { id: 21, type: "hotel", name: "Hotel Ritz Paris", location: "Paris, France", country: "France", rating: 4.9, reviews: 2100, price: "₹1,15,000/night", img: "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=400&q=80", amenities: ["wifi", "pool", "gym", "restaurant", "ac"], sentiment: "99% Positive" },
+  { id: 22, type: "hotel", name: "Four Seasons Hotel George V", location: "Paris, France", country: "France", rating: 4.9, reviews: 1750, price: "₹1,30,000/night", img: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400&q=80", amenities: ["wifi", "pool", "gym", "restaurant", "ac"], sentiment: "98% Positive" },
+  { id: 23, type: "hotel", name: "Park Hyatt Tokyo", location: "Tokyo, Japan", country: "Japan", rating: 4.9, reviews: 2340, price: "₹72,000/night", img: "https://images.unsplash.com/photo-1503899036084-c55cdd92da26?w=400&q=80", amenities: ["wifi", "pool", "gym", "restaurant", "ac"], sentiment: "98% Positive" },
+  { id: 24, type: "hotel", name: "Badrutt's Palace Hotel", location: "St. Moritz, Switzerland", country: "Switzerland", rating: 4.9, reviews: 1450, price: "₹92,000/night", img: "https://images.unsplash.com/photo-1530122037265-a5f1f91d3b99?w=400&q=80", amenities: ["wifi", "pool", "gym", "restaurant", "ac"], sentiment: "99% Positive" },
+  { id: 25, type: "hotel", name: "Hotel Eden Rome", location: "Rome, Italy", country: "Italy", rating: 4.8, reviews: 1120, price: "₹65,000/night", img: "https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?w=400&q=80", amenities: ["wifi", "restaurant", "ac"], sentiment: "97% Positive" },
 ];
 
 const AMENITY_ICONS = { wifi: <FaWifi />, pool: <FaSwimmingPool />, gym: <FaDumbbell />, parking: <FaCar />, restaurant: <FaUtensils />, ac: <FaSnowflake /> };
@@ -145,6 +152,9 @@ function HotelCard({ item, wishlist, toggleWishlist, onBook, onFeedbackAnalysis 
         <button onClick={() => toggleWishlist(item.id)} style={S.heartBtn}>
           {wishlist.includes(item.id) ? <FaHeart color="#ef4444" /> : <FaRegHeart color="white" />}
         </button>
+        <span style={{ ...S.catBadge, background: "rgba(37,99,235,0.9)", color: "white" }}>
+          📍 {item.country || item.location.split(",").pop().trim()}
+        </span>
       </div>
       <div style={S.cardBody}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
@@ -192,8 +202,12 @@ function HotelCard({ item, wishlist, toggleWishlist, onBook, onFeedbackAnalysis 
 // ── Hotel Booking Modal ────────────────────────────────────────────────────────────
 
 function BookingModal({ hotel, onClose }) {
+  const loggedUser = JSON.parse(localStorage.getItem("user") || "{}");
+
   const [formData, setFormData] = useState({
-    fullName: "", email: "", phone: "",
+    fullName: loggedUser.name || "",
+    email: loggedUser.email || "",
+    phone: "",
     checkIn: "", checkOut: "",
     guests: 1, rooms: 1, roomType: "Deluxe",
     specialRequests: "",
@@ -218,10 +232,13 @@ function BookingModal({ hotel, onClose }) {
     e.preventDefault();
 
     try {
-      const user = JSON.parse(localStorage.getItem("user"));
+      const user = JSON.parse(localStorage.getItem("user") || "{}");
 
       await axios.post("http://127.0.0.1:5000/book-hotel", {
-        userEmail: user ? user.email : formData.email,
+        userEmail: formData.email || user?.email,
+        customerEmail: formData.email || user?.email,
+        customerName: formData.fullName || user?.name || "Guest Traveler",
+        phone: formData.phone || "N/A",
         hotelName: hotel.name,
         location: hotel.location,
         checkIn: formData.checkIn,
@@ -229,7 +246,7 @@ function BookingModal({ hotel, onClose }) {
         guests: formData.guests,
         rooms: formData.rooms,
         roomType: formData.roomType,
-        guestName: formData.fullName,
+        guestName: formData.fullName || user?.name || "Guest",
         price: hotel.price,
       });
 
@@ -254,22 +271,39 @@ function BookingModal({ hotel, onClose }) {
     return (
       <div style={MS.overlay} onClick={onClose}>
         <div style={MS.modal} onClick={e => e.stopPropagation()}>
-          <div style={{ textAlign: "center", padding: "40px 20px" }}>
-            <FaCheckCircle size={56} color="#22c55e" />
-            <h2 style={{ color: "#111827", marginTop: 18, fontSize: 24, fontWeight: 800 }}>Booking Confirmed!</h2>
-            <p style={{ color: "#6B7280", fontSize: 14, marginTop: 8, lineHeight: 1.7 }}>
-              Your reservation at <strong style={{ color: "#2563EB" }}>{hotel.name}</strong> has been submitted successfully.
+          <div style={{ textAlign: "center", padding: "36px 24px" }}>
+            <div style={{
+              width: 64, height: 64, borderRadius: "50%",
+              background: "rgba(245, 158, 11, 0.12)", border: "2px solid #F59E0B",
+              display: "inline-flex", alignItems: "center", justifyContent: "center",
+              fontSize: 28, color: "#D97706", marginBottom: 16
+            }}>
+              ⏳
+            </div>
+            <h2 style={{ color: "#111827", marginTop: 6, fontSize: 22, fontWeight: 900 }}>
+              Booking Request Submitted!
+            </h2>
+            <div style={{
+              display: "inline-flex", alignItems: "center", gap: 8,
+              background: "rgba(245, 158, 11, 0.15)", border: "1px solid rgba(245, 158, 11, 0.3)",
+              color: "#B45309", padding: "6px 18px", borderRadius: 20,
+              fontSize: 13, fontWeight: 800, margin: "12px 0 16px"
+            }}>
+              Status: Pending Approval (Waiting for Admin Response)
+            </div>
+            <p style={{ color: "#4B5563", fontSize: 13, lineHeight: 1.6, margin: "0 auto 20px", maxWidth: 420 }}>
+              Your reservation request at <strong style={{ color: "#2563EB" }}>{hotel.name}</strong> has been submitted. Our administrator will review your customer details and dispatch a confirmation email to <strong style={{ color: "#111827" }}>{formData.email || loggedUser.email}</strong> upon approval.
             </p>
-            <div style={{ background: "#F8FAFC", borderRadius: 14, padding: 20, marginTop: 20, textAlign: "left", border: "1px solid #E5E7EB" }}>
+            <div style={{ background: "#F8FAFC", borderRadius: 14, padding: 20, textAlign: "left", border: "1px solid #E5E7EB", marginBottom: 24 }}>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                <div><div style={{ fontSize: 11, color: "#9CA3AF", textTransform: "uppercase" }}>Guest</div><div style={{ color: "#111827", fontSize: 14, fontWeight: 600, marginTop: 2 }}>{formData.fullName}</div></div>
-                <div><div style={{ fontSize: 11, color: "#9CA3AF", textTransform: "uppercase" }}>Room Type</div><div style={{ color: "#111827", fontSize: 14, fontWeight: 600, marginTop: 2 }}>{formData.roomType}</div></div>
-                <div><div style={{ fontSize: 11, color: "#9CA3AF", textTransform: "uppercase" }}>Check-in</div><div style={{ color: "#111827", fontSize: 14, fontWeight: 600, marginTop: 2 }}>{formData.checkIn || "—"}</div></div>
-                <div><div style={{ fontSize: 11, color: "#9CA3AF", textTransform: "uppercase" }}>Check-out</div><div style={{ color: "#111827", fontSize: 14, fontWeight: 600, marginTop: 2 }}>{formData.checkOut || "—"}</div></div>
+                <div><div style={{ fontSize: 11, color: "#9CA3AF", textTransform: "uppercase" }}>Customer Name</div><div style={{ color: "#111827", fontSize: 13, fontWeight: 700, marginTop: 2 }}>{formData.fullName}</div></div>
+                <div><div style={{ fontSize: 11, color: "#9CA3AF", textTransform: "uppercase" }}>Customer Email</div><div style={{ color: "#111827", fontSize: 13, fontWeight: 700, marginTop: 2 }}>{formData.email}</div></div>
+                <div><div style={{ fontSize: 11, color: "#9CA3AF", textTransform: "uppercase" }}>Check-in</div><div style={{ color: "#111827", fontSize: 13, fontWeight: 700, marginTop: 2 }}>{formData.checkIn || "—"}</div></div>
+                <div><div style={{ fontSize: 11, color: "#9CA3AF", textTransform: "uppercase" }}>Check-out</div><div style={{ color: "#111827", fontSize: 13, fontWeight: 700, marginTop: 2 }}>{formData.checkOut || "—"}</div></div>
               </div>
             </div>
-            <button onClick={onClose} style={{ marginTop: 24, padding: "12px 36px", borderRadius: 10, border: "none", background: "linear-gradient(to right, #3b82f6, #8b5cf6)", color: "white", fontWeight: 700, cursor: "pointer", fontSize: 14 }}>
-              Done
+            <button onClick={onClose} style={{ padding: "12px 36px", borderRadius: 12, border: "none", background: "linear-gradient(to right, #2563EB, #3B82F6)", color: "white", fontWeight: 800, cursor: "pointer", fontSize: 14, boxShadow: "0 4px 14px rgba(37,99,235,0.25)" }}>
+              Close &amp; View Status
             </button>
           </div>
         </div>
@@ -417,7 +451,7 @@ function FlightCard({ item, onViewDetails, onBook, onFeedbackAnalysis }) {
               <span style={{ fontSize: 18 }}>{meta.icon}</span>
             </div>
             <div>
-              <div style={{ fontWeight: 700, fontSize: 15, color: "#1F2937" }}>{item.airline}</div>
+              <div style={{ fontWeight: 700, fontSize: 15, color: "#1F2937" }}>{item.airline || item.operator || item.trainName}</div>
               <div style={{ fontSize: 11, color: "#64748b", display: "flex", alignItems: "center", gap: 6 }}>
                 <span>{item.flightNo}</span>
                 <span style={{ width: 3, height: 3, borderRadius: "50%", background: "#334155", display: "inline-block" }} />
@@ -437,7 +471,7 @@ function FlightCard({ item, onViewDetails, onBook, onFeedbackAnalysis }) {
           <div style={{ textAlign: "center", minWidth: 90 }}>
             <div style={{ fontSize: 24, fontWeight: 800, color: "#1F2937" }}>{item.departure}</div>
             <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 2 }}>{item.from}</div>
-            <div style={{ fontSize: 10, color: "#64748b", marginTop: 2 }}>Terminal {item.terminal.dep}</div>
+            <div style={{ fontSize: 10, color: "#64748b", marginTop: 2 }}>{item.terminal?.dep ? `Terminal ${item.terminal.dep}` : "Dep Stop"}</div>
           </div>
           <div style={{ flex: 1, textAlign: "center", padding: "0 14px" }}>
             <div style={{ fontSize: 10, color: "#64748b", marginBottom: 4 }}>{item.duration}</div>
@@ -453,7 +487,7 @@ function FlightCard({ item, onViewDetails, onBook, onFeedbackAnalysis }) {
           <div style={{ textAlign: "center", minWidth: 90 }}>
             <div style={{ fontSize: 24, fontWeight: 800, color: "#1F2937" }}>{item.arrival}</div>
             <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 2 }}>{item.to}</div>
-            <div style={{ fontSize: 10, color: "#64748b", marginTop: 2 }}>Terminal {item.terminal.arr}</div>
+            <div style={{ fontSize: 10, color: "#64748b", marginTop: 2 }}>{item.terminal?.arr ? `Terminal ${item.terminal.arr}` : "Arr Stop"}</div>
           </div>
         </div>
 
@@ -463,11 +497,13 @@ function FlightCard({ item, onViewDetails, onBook, onFeedbackAnalysis }) {
             <FaChair size={9} /> {item.class}
           </span>
           <span style={S.flightBadge}>
-            <FaSuitcase size={9} /> {item.baggage.checkin}
+            <FaSuitcase size={9} /> {item.baggage?.checkin || "Hand Luggage"}
           </span>
-          <span style={S.flightBadge}>
-            <FaUtensils size={9} /> {item.meal.split(" ")[0]}
-          </span>
+          {item.meal && (
+            <span style={S.flightBadge}>
+              <FaUtensils size={9} /> {item.meal.split(" ")[0]}
+            </span>
+          )}
           {item.wifi && <span style={{ ...S.flightBadge, color: "#22c55e", borderColor: "#22c55e40" }}><FaWifi size={9} /> WiFi</span>}
           {item.refundable && <span style={{ ...S.flightBadge, color: "#22c55e", borderColor: "#22c55e40" }}><FaCheckCircle size={9} /> Refundable</span>}
         </div>
@@ -719,20 +755,25 @@ function FlightBookingModal({ flight, passengers: passengerCount, onClose }) {
 
     try {
       const user = JSON.parse(localStorage.getItem("user") || "{}");
+      const firstPax = (formData.passengers || [])[0] || {};
+      const paxName = `${firstPax.firstName || ""} ${firstPax.lastName || ""}`.trim() || user?.name || "Passenger";
 
       await axios.post("http://127.0.0.1:5000/book-flight", {
-        userEmail: user?.email,
+        userEmail: user?.email || "guest@example.com",
+        customerEmail: user?.email || "guest@example.com",
+        customerName: paxName,
+        phone: firstPax.phone || "N/A",
         flightName: flight.airline,
         flightNo: flight.flightNo,
         from: flight.from,
         to: flight.to,
-        departureDate: new Date().toISOString().split("T")[0],
+        departureDate: flightDate || new Date().toISOString().split("T")[0],
         departure: flight.departure,
         arrival: flight.arrival,
-        passengers: formData.passengers.length,
+        passengers: formData.passengers ? formData.passengers.length : 1,
         seatPref: formData.seatPref,
         mealPref: formData.mealPref,
-        price: grandTotal,
+        price: grandTotal ? `₹${grandTotal}` : flight.price,
       });
 
       // Direct user to the official airline booking page
@@ -1127,6 +1168,30 @@ export default function SearchResults() {
   const [flightSource, setFlightSource] = useState("static"); // "live" | "simulated" | "static"
   const [flightSearchLoading, setFlightSearchLoading] = useState(false);
   const [selectedHotelForCalendar, setSelectedHotelForCalendar] = useState(null);
+  const [selectedCountryFilter, setSelectedCountryFilter] = useState("All");
+  const [locationParam, setLocationParam] = useState("");
+  const [transportCategoryFilter, setTransportCategoryFilter] = useState("all");
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const q = params.get("q") || "";
+    const tab = params.get("tab") || "places";
+    const date = params.get("date") || "";
+    const loc = params.get("location") || "";
+    const country = params.get("country") || "";
+
+    setQuery(q);
+    setActiveTab(tab);
+    if (date) {
+      setFlightDate(date);
+    }
+    if (country) {
+      setSelectedCountryFilter(country);
+    }
+    if (loc) {
+      setLocationParam(loc);
+    }
+  }, [location.search]);
 
 
 
@@ -1206,17 +1271,74 @@ export default function SearchResults() {
     return filtered;
   };
 
+  const filterHotels = (items) => {
+    let result = items.filter(h => {
+      if (minRating > 0 && h.rating < minRating) return false;
+
+      if (query.trim()) {
+        const qLower = query.toLowerCase();
+        const matchName = h.name.toLowerCase().includes(qLower);
+        const matchLoc = h.location.toLowerCase().includes(qLower);
+        const matchCountry = (h.country || "").toLowerCase().includes(qLower);
+        if (!matchName && !matchLoc && !matchCountry) return false;
+      }
+
+      if (locationParam.trim()) {
+        const locLower = locationParam.toLowerCase();
+        const matchLoc = h.location.toLowerCase().includes(locLower);
+        const matchCountry = (h.country || "").toLowerCase().includes(locLower);
+        const matchName = h.name.toLowerCase().includes(locLower);
+        if (!matchLoc && !matchCountry && !matchName) return false;
+      }
+
+      if (selectedCountryFilter !== "All") {
+        const countryLower = selectedCountryFilter.toLowerCase();
+        const hCountry = (h.country || "").toLowerCase();
+        const hLoc = h.location.toLowerCase();
+
+        const matchCountry = hCountry.includes(countryLower) || hLoc.includes(countryLower) || countryLower.includes(hCountry);
+        if (!matchCountry) return false;
+      }
+
+      return true;
+    });
+
+    if (sortBy === "rating") {
+      result.sort((a, b) => b.rating - a.rating);
+    } else if (sortBy === "price") {
+      result.sort((a, b) => {
+        const pA = parseInt(String(a.price).replace(/[^0-9]/g, "")) || 0;
+        const pB = parseInt(String(b.price).replace(/[^0-9]/g, "")) || 0;
+        return pA - pB;
+      });
+    }
+
+    return result;
+  };
+
+  const places = filterAndSort(PLACES);
+  const hotels = filterHotels(HOTELS);
+
   // Flight filtering & sorting — uses live results when available, falls back to static
   const filterFlights = () => {
-    const pool = liveFlightResults !== null ? liveFlightResults : FLIGHTS;
+    let pool = liveFlightResults !== null ? liveFlightResults : [...FLIGHTS, ...BUSES, ...TRAINS];
+
+    if (transportCategoryFilter === "flights") {
+      pool = pool.filter(i => (i.type || "flight") === "flight" || i.airline);
+    } else if (transportCategoryFilter === "buses") {
+      pool = pool.filter(i => (i.type || i.category) === "bus");
+    } else if (transportCategoryFilter === "trains") {
+      pool = pool.filter(i => (i.type || i.category) === "train");
+    }
+
     let f = pool.filter(fl =>
-      (flightClass === "All" || fl.class === flightClass)
+      (flightClass === "All" || (fl.class || "").toLowerCase().includes(flightClass.toLowerCase()))
     );
-    // Apply text search on top of already-filtered pool
+
     if (query) {
       f = f.filter(fl => JSON.stringify(fl).toLowerCase().includes(query.toLowerCase()));
     }
-    // Also apply from/to if no live search was done yet
+
     if (liveFlightResults === null) {
       f = f.filter(fl =>
         (!flightFrom || fl.from.toLowerCase().includes(flightFrom.toLowerCase())) &&
@@ -1252,8 +1374,6 @@ export default function SearchResults() {
     setTrackerLoading(false);
   };
 
-  const places = filterAndSort(PLACES);
-  const hotels = filterAndSort(HOTELS);
   const flights = filterFlights();
 
   const counts = { places: places.length, hotels: hotels.length, flights: flights.length };
@@ -1352,9 +1472,102 @@ export default function SearchResults() {
             )}
           </div>
 
-          {/* Flight search form */}
+          {/* Classified Country & Place Filter Bar for Hotels */}
+          {activeTab === "hotels" && (
+            <div style={{
+              background: "#FFFFFF",
+              border: "1px solid #E5E7EB",
+              borderRadius: 16,
+              padding: "16px 20px",
+              marginBottom: 20,
+              boxShadow: "0 2px 8px rgba(0,0,0,0.04)"
+            }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10, flexWrap: "wrap", gap: 8 }}>
+                <div style={{ fontSize: 13, fontWeight: 800, color: "#111827", display: "flex", alignItems: "center", gap: 8 }}>
+                  <FaMapMarkerAlt color="#2563EB" /> Filter Hotels by Country / Destination:
+                </div>
+                {(locationParam || selectedCountryFilter !== "All") && (
+                  <button
+                    onClick={() => { setLocationParam(""); setSelectedCountryFilter("All"); }}
+                    style={{
+                      background: "rgba(239, 68, 68, 0.08)", border: "1px solid rgba(239, 68, 68, 0.2)",
+                      color: "#DC2626", padding: "4px 12px", borderRadius: 16, cursor: "pointer",
+                      fontSize: 12, fontWeight: 700
+                    }}
+                  >
+                    Clear Location Filter ✕
+                  </button>
+                )}
+              </div>
+
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                {["All", "India", "Indonesia", "France", "Japan", "USA", "UAE", "Switzerland", "Italy", "Singapore"].map(country => {
+                  const isActive = (selectedCountryFilter.toLowerCase() === country.toLowerCase()) || (locationParam && country !== "All" && locationParam.toLowerCase().includes(country.toLowerCase()));
+                  return (
+                    <button
+                      key={country}
+                      onClick={() => {
+                        setSelectedCountryFilter(country);
+                        setLocationParam("");
+                      }}
+                      style={{
+                        padding: "7px 16px",
+                        borderRadius: 20,
+                        fontSize: 12,
+                        fontWeight: 700,
+                        cursor: "pointer",
+                        border: isActive ? "1px solid #2563EB" : "1px solid #E5E7EB",
+                        background: isActive ? "linear-gradient(135deg, #2563EB, #3B82F6)" : "#F9FAFB",
+                        color: isActive ? "#FFFFFF" : "#4B5563",
+                        boxShadow: isActive ? "0 2px 8px rgba(37,99,235,0.25)" : "none",
+                        transition: "all 0.2s",
+                        fontFamily: "inherit"
+                      }}
+                    >
+                      {country === "All" ? "🌐 All Destinations" : country}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {(locationParam || selectedCountryFilter !== "All") && (
+                <div style={{ marginTop: 12, fontSize: 12, color: "#2563EB", background: "rgba(37,99,235,0.06)", padding: "8px 12px", borderRadius: 10, fontWeight: 600 }}>
+                  📍 Displaying luxury hotels located in: <strong>{locationParam ? `${locationParam} ${selectedCountryFilter !== "All" ? `(${selectedCountryFilter})` : ""}` : selectedCountryFilter}</strong> ({hotels.length} hotels found)
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Flight, Bus & Train search form */}
           {activeTab === "flights" && (
             <>
+              {/* Category Filter Pills */}
+              <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
+                {[
+                  { key: "all", label: "🌐 All Transport", count: FLIGHTS.length + BUSES.length + TRAINS.length },
+                  { key: "flights", label: "✈️ Flights", count: FLIGHTS.length },
+                  { key: "buses", label: "🚌 Buses", count: BUSES.length },
+                  { key: "trains", label: "🚆 Trains", count: TRAINS.length },
+                ].map(cat => {
+                  const isActive = transportCategoryFilter === cat.key;
+                  return (
+                    <button
+                      key={cat.key}
+                      onClick={() => setTransportCategoryFilter(cat.key)}
+                      style={{
+                        padding: "8px 18px", borderRadius: 20, fontSize: 12, fontWeight: 800,
+                        cursor: "pointer", border: isActive ? "1px solid #2563EB" : "1px solid #E5E7EB",
+                        background: isActive ? "linear-gradient(135deg, #2563EB, #3B82F6)" : "#FFFFFF",
+                        color: isActive ? "#FFFFFF" : "#374151", boxShadow: isActive ? "0 4px 12px rgba(37,99,235,0.2)" : "none",
+                        transition: "all 0.2s", fontFamily: "inherit"
+                      }}
+                    >
+                      {cat.label} ({cat.count})
+                    </button>
+                  );
+                })}
+              </div>
+
               <div style={{
                 background: "#FFFFFF",
                 border: "1px solid #E8EDF5",
@@ -1364,7 +1577,7 @@ export default function SearchResults() {
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                     <h3 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: "#1F2937", display: "flex", alignItems: "center", gap: 10 }}>
-                      <FaPlane size={18} color="#2563EB" /> Search Flights
+                      <FaPlane size={18} color="#2563EB" /> Search Transport (Flights, Buses &amp; Trains)
                     </h3>
                     {liveFlightResults !== null && (
                       <span style={{

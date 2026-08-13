@@ -119,10 +119,17 @@ export default function UserDashboard() {
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))",
+              gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))",
               gap: 14,
             }}
           >
+            <button
+              style={{ ...quickBtnStyle, background: "linear-gradient(135deg, #2563eb, #3b82f6)", color: "#ffffff", border: "none" }}
+              onClick={() => navigate("/my-bookings")}
+            >
+              📋 My Bookings Status
+            </button>
+
             <button
               style={quickBtnStyle}
               onClick={() => navigate("/my-hotels")}
