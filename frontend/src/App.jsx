@@ -9,6 +9,7 @@ import Home from "./pages/Home";
 import SearchResults from "./pages/SearchResults";
 import DestinationDetails from "./pages/DestinationDetails";
 import HotelDetails from "./pages/HotelDetails";
+import TripBooking from "./pages/TripBooking";
 
 import Reviews from "./pages/Reviews";
 import Booking from "./pages/Booking";
@@ -50,6 +51,17 @@ function App() {
         } />
         <Route path="/search" element={<SearchResults />} />
         <Route path="/explore/:placeId" element={<DestinationDetails />} />
+        <Route path="/destinations/:placeId" element={<DestinationDetails />} />
+        <Route path="/book-trip/:placeId" element={
+          <ProtectedRoute requireUser>
+            <TripBooking />
+          </ProtectedRoute>
+        } />
+        <Route path="/destinations/:placeId/book" element={
+          <ProtectedRoute requireUser>
+            <TripBooking />
+          </ProtectedRoute>
+        } />
         <Route path="/hotel/:hotelId" element={<HotelDetails />} />
         <Route path="/hotel-details/:hotelId" element={<HotelDetails />} />
 

@@ -45,6 +45,9 @@ except Exception:
 
 users = db["users"]
 reviews = db["reviews"]
+hotels = db["hotels"]
 hotel_bookings = db["hotel_bookings"]
 flight_bookings = db["flight_bookings"]
+destination_bookings = db["destination_bookings"]
 contacts = db["contacts"]
+

@@ -1,18 +1,34 @@
 import { useState, useEffect } from "react";
 import SharedNavbar from "../components/SharedNavbar";
-import { FaHotel, FaPlane, FaClock, FaCheckCircle, FaTimesCircle, FaCalendarAlt, FaMapMarkerAlt, FaUsers, FaTag, FaInfoCircle, FaTicketAlt, FaPrint } from "react-icons/fa";
+import {
+  FaHotel, FaPlane, FaClock, FaCheckCircle, FaTimesCircle,
+  FaCalendarAlt, FaMapMarkerAlt, FaUsers, FaTag, FaInfoCircle,
+  FaTicketAlt, FaPrint, FaSuitcaseRolling, FaCompass
+} from "react-icons/fa";
 import axios from "axios";
 
 function TicketModal({ booking, onClose }) {
   if (!booking) return null;
 
-  const isHotel = (booking.bookingType || (booking.hotelName ? "hotel" : "flight")) === "hotel";
-  const itemName = booking.hotelName || booking.flightName || (isHotel ? "Luxury Hotel Stay" : "Air Flight Ticket");
+  const bType = booking.bookingType || (booking.destinationName ? "trip" : booking.hotelName ? "hotel" : "flight");
+  const isTrip = bType === "trip";
+  const isHotel = bType === "hotel";
+
+  const itemName = isTrip
+    ? (booking.destinationName || "Destination Trip Package")
+    : (booking.hotelName || booking.flightName || "Travel Reservation");
+
   const ticketNo = `TKT-${String(booking._id).slice(-8).toUpperCase()}`;
 
   const handlePrint = () => {
     window.print();
   };
+
+  const headerGradient = isTrip
+    ? "linear-gradient(135deg, #1d4ed8 0%, #3b82f6 100%)"
+    : isHotel
+    ? "linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)"
+    : "linear-gradient(135deg, #581c87 0%, #7e22ce 100%)";
 
   return (
     <div style={{
@@ -21,14 +37,14 @@ function TicketModal({ booking, onClose }) {
       display: "flex", alignItems: "center", justifyContent: "center", padding: 20
     }} onClick={onClose}>
       <div style={{
-        maxWidth: 600, width: "100%", background: "#FFFFFF", color: "#111827",
+        maxWidth: 620, width: "100%", background: "#FFFFFF", color: "#111827",
         borderRadius: 24, overflow: "hidden", boxShadow: "0 25px 60px rgba(0,0,0,0.5)",
         position: "relative", fontFamily: "'Inter', sans-serif"
       }} onClick={e => e.stopPropagation()}>
 
         {/* Top Gradient Ticket Header */}
         <div style={{
-          background: isHotel ? "linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)" : "linear-gradient(135deg, #581c87 0%, #7e22ce 100%)",
+          background: headerGradient,
           color: "#FFFFFF", padding: "28px 32px", position: "relative"
         }}>
           <button
@@ -42,18 +58,22 @@ function TicketModal({ booking, onClose }) {
           >
             ✕
           </button>
-          <div style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: 2, color: "rgba(255,255,255,0.8)" }}>
+          <div style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: 2, color: "rgba(255,255,255,0.85)" }}>
             OFFICIAL CONFIRMED TRAVEL E-TICKET
           </div>
           <h2 style={{ fontSize: 24, fontWeight: 900, margin: "6px 0 4px" }}>
             {itemName}
           </h2>
           <div style={{ fontSize: 13, opacity: 0.9 }}>
-            {isHotel ? (booking.location || "Prime Location") : `${booking.from || "Delhi"} → ${booking.to || "Mumbai"}`}
+            {isTrip
+              ? `Complete Trip Package · ${booking.destinationName || "Global Destination"}`
+              : isHotel
+              ? (booking.location || "Prime Location Accommodation")
+              : `${booking.from || "Origin"} → ${booking.to || "Destination"}`}
           </div>
         </div>
 
-        {/* Ticket Body Stub */}
+        {/* Ticket Body */}
         <div style={{ padding: "28px 32px" }}>
           {/* Status & Ticket ID bar */}
           <div style={{
@@ -66,7 +86,7 @@ function TicketModal({ booking, onClose }) {
                 Approval Status
               </span>
               <span style={{ color: "#15803D", fontWeight: 800, fontSize: 14 }}>
-                ✓ ADMIN CONFIRMED
+                ✓ {booking.status === "Confirmed" ? "CONFIRMED RESERVATION" : "PENDING VERIFICATION"}
               </span>
             </div>
             <div style={{ textAlign: "right" }}>
@@ -80,11 +100,11 @@ function TicketModal({ booking, onClose }) {
           </div>
 
           {/* Passenger / Guest Details */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18, marginBottom: 20 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 18 }}>
             <div>
-              <div style={{ fontSize: 11, color: "#64748B", textTransform: "uppercase", fontWeight: 700 }}>Passenger / Guest Name</div>
+              <div style={{ fontSize: 11, color: "#64748B", textTransform: "uppercase", fontWeight: 700 }}>Lead Traveler</div>
               <div style={{ fontSize: 15, fontWeight: 800, color: "#111827", marginTop: 3 }}>
-                {booking.customerName || booking.guestName || "Traveler"}
+                {booking.customerName || booking.guestName || booking.passengerName || "Traveler"}
               </div>
             </div>
 
@@ -97,29 +117,63 @@ function TicketModal({ booking, onClose }) {
 
             <div>
               <div style={{ fontSize: 11, color: "#64748B", textTransform: "uppercase", fontWeight: 700 }}>
-                {isHotel ? "Check-in / Check-out" : "Travel Date"}
+                {isTrip || isHotel ? "Travel Dates" : "Departure Date"}
               </div>
               <div style={{ fontSize: 14, fontWeight: 700, color: "#111827", marginTop: 3 }}>
-                {isHotel ? `${booking.checkIn} → ${booking.checkOut}` : (booking.departureDate || booking.travelDate || "2026-08-25")}
+                {isTrip || isHotel
+                  ? `${booking.checkIn || "TBD"} → ${booking.checkOut || "TBD"}`
+                  : (booking.departureDate || booking.travelDate || "Scheduled")}
               </div>
             </div>
 
             <div>
-              <div style={{ fontSize: 11, color: "#64748B", textTransform: "uppercase", fontWeight: 700 }}>Party / Occupancy</div>
+              <div style={{ fontSize: 11, color: "#64748B", textTransform: "uppercase", fontWeight: 700 }}>Traveling Party</div>
               <div style={{ fontSize: 14, fontWeight: 700, color: "#111827", marginTop: 3 }}>
-                {isHotel ? `${booking.guests || 1} Guests (${booking.roomType || "Deluxe"})` : `${booking.passengers || 1} Passenger(s)`}
+                {isTrip
+                  ? `${booking.adults || 1} Adult(s)${booking.children ? `, ${booking.children} Child(ren)` : ""}`
+                  : isHotel
+                  ? `${booking.guests || 1} Guests (${booking.roomType || "Deluxe"})`
+                  : `${booking.passengers || booking.guests || 1} Passenger(s)`}
               </div>
             </div>
           </div>
 
+          {/* Trip specific breakdown */}
+          {isTrip && (
+            <div style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 12, padding: "14px 16px", marginBottom: 18, fontSize: 13 }}>
+              {booking.selectedHotel && (
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                  <span style={{ color: "#64748B" }}>🏨 Selected Stay:</span>
+                  <strong style={{ color: "#111827" }}>{booking.selectedHotel.name}</strong>
+                </div>
+              )}
+              {booking.selectedFlight && (
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                  <span style={{ color: "#64748B" }}>✈️ Flight Route:</span>
+                  <strong style={{ color: "#111827" }}>{booking.selectedFlight.airline} #{booking.selectedFlight.flightNo}</strong>
+                </div>
+              )}
+              {booking.activities && booking.activities.length > 0 && (
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                  <span style={{ color: "#64748B" }}>🎯 Activities:</span>
+                  <strong style={{ color: "#2563EB", textAlign: "right" }}>
+                    {booking.activities.map(a => a.name).join(", ")}
+                  </strong>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Pricing & Barcode */}
           <div style={{
-            borderTop: "2px dashed #E2E8F0", paddingTop: 20, marginTop: 10,
+            borderTop: "2px dashed #E2E8F0", paddingTop: 18, marginTop: 10,
             display: "flex", justifyContent: "space-between", alignItems: "center"
           }}>
             <div>
               <div style={{ fontSize: 11, color: "#64748B", textTransform: "uppercase", fontWeight: 700 }}>Total Paid Amount</div>
-              <div style={{ fontSize: 22, fontWeight: 900, color: "#16A34A", marginTop: 2 }}>{booking.price}</div>
+              <div style={{ fontSize: 24, fontWeight: 900, color: "#16A34A", marginTop: 2 }}>
+                {booking.price || `₹${Number(booking.totalAmount || 0).toLocaleString("en-IN")}`}
+              </div>
             </div>
 
             {/* Barcode Graphic */}
@@ -136,7 +190,7 @@ function TicketModal({ booking, onClose }) {
           </div>
 
           {/* Action Buttons */}
-          <div style={{ marginTop: 24, display: "flex", gap: 12, justifyContent: "flex-end" }}>
+          <div style={{ marginTop: 22, display: "flex", gap: 12, justifyContent: "flex-end" }}>
             <button onClick={onClose} style={{
               padding: "10px 20px", borderRadius: 10, border: "1px solid #E2E8F0",
               background: "#F8FAFC", color: "#475569", fontWeight: 700, cursor: "pointer", fontSize: 13
@@ -179,13 +233,15 @@ export default function MyBookings() {
     } catch (err) {
       console.warn("Error fetching combined bookings from backend, trying individual fallbacks:", err);
       try {
-        const [hRes, fRes] = await Promise.all([
+        const [hRes, fRes, tRes] = await Promise.all([
           axios.get(`http://127.0.0.1:5000/my-hotels/${userEmail}`),
-          axios.get(`http://127.0.0.1:5000/my-flights/${userEmail}`)
+          axios.get(`http://127.0.0.1:5000/my-flights/${userEmail}`),
+          axios.get(`http://127.0.0.1:5000/api/bookings/my-trips/${userEmail}`)
         ]);
         const hotels = (hRes.data || []).map(h => ({ ...h, bookingType: "hotel", status: h.status || "Pending" }));
         const flights = (fRes.data || []).map(f => ({ ...f, bookingType: "flight", status: f.status || "Pending" }));
-        setBookings([...hotels, ...flights]);
+        const trips = (tRes.data || []).map(t => ({ ...t, bookingType: "trip", status: t.status || "Confirmed" }));
+        setBookings([...hotels, ...flights, ...trips]);
       } catch (e) {
         setBookings([]);
       }
@@ -195,11 +251,17 @@ export default function MyBookings() {
   };
 
   const handleCancelBooking = async (id, bookingType) => {
-    const ok = window.confirm(`Are you sure you want to cancel this ${bookingType} booking?`);
+    const bLabel = bookingType === "trip" ? "Destination Trip" : bookingType === "hotel" ? "Hotel" : "Flight";
+    const ok = window.confirm(`Are you sure you want to cancel this ${bLabel} booking?`);
     if (!ok) return;
 
     try {
-      const endpoint = bookingType === "hotel" ? `/cancel-hotel/${id}` : `/cancel-flight/${id}`;
+      const endpoint = bookingType === "trip"
+        ? `/api/bookings/cancel-trip/${id}`
+        : bookingType === "hotel"
+        ? `/cancel-hotel/${id}`
+        : `/cancel-flight/${id}`;
+
       await axios.delete(`http://127.0.0.1:5000${endpoint}`);
       setBookings(prev => prev.filter(b => b._id !== id));
       alert("Booking cancelled successfully.");
@@ -240,7 +302,7 @@ export default function MyBookings() {
                 My Travel Reservations
               </h1>
               <p style={{ color: "#94a3b8", fontSize: "1.05rem", margin: "6px 0 0" }}>
-                Track real-time admin approval status and download official travel tickets.
+                Track real-time destination trips, hotel stays, flight tickets, and view official digital passes.
               </p>
             </div>
 
@@ -285,7 +347,7 @@ export default function MyBookings() {
           }}>
             <FaInfoCircle size={20} color="#38bdf8" />
             <div>
-              <strong>Admin Approval Notice:</strong> Submitted bookings initially have a <span style={{ color: "#f59e0b", fontWeight: 700 }}>Pending</span> status while undergoing administrator verification. Upon admin approval, your status updates to <span style={{ color: "#34d399", fontWeight: 700 }}>Confirmed</span>, a confirmation email is dispatched to <strong>{userEmail}</strong>, and your printable Digital Ticket is generated below!
+              <strong>Reservation Dashboard:</strong> Destination bookings are stored directly into MongoDB and confirmed immediately. Hotel and Flight requests are processed with real-time status updates and printable tickets.
             </div>
           </div>
 
@@ -302,20 +364,24 @@ export default function MyBookings() {
               background: "rgba(30, 41, 59, 0.5)", borderRadius: 24, padding: "60px 40px",
               textAlign: "center", border: "1px solid rgba(255, 255, 255, 0.08)"
             }}>
-              <div style={{ fontSize: 48, marginBottom: 14 }}>✈️</div>
+              <div style={{ fontSize: 48, marginBottom: 14 }}>🌍</div>
               <h3 style={{ color: "#ffffff", margin: "0 0 8px", fontSize: 20 }}>No travel bookings found</h3>
               <p style={{ color: "#94a3b8", margin: 0, fontSize: 14 }}>
-                Explore destinations or flights to create your first booking request!
+                Explore destinations, hotels, or flights to create your first reservation!
               </p>
             </div>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
               {filteredBookings.map((b) => {
-                const isHotel = (b.bookingType || (b.hotelName ? "hotel" : "flight")) === "hotel";
+                const bType = b.bookingType || (b.destinationName ? "trip" : b.hotelName ? "hotel" : "flight");
+                const isTrip = bType === "trip";
+                const isHotel = bType === "hotel";
                 const isPending = (b.status || "Pending") === "Pending";
                 const isConfirmed = b.status === "Confirmed";
 
-                const itemName = b.hotelName || b.flightName || (isHotel ? "Hotel Stay" : "Flight Ticket");
+                const itemName = isTrip
+                  ? (b.destinationName || "Destination Trip Package")
+                  : (b.hotelName || b.flightName || "Travel Reservation");
 
                 return (
                   <div
@@ -337,15 +403,27 @@ export default function MyBookings() {
                       <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
                         <div style={{
                           width: 48, height: 48, borderRadius: 14,
-                          background: isHotel ? "linear-gradient(135deg, #0284c7, #38bdf8)" : "linear-gradient(135deg, #7e22ce, #a855f7)",
+                          background: isTrip
+                            ? "linear-gradient(135deg, #1d4ed8, #3b82f6)"
+                            : isHotel
+                            ? "linear-gradient(135deg, #0284c7, #38bdf8)"
+                            : "linear-gradient(135deg, #7e22ce, #a855f7)",
                           display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, color: "#ffffff",
-                          boxShadow: isHotel ? "0 4px 14px rgba(56,189,248,0.3)" : "0 4px 14px rgba(168,85,247,0.3)"
+                          boxShadow: isTrip
+                            ? "0 4px 14px rgba(37,99,235,0.3)"
+                            : isHotel
+                            ? "0 4px 14px rgba(56,189,248,0.3)"
+                            : "0 4px 14px rgba(168,85,247,0.3)"
                         }}>
-                          {isHotel ? <FaHotel /> : <FaPlane />}
+                          {isTrip ? <FaSuitcaseRolling /> : isHotel ? <FaHotel /> : <FaPlane />}
                         </div>
                         <div>
-                          <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", color: isHotel ? "#38bdf8" : "#c084fc", letterSpacing: "0.5px" }}>
-                            {isHotel ? "Hotel Reservation" : "Flight Ticket"}
+                          <div style={{
+                            fontSize: 11, fontWeight: 700, textTransform: "uppercase",
+                            color: isTrip ? "#60a5fa" : isHotel ? "#38bdf8" : "#c084fc",
+                            letterSpacing: "0.5px"
+                          }}>
+                            {isTrip ? "Destination Trip Package" : isHotel ? "Hotel Reservation" : "Flight Ticket"}
                           </div>
                           <h2 style={{ fontSize: "1.35rem", fontWeight: 800, margin: "2px 0 0", color: "#ffffff" }}>
                             {itemName}
@@ -363,7 +441,7 @@ export default function MyBookings() {
                           display: "inline-flex", alignItems: "center", gap: 8
                         }}>
                           {isConfirmed ? <FaCheckCircle size={14} /> : isPending ? <FaClock size={14} /> : <FaTimesCircle size={14} />}
-                          {b.status || "Pending"}
+                          {b.status || "Confirmed"}
                         </span>
                       </div>
                     </div>
@@ -381,32 +459,64 @@ export default function MyBookings() {
 
                       <div>
                         <span style={{ color: "#94a3b8", display: "block", fontSize: 11, marginBottom: 2 }}>
-                          {isHotel ? "Check-in / Check-out" : "Flight Route & Travel Date"}
+                          {isTrip || isHotel ? "Travel Dates" : "Flight Route & Travel Date"}
                         </span>
                         <strong style={{ color: "#ffffff" }}>
-                          {isHotel ? `${b.checkIn} → ${b.checkOut}` : `${b.departureDate || b.travelDate} (${b.from} → ${b.to})`}
+                          {isTrip || isHotel
+                            ? `${b.checkIn} → ${b.checkOut}`
+                            : `${b.departureDate || b.travelDate} (${b.from} → ${b.to})`}
                         </strong>
                       </div>
 
                       <div>
-                        <span style={{ color: "#94a3b8", display: "block", fontSize: 11, marginBottom: 2 }}>Occupancy / Guest Count</span>
+                        <span style={{ color: "#94a3b8", display: "block", fontSize: 11, marginBottom: 2 }}>Traveling Party</span>
                         <strong style={{ color: "#ffffff" }}>
-                          {isHotel ? `${b.guests || 1} Guests (${b.roomType || "Deluxe"})` : `${b.passengers || b.guests || 1} Passengers`}
+                          {isTrip
+                            ? `${b.adults || 1} Adults${b.children ? `, ${b.children} Children` : ""}`
+                            : isHotel
+                            ? `${b.guests || 1} Guests (${b.roomType || "Deluxe"})`
+                            : `${b.passengers || b.guests || 1} Passengers`}
                         </strong>
                       </div>
 
                       <div>
                         <span style={{ color: "#94a3b8", display: "block", fontSize: 11, marginBottom: 2 }}>Total Amount</span>
-                        <strong style={{ color: "#10b981", fontSize: 15 }}>{b.price}</strong>
+                        <strong style={{ color: "#10b981", fontSize: 15 }}>
+                          {b.price || `₹${Number(b.totalAmount || 0).toLocaleString("en-IN")}`}
+                        </strong>
                       </div>
                     </div>
+
+                    {/* Additional package info for trips */}
+                    {isTrip && (b.selectedHotel || b.selectedFlight || (b.activities && b.activities.length > 0)) && (
+                      <div style={{
+                        background: "rgba(37, 99, 235, 0.08)", border: "1px solid rgba(37, 99, 235, 0.2)",
+                        borderRadius: 12, padding: "12px 16px", display: "flex", gap: 16, flexWrap: "wrap", fontSize: 12
+                      }}>
+                        {b.selectedHotel && (
+                          <div style={{ display: "flex", alignItems: "center", gap: 6, color: "#93c5fd" }}>
+                            <FaHotel /> Stay: <span style={{ color: "#ffffff", fontWeight: 700 }}>{b.selectedHotel.name}</span>
+                          </div>
+                        )}
+                        {b.selectedFlight && (
+                          <div style={{ display: "flex", alignItems: "center", gap: 6, color: "#93c5fd" }}>
+                            <FaPlane /> Flight: <span style={{ color: "#ffffff", fontWeight: 700 }}>{b.selectedFlight.airline} #{b.selectedFlight.flightNo}</span>
+                          </div>
+                        )}
+                        {b.activities && b.activities.length > 0 && (
+                          <div style={{ display: "flex", alignItems: "center", gap: 6, color: "#93c5fd" }}>
+                            🎯 Activities: <span style={{ color: "#ffffff", fontWeight: 700 }}>{b.activities.length} included</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
 
                     {/* Confirmation Footer info & Ticket Actions */}
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, fontSize: 12, color: "#94a3b8", paddingTop: 4 }}>
                       <div>
                         {isConfirmed && b.confirmedAt ? (
                           <span style={{ color: "#34d399", fontWeight: 600 }}>
-                            ✓ Confirmed by Admin on {String(b.confirmedAt).slice(0, 10)}
+                            ✓ Confirmed on {String(b.confirmedAt).slice(0, 10)}
                           </span>
                         ) : (
                           <span>Submitted on: {String(b.bookingDate || b.createdAt || "").slice(0, 10)}</span>
@@ -424,12 +534,12 @@ export default function MyBookings() {
                               alignItems: "center", gap: 6, boxShadow: "0 4px 12px rgba(16,185,129,0.3)"
                             }}
                           >
-                            <FaTicketAlt /> View &amp; Print E-Ticket
+                            <FaTicketAlt /> View &amp; Print Ticket
                           </button>
                         )}
 
                         <button
-                          onClick={() => handleCancelBooking(b._id, isHotel ? "hotel" : "flight")}
+                          onClick={() => handleCancelBooking(b._id, bType)}
                           style={{
                             background: "rgba(220, 38, 38, 0.1)", border: "1px solid rgba(220, 38, 38, 0.25)",
                             color: "#f87171", padding: "8px 14px", borderRadius: 10, cursor: "pointer",

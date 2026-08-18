@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import AdminNavbar from "../components/AdminNavbar";
-import { FaClipboardList, FaHotel, FaPlane, FaCheck, FaCheckCircle, FaSearch, FaEnvelope, FaClock } from "react-icons/fa";
+import { FaClipboardList, FaHotel, FaPlane, FaSuitcaseRolling, FaCheck, FaCheckCircle, FaSearch, FaEnvelope, FaClock } from "react-icons/fa";
 import axios from "axios";
 
 export default function AdminBookings() {
@@ -30,8 +30,8 @@ export default function AdminBookings() {
   };
 
   const handleConfirm = async (booking) => {
-    const bType = booking.bookingType || (booking.hotelName ? "hotel" : "flight");
-    const itemName = booking.hotelName || booking.flightName || "Reservation";
+    const bType = booking.bookingType || (booking.destinationName ? "trip" : booking.hotelName ? "hotel" : "flight");
+    const itemName = booking.destinationName || booking.hotelName || booking.flightName || "Reservation";
     const ok = window.confirm(`Confirm ${bType.toUpperCase()} booking for ${booking.customerName} (${itemName})? Confirmation email will be dispatched.`);
     if (!ok) return;
 
@@ -63,10 +63,10 @@ export default function AdminBookings() {
     const matchSearch =
       (b.customerName || "").toLowerCase().includes(search.toLowerCase()) ||
       (b.customerEmail || "").toLowerCase().includes(search.toLowerCase()) ||
-      (b.hotelName || b.flightName || "").toLowerCase().includes(search.toLowerCase()) ||
+      (b.destinationName || b.hotelName || b.flightName || "").toLowerCase().includes(search.toLowerCase()) ||
       (b._id || "").toLowerCase().includes(search.toLowerCase());
 
-    const bType = b.bookingType || (b.hotelName ? "hotel" : "flight");
+    const bType = b.bookingType || (b.destinationName ? "trip" : b.hotelName ? "hotel" : "flight");
     const matchType = filterType === "all" ? true : bType === filterType;
     const matchStatus = filterStatus === "all" ? true : (b.status || "Pending").toLowerCase() === filterStatus.toLowerCase();
 
@@ -94,7 +94,7 @@ export default function AdminBookings() {
                 All Booking Requests
               </h1>
               <p style={{ color: "#94a3b8", fontSize: "0.95rem", margin: "4px 0 0" }}>
-                Master administrative overview of all hotel stays and flight reservations.
+                Master administrative overview of destination trips, hotel stays, and flight reservations.
               </p>
             </div>
 
@@ -125,6 +125,7 @@ export default function AdminBookings() {
                 }}
               >
                 <option value="all">All Types</option>
+                <option value="trip">Trips Only</option>
                 <option value="hotel">Hotels Only</option>
                 <option value="flight">Flights Only</option>
               </select>
@@ -145,158 +146,158 @@ export default function AdminBookings() {
             </div>
           </div>
 
-          {/* Toast Notification */}
+          {/* Notification banner */}
           {notification && (
             <div style={{
-              background: notification.type === "success" ? "rgba(16, 185, 129, 0.2)" : "rgba(220, 38, 38, 0.2)",
-              border: notification.type === "success" ? "1px solid rgba(16, 185, 129, 0.4)" : "1px solid rgba(220, 38, 38, 0.4)",
+              padding: "14px 20px", borderRadius: 12, marginBottom: 24,
+              background: notification.type === "success" ? "rgba(16, 185, 129, 0.15)" : "rgba(239, 68, 68, 0.15)",
+              border: notification.type === "success" ? "1px solid rgba(16, 185, 129, 0.3)" : "1px solid rgba(239, 68, 68, 0.3)",
               color: notification.type === "success" ? "#34d399" : "#f87171",
-              padding: "14px 20px", borderRadius: 14, fontSize: 14, fontWeight: 600,
-              marginBottom: 24, display: "flex", alignItems: "center", gap: 10
+              fontSize: 14, fontWeight: 600, display: "flex", alignItems: "center", gap: 10
             }}>
               <FaCheckCircle /> {notification.message}
             </div>
           )}
 
-          {/* Table Container */}
-          <div style={{
-            background: "rgba(30, 41, 59, 0.5)", backdropFilter: "blur(16px)",
-            border: "1px solid rgba(255, 255, 255, 0.08)", borderRadius: 24,
-            overflow: "hidden", boxShadow: "0 12px 40px rgba(0,0,0,0.3)"
-          }}>
-            {loading ? (
-              <div style={{ padding: 60, textAlign: "center", color: "#94a3b8" }}>Loading master booking log...</div>
-            ) : filtered.length === 0 ? (
-              <div style={{ padding: 60, textAlign: "center", color: "#64748b" }}>
-                <div style={{ fontSize: 36, marginBottom: 12 }}>📋</div>
-                <h3 style={{ color: "#ffffff", margin: "0 0 6px" }}>No bookings found</h3>
-                <p style={{ margin: 0, fontSize: 14 }}>Try adjusting your search terms or filters.</p>
-              </div>
-            ) : (
-              <div style={{ overflowX: "auto" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: 13 }}>
-                  <thead>
-                    <tr style={{ background: "rgba(15, 23, 42, 0.8)", borderBottom: "1px solid rgba(255,255,255,0.08)", color: "#94a3b8" }}>
-                      <th style={{ padding: "16px 20px", fontWeight: 700 }}>Type</th>
-                      <th style={{ padding: "16px 20px", fontWeight: 700 }}>Booking ID</th>
-                      <th style={{ padding: "16px 20px", fontWeight: 700 }}>Customer Name</th>
-                      <th style={{ padding: "16px 20px", fontWeight: 700 }}>Customer Email</th>
-                      <th style={{ padding: "16px 20px", fontWeight: 700 }}>Reservation Item</th>
-                      <th style={{ padding: "16px 20px", fontWeight: 700 }}>Dates / Info</th>
-                      <th style={{ padding: "16px 20px", fontWeight: 700 }}>Price</th>
-                      <th style={{ padding: "16px 20px", fontWeight: 700 }}>Status</th>
-                      <th style={{ padding: "16px 20px", fontWeight: 700, textAlign: "center" }}>Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filtered.map((b) => {
-                      const isPending = (b.status || "Pending") === "Pending";
-                      const isHotel = (b.bookingType || (b.hotelName ? "hotel" : "flight")) === "hotel";
-                      const itemName = b.hotelName || b.flightName || "Reservation";
+          {/* Table */}
+          {loading ? (
+            <div style={{ textAlign: "center", padding: 60, color: "#94a3b8", background: "rgba(30, 41, 59, 0.5)", borderRadius: 20 }}>
+              Loading bookings log...
+            </div>
+          ) : filtered.length === 0 ? (
+            <div style={{ textAlign: "center", padding: 60, color: "#94a3b8", background: "rgba(30, 41, 59, 0.5)", borderRadius: 20 }}>
+              No matching booking records found.
+            </div>
+          ) : (
+            <div style={{
+              background: "rgba(30, 41, 59, 0.6)", backdropFilter: "blur(12px)",
+              borderRadius: 20, border: "1px solid rgba(255,255,255,0.1)", overflow: "hidden"
+            }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: 13 }}>
+                <thead>
+                  <tr style={{ background: "rgba(15, 23, 42, 0.8)", color: "#94a3b8", borderBottom: "1px solid rgba(255,255,255,0.1)" }}>
+                    <th style={{ padding: "16px 20px", fontWeight: 700 }}>Type</th>
+                    <th style={{ padding: "16px 20px", fontWeight: 700 }}>Booking ID</th>
+                    <th style={{ padding: "16px 20px", fontWeight: 700 }}>Customer Name</th>
+                    <th style={{ padding: "16px 20px", fontWeight: 700 }}>Customer Email</th>
+                    <th style={{ padding: "16px 20px", fontWeight: 700 }}>Reservation Item</th>
+                    <th style={{ padding: "16px 20px", fontWeight: 700 }}>Dates / Info</th>
+                    <th style={{ padding: "16px 20px", fontWeight: 700 }}>Price</th>
+                    <th style={{ padding: "16px 20px", fontWeight: 700 }}>Status</th>
+                    <th style={{ padding: "16px 20px", fontWeight: 700, textAlign: "center" }}>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map((b) => {
+                    const isPending = (b.status || "Pending") === "Pending";
+                    const bType = b.bookingType || (b.destinationName ? "trip" : b.hotelName ? "hotel" : "flight");
+                    const isTrip = bType === "trip";
+                    const isHotel = bType === "hotel";
+                    const itemName = b.destinationName || b.hotelName || b.flightName || "Reservation";
 
-                      return (
-                        <tr
-                          key={b._id}
-                          style={{
-                            borderBottom: "1px solid rgba(255,255,255,0.05)",
-                            transition: "background 0.2s"
-                          }}
-                          onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.03)"}
-                          onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-                        >
-                          {/* Type */}
-                          <td style={{ padding: "18px 20px" }}>
-                            <span style={{
-                              padding: "4px 10px", borderRadius: 8, fontSize: 11, fontWeight: 800,
-                              background: isHotel ? "rgba(59, 130, 246, 0.15)" : "rgba(168, 85, 247, 0.15)",
-                              color: isHotel ? "#3b82f6" : "#a855f7",
-                              display: "inline-flex", alignItems: "center", gap: 5
-                            }}>
-                              {isHotel ? <FaHotel size={11} /> : <FaPlane size={11} />}
-                              {isHotel ? "HOTEL" : "FLIGHT"}
+                    return (
+                      <tr
+                        key={b._id}
+                        style={{
+                          borderBottom: "1px solid rgba(255,255,255,0.05)",
+                          transition: "background 0.2s"
+                        }}
+                        onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.03)"}
+                        onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                      >
+                        {/* Type */}
+                        <td style={{ padding: "18px 20px" }}>
+                          <span style={{
+                            padding: "4px 10px", borderRadius: 8, fontSize: 11, fontWeight: 800,
+                            background: isTrip ? "rgba(37, 99, 235, 0.2)" : isHotel ? "rgba(59, 130, 246, 0.15)" : "rgba(168, 85, 247, 0.15)",
+                            color: isTrip ? "#60a5fa" : isHotel ? "#38bdf8" : "#a855f7",
+                            display: "inline-flex", alignItems: "center", gap: 5
+                          }}>
+                            {isTrip ? <FaSuitcaseRolling size={11} /> : isHotel ? <FaHotel size={11} /> : <FaPlane size={11} />}
+                            {isTrip ? "TRIP" : isHotel ? "HOTEL" : "FLIGHT"}
+                          </span>
+                        </td>
+
+                        {/* ID */}
+                        <td style={{ padding: "18px 20px", fontFamily: "monospace", color: "#38bdf8", fontWeight: 700 }}>
+                          #{String(b._id).slice(-8)}
+                        </td>
+
+                        {/* Customer */}
+                        <td style={{ padding: "18px 20px", color: "#ffffff", fontWeight: 700 }}>
+                          {b.customerName || b.userEmail}
+                        </td>
+
+                        {/* Email */}
+                        <td style={{ padding: "18px 20px", color: "#cbd5e1" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                            <FaEnvelope size={11} color="#94a3b8" /> {b.customerEmail || b.userEmail}
+                          </div>
+                        </td>
+
+                        {/* Item */}
+                        <td style={{ padding: "18px 20px", color: "#ffffff", fontWeight: 700 }}>
+                          {itemName}
+                        </td>
+
+                        {/* Dates */}
+                        <td style={{ padding: "18px 20px", color: "#cbd5e1" }}>
+                          {isTrip || isHotel ? (
+                            <div>{b.checkIn} &rarr; {b.checkOut}</div>
+                          ) : (
+                            <div>{b.departureDate || b.travelDate} ({b.from} &rarr; {b.to})</div>
+                          )}
+                        </td>
+
+                        {/* Price */}
+                        <td style={{ padding: "18px 20px", color: "#10b981", fontWeight: 800, fontSize: 14 }}>
+                          {b.price || `₹${Number(b.totalAmount || 0).toLocaleString("en-IN")}`}
+                        </td>
+
+                        {/* Status */}
+                        <td style={{ padding: "18px 20px" }}>
+                          <span style={{
+                            padding: "6px 12px", borderRadius: 20, fontSize: 11, fontWeight: 800,
+                            background: isPending ? "rgba(245, 158, 11, 0.15)" : "rgba(16, 185, 129, 0.15)",
+                            color: isPending ? "#f59e0b" : "#10b981",
+                            border: isPending ? "1px solid rgba(245, 158, 11, 0.3)" : "1px solid rgba(16, 185, 129, 0.3)",
+                            display: "inline-flex", alignItems: "center", gap: 5
+                          }}>
+                            {isPending ? <FaClock size={10} /> : <FaCheck size={10} />}
+                            {b.status || "Pending"}
+                          </span>
+                        </td>
+
+                        {/* Action */}
+                        <td style={{ padding: "18px 20px", textAlign: "center" }}>
+                          {isPending ? (
+                            <button
+                              onClick={() => handleConfirm(b)}
+                              disabled={confirmingId === b._id}
+                              style={{
+                                padding: "8px 16px", borderRadius: 10,
+                                background: "linear-gradient(135deg, #059669 0%, #10b981 100%)",
+                                color: "#ffffff", fontWeight: 700, fontSize: 12, border: "none",
+                                cursor: confirmingId === b._id ? "wait" : "pointer",
+                                opacity: confirmingId === b._id ? 0.7 : 1,
+                                display: "inline-flex", alignItems: "center", gap: 6
+                              }}
+                            >
+                              <FaCheck size={10} /> {confirmingId === b._id ? "Confirming..." : "Approve"}
+                            </button>
+                          ) : (
+                            <span style={{ color: "#34d399", fontSize: 12, fontWeight: 700 }}>
+                              ✓ Confirmed
                             </span>
-                          </td>
-
-                          {/* ID */}
-                          <td style={{ padding: "18px 20px", fontFamily: "monospace", color: "#38bdf8", fontWeight: 700 }}>
-                            #{String(b._id).slice(-8)}
-                          </td>
-
-                          {/* Customer */}
-                          <td style={{ padding: "18px 20px", color: "#ffffff", fontWeight: 700 }}>
-                            {b.customerName || b.userEmail}
-                          </td>
-
-                          {/* Email */}
-                          <td style={{ padding: "18px 20px", color: "#cbd5e1" }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                              <FaEnvelope size={11} color="#94a3b8" /> {b.customerEmail || b.userEmail}
-                            </div>
-                          </td>
-
-                          {/* Item */}
-                          <td style={{ padding: "18px 20px", color: "#ffffff", fontWeight: 700 }}>
-                            {itemName}
-                          </td>
-
-                          {/* Dates */}
-                          <td style={{ padding: "18px 20px", color: "#cbd5e1" }}>
-                            {isHotel ? (
-                              <div>{b.checkIn} &rarr; {b.checkOut}</div>
-                            ) : (
-                              <div>{b.departureDate || b.travelDate} ({b.from} &rarr; {b.to})</div>
-                            )}
-                          </td>
-
-                          {/* Price */}
-                          <td style={{ padding: "18px 20px", color: "#10b981", fontWeight: 800, fontSize: 14 }}>
-                            {b.price}
-                          </td>
-
-                          {/* Status */}
-                          <td style={{ padding: "18px 20px" }}>
-                            <span style={{
-                              padding: "6px 12px", borderRadius: 20, fontSize: 11, fontWeight: 800,
-                              background: isPending ? "rgba(245, 158, 11, 0.15)" : "rgba(16, 185, 129, 0.15)",
-                              color: isPending ? "#f59e0b" : "#10b981",
-                              border: isPending ? "1px solid rgba(245, 158, 11, 0.3)" : "1px solid rgba(16, 185, 129, 0.3)",
-                              display: "inline-flex", alignItems: "center", gap: 5
-                            }}>
-                              {isPending ? <FaClock size={10} /> : <FaCheck size={10} />}
-                              {b.status || "Pending"}
-                            </span>
-                          </td>
-
-                          {/* Action */}
-                          <td style={{ padding: "18px 20px", textAlign: "center" }}>
-                            {isPending ? (
-                              <button
-                                onClick={() => handleConfirm(b)}
-                                disabled={confirmingId === b._id}
-                                style={{
-                                  padding: "8px 16px", borderRadius: 10,
-                                  background: "linear-gradient(135deg, #059669 0%, #10b981 100%)",
-                                  color: "#ffffff", fontWeight: 700, fontSize: 12, border: "none",
-                                  cursor: confirmingId === b._id ? "wait" : "pointer",
-                                  boxShadow: "0 4px 12px rgba(16, 185, 129, 0.25)"
-                                }}
-                              >
-                                {confirmingId === b._id ? "Confirming..." : "Confirm"}
-                              </button>
-                            ) : (
-                              <div style={{ fontSize: 11, color: "#10b981", fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>
-                                <FaCheckCircle /> Confirmed
-                              </div>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </div>
     </>

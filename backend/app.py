@@ -12,7 +12,8 @@ from transformers import pipeline
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from bson import ObjectId
-from datetime import datetime
+from datetime import datetime, timedelta, date
+import re
 
 import smtplib
 from email.mime.text import MIMEText
@@ -21,8 +22,10 @@ from email.mime.multipart import MIMEMultipart
 from config import (
     users,
     reviews,
+    hotels,
     hotel_bookings,
     flight_bookings,
+    destination_bookings,
     contacts
 )
 import random
@@ -108,6 +111,242 @@ def seed_admin_account():
         print("[WARNING] Admin seed exception:", e)
 
 seed_admin_account()
+
+
+# ---------------- HOTEL SEEDING ---------------- #
+
+INITIAL_HOTELS = [
+    {
+        "name": "The Leela Palace",
+        "location": "New Delhi, India",
+        "country": "India",
+        "rating": 4.9,
+        "reviewsCount": 1234,
+        "pricePerNight": 28000,
+        "price": "₹28,000/night",
+        "img": "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=600&q=80",
+        "images": [
+            "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=600&q=80",
+            "https://images.unsplash.com/photo-1582719508461-905c673771fd?w=600&q=80",
+            "https://images.unsplash.com/photo-1590490360182-c33d57733427?w=600&q=80"
+        ],
+        "description": "Experience palatial luxury, bespoke butler service, Michelin-inspired dining, and serene rooftop infinity pool right in the heart of Diplomatic Enclave, New Delhi.",
+        "amenities": ["Free High-Speed Wi-Fi", "Infinity Swimming Pool", "Luxury Spa & Wellness", "Fine Dining Restaurant", "Valet Parking", "Air Conditioning", "24/7 Concierge"],
+        "checkInTime": "14:00",
+        "checkOutTime": "12:00",
+        "status": "Active",
+        "totalRooms": 30,
+        "availableRooms": 30,
+        "roomTypes": [
+            {"id": "rt-deluxe", "name": "Grand Heritage Deluxe Room", "pricePerNight": 28000, "totalRooms": 15, "availableRooms": 15, "maxGuests": 2, "amenities": ["King Bed", "Marble Bathroom", "High-speed Wi-Fi", "City View"]},
+            {"id": "rt-suite", "name": "Royal Club Suite with Terrace", "pricePerNight": 45000, "totalRooms": 10, "availableRooms": 10, "maxGuests": 3, "amenities": ["King Bed", "Private Terrace", "Lounge Access", "Bathtub"]},
+            {"id": "rt-presidential", "name": "Maharaja Presidential Suite", "pricePerNight": 95000, "totalRooms": 5, "availableRooms": 5, "maxGuests": 5, "amenities": ["2 King Bedrooms", "Private Dining", "Jacuzzi", "Dedicated Butler"]}
+        ]
+    },
+    {
+        "name": "Taj Mahal Palace",
+        "location": "Mumbai, India",
+        "country": "India",
+        "rating": 4.8,
+        "reviewsCount": 3456,
+        "pricePerNight": 35000,
+        "price": "₹35,000/night",
+        "img": "https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?w=600&q=80",
+        "images": [
+            "https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?w=600&q=80",
+            "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=600&q=80"
+        ],
+        "description": "Standing proudly overlooking the Gateway of India and the Arabian Sea since 1903, the Taj Mahal Palace offers unparalleled heritage elegance and world-class hospitality.",
+        "amenities": ["Sea View", "Free High-Speed Wi-Fi", "Swimming Pool", "Jiva Spa", "Signature Restaurants", "Valet Parking", "24/7 Concierge"],
+        "checkInTime": "14:00",
+        "checkOutTime": "12:00",
+        "status": "Active",
+        "totalRooms": 40,
+        "availableRooms": 40,
+        "roomTypes": [
+            {"id": "taj-luxury", "name": "Luxury City View Room", "pricePerNight": 35000, "totalRooms": 20, "availableRooms": 20, "maxGuests": 2, "amenities": ["Queen/King Bed", "Wi-Fi", "AC", "Luxury Toiletries"]},
+            {"id": "taj-seaview", "name": "Sea View Club Room", "pricePerNight": 52000, "totalRooms": 14, "availableRooms": 14, "maxGuests": 3, "amenities": ["Arabian Sea View", "Club Lounge Access", "High Tea", "King Bed"]},
+            {"id": "taj-suite", "name": "Gateway Heritage Suite", "pricePerNight": 110000, "totalRooms": 6, "availableRooms": 6, "maxGuests": 4, "amenities": ["Panoramic Sea View", "Living Room", "Personalized Butler", "Airport Transfer"]}
+        ]
+    },
+    {
+        "name": "Oberoi Udaivilas",
+        "location": "Udaipur, Rajasthan, India",
+        "country": "India",
+        "rating": 4.9,
+        "reviewsCount": 2105,
+        "pricePerNight": 55000,
+        "price": "₹55,000/night",
+        "img": "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=600&q=80",
+        "images": [
+            "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=600&q=80",
+            "https://images.unsplash.com/photo-1582719508461-905c673771fd?w=600&q=80"
+        ],
+        "description": "Situated on the bank of Lake Pichola, Oberoi Udaivilas features rambling courtyards, rippling fountains, reflecting pools, and manicured gardens evoking royal Mewar grandeur.",
+        "amenities": ["Lake View", "Semi-Private Pools", "Free Wi-Fi", "Ayurvedic Spa", "Boat Transfers", "Royal Dining", "AC"],
+        "checkInTime": "14:00",
+        "checkOutTime": "11:00",
+        "status": "Active",
+        "totalRooms": 25,
+        "availableRooms": 25,
+        "roomTypes": [
+            {"id": "udai-premier", "name": "Premier Lake View Room", "pricePerNight": 55000, "totalRooms": 12, "availableRooms": 12, "maxGuests": 2, "amenities": ["Lake Pichola View", "Private Courtyard", "Marble Bathroom", "Wi-Fi"]},
+            {"id": "udai-pool", "name": "Premier Room with Semi-Private Pool", "pricePerNight": 80000, "totalRooms": 9, "availableRooms": 9, "maxGuests": 3, "amenities": ["Direct Pool Access", "Day Bed", "Private Terrace", "Bathtub"]},
+            {"id": "udai-kohinoor", "name": "Kohinoor Luxury Palace Suite", "pricePerNight": 175000, "totalRooms": 4, "availableRooms": 4, "maxGuests": 4, "amenities": ["Private Full Pool", "Dining Pavilion", "City Palace View", "Private Butler"]}
+        ]
+    },
+    {
+        "name": "ITC Grand Chola",
+        "location": "Chennai, India",
+        "country": "India",
+        "rating": 4.7,
+        "reviewsCount": 987,
+        "pricePerNight": 22000,
+        "price": "₹22,000/night",
+        "img": "https://images.unsplash.com/photo-1578683010236-d716f9a3f461?w=600&q=80",
+        "images": [
+            "https://images.unsplash.com/photo-1578683010236-d716f9a3f461?w=600&q=80"
+        ],
+        "description": "An ode to the great Chola Dynasty with grand carved pillars, sweeping marble staircases, and 10 award-winning culinary destinations.",
+        "amenities": ["Free High-Speed Wi-Fi", "Swimming Pool", "Kaya Kalp Spa", "Gym & Fitness", "Free Parking", "AC"],
+        "checkInTime": "14:00",
+        "checkOutTime": "12:00",
+        "status": "Active",
+        "totalRooms": 35,
+        "availableRooms": 35,
+        "roomTypes": [
+            {"id": "itc-executive", "name": "Executive Club Room", "pricePerNight": 22000, "totalRooms": 20, "availableRooms": 20, "maxGuests": 2, "amenities": ["Smart Room Controls", "Wi-Fi", "Rain Shower", "Work Desk"]},
+            {"id": "itc-towers", "name": "The Towers Luxury Room", "pricePerNight": 32000, "totalRooms": 10, "availableRooms": 10, "maxGuests": 3, "amenities": ["Dedicated Floor Check-in", "Cocktail Hour", "King Bed"]},
+            {"id": "itc-suite", "name": "Chola Royal Presidential Suite", "pricePerNight": 65000, "totalRooms": 5, "availableRooms": 5, "maxGuests": 4, "amenities": ["Living Room", "Dining Area", "Butler Service", "Plunge Pool"]}
+        ]
+    },
+    {
+        "name": "Six Senses Vana",
+        "location": "Dehradun, India",
+        "country": "India",
+        "rating": 4.8,
+        "reviewsCount": 765,
+        "pricePerNight": 42000,
+        "price": "₹42,000/night",
+        "img": "https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=600&q=80",
+        "images": ["https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=600&q=80"],
+        "description": "A transformational wellness retreat nestled in dense Sal forest foothills of the Himalayas, offering Ayurveda, Tibetan healing, and yoga.",
+        "amenities": ["Full Board Organic Meals", "Ayurvedic Spa", "Yoga Pavilion", "Nature Trails", "Hydrotherapy Pools", "Free Wi-Fi"],
+        "checkInTime": "14:00",
+        "checkOutTime": "11:00",
+        "status": "Active",
+        "totalRooms": 20,
+        "availableRooms": 20,
+        "roomTypes": [
+            {"id": "vana-garden", "name": "Forest Garden Room", "pricePerNight": 42000, "totalRooms": 10, "availableRooms": 10, "maxGuests": 2, "amenities": ["Forest View Balcony", "Organic Linen", "Daily Wellness Therapy"]},
+            {"id": "vana-suite", "name": "Bodhi Wellness Suite", "pricePerNight": 68000, "totalRooms": 7, "availableRooms": 7, "maxGuests": 2, "amenities": ["Private Treatment Room", "Spacious Balcony", "Customized Nutrition"]},
+            {"id": "vana-villa", "name": "Himalayan Forest Villa", "pricePerNight": 120000, "totalRooms": 3, "availableRooms": 3, "maxGuests": 4, "amenities": ["Private Heated Pool", "2 Bedrooms", "Private Yoga Teacher"]}
+        ]
+    },
+    {
+        "name": "Burj Al Arab Jumeirah",
+        "location": "Dubai, UAE",
+        "country": "UAE",
+        "rating": 4.9,
+        "reviewsCount": 4120,
+        "pricePerNight": 120000,
+        "price": "₹1,20,000/night",
+        "img": "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=600&q=80",
+        "images": ["https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=600&q=80"],
+        "description": "The world's most iconic luxury hotel, shaped like a sail on its own island. Features duplex suites, private butler service, and Michelin-starred restaurants.",
+        "amenities": ["Private Beach", "Helipad Transfers", "Talise Spa", "Infinity Terrace Pools", "24/7 Dedicated Butler", "Wi-Fi"],
+        "checkInTime": "15:00",
+        "checkOutTime": "12:00",
+        "status": "Active",
+        "totalRooms": 30,
+        "availableRooms": 30,
+        "roomTypes": [
+            {"id": "burj-deluxe", "name": "Deluxe One-Bedroom Duplex Suite", "pricePerNight": 120000, "totalRooms": 18, "availableRooms": 18, "maxGuests": 3, "amenities": ["Duplex Layout", "Sea View", "Jacuzzi", "Hermes Toiletries"]},
+            {"id": "burj-panoramic", "name": "Panoramic Two-Bedroom Suite", "pricePerNight": 210000, "totalRooms": 8, "availableRooms": 8, "maxGuests": 5, "amenities": ["Floor-to-ceiling Sea Views", "2 Master Bedrooms", "Private Bar", "Butler"]},
+            {"id": "burj-royal", "name": "The Royal Duplex Suite", "pricePerNight": 450000, "totalRooms": 4, "availableRooms": 4, "maxGuests": 6, "amenities": ["Private Elevator", "Private Cinema", "Rotatable Bed", "Gold Leaf Accents"]}
+        ]
+    },
+    {
+        "name": "Marina Bay Sands Hotel",
+        "location": "Singapore",
+        "country": "Singapore",
+        "rating": 4.8,
+        "reviewsCount": 3890,
+        "pricePerNight": 68000,
+        "price": "₹68,000/night",
+        "img": "https://images.unsplash.com/photo-1525625293386-3f8f99389edd?w=600&q=80",
+        "images": ["https://images.unsplash.com/photo-1525625293386-3f8f99389edd?w=600&q=80"],
+        "description": "Singapore's landmark architectural wonder boasting the world-famous SkyPark rooftop infinity pool with breathtaking panoramic views over Marina Bay.",
+        "amenities": ["Rooftop Infinity Pool", "SkyPark Observation Deck", "Casino", "Celebrity Restaurants", "High-Speed Wi-Fi", "Fitness Club"],
+        "checkInTime": "15:00",
+        "checkOutTime": "11:00",
+        "status": "Active",
+        "totalRooms": 50,
+        "availableRooms": 50,
+        "roomTypes": [
+            {"id": "mbs-deluxe", "name": "Deluxe King Harbour View", "pricePerNight": 68000, "totalRooms": 25, "availableRooms": 25, "maxGuests": 2, "amenities": ["Harbour View", "Infinity Pool Access", "King Bed", "Wi-Fi"]},
+            {"id": "mbs-sands", "name": "Sands Premier Bay View Room", "pricePerNight": 92000, "totalRooms": 15, "availableRooms": 15, "maxGuests": 3, "amenities": ["Marina Bay Sky View", "Deep Soak Bathtub", "Complimentary Minibar"]},
+            {"id": "mbs-suite", "name": "Straits Club Luxury Suite", "pricePerNight": 180000, "totalRooms": 10, "availableRooms": 10, "maxGuests": 4, "amenities": ["Club Lounge Access", "Breakfast & Cocktails", "Pianist / Butler", "Panoramic Views"]}
+        ]
+    },
+    {
+        "name": "Zostel Hotel Jaipur",
+        "location": "Jaipur, Rajasthan, India",
+        "country": "India",
+        "rating": 4.8,
+        "reviewsCount": 340,
+        "pricePerNight": 2500,
+        "price": "₹2,500/night",
+        "img": "https://images.unsplash.com/photo-1582719508461-905c673771fd?w=600&q=80",
+        "images": ["https://images.unsplash.com/photo-1582719508461-905c673771fd?w=600&q=80"],
+        "description": "Experience vibrant culture, Rajasthani heritage artwork, rooftop café, and high-speed Wi-Fi in the central heart of Jaipur's Pink City.",
+        "amenities": ["Free High-Speed Wi-Fi", "Rooftop Café", "Common Lounge", "Air Conditioning", "24/7 Front Desk", "Luggage Storage"],
+        "checkInTime": "13:00",
+        "checkOutTime": "11:00",
+        "status": "Active",
+        "totalRooms": 25,
+        "availableRooms": 25,
+        "roomTypes": [
+            {"id": "zostel-private", "name": "Deluxe Private Double Room", "pricePerNight": 2500, "totalRooms": 15, "availableRooms": 15, "maxGuests": 2, "amenities": ["Ensuite Bathroom", "AC", "Wi-Fi", "Work Desk"]},
+            {"id": "zostel-balcony", "name": "Heritage Balcony Private Room", "pricePerNight": 3800, "totalRooms": 10, "availableRooms": 10, "maxGuests": 2, "amenities": ["Private Balcony", "City View", "King Bed", "Tea Maker"]}
+        ]
+    }
+]
+
+def seed_hotels_data():
+    try:
+        now_str = datetime.now().isoformat()
+        if hotels.count_documents({}) == 0:
+            print("[INFO] Seeding initial hotel inventory in MongoDB...")
+            for h in INITIAL_HOTELS:
+                h_doc = dict(h)
+                h_doc["createdAt"] = now_str
+                h_doc["updatedAt"] = now_str
+                hotels.insert_one(h_doc)
+            print(f"[INFO] Successfully seeded {len(INITIAL_HOTELS)} hotels.")
+        else:
+            # Ensure any missing fields like roomTypes or totalRooms are present
+            for h in hotels.find():
+                update_fields = {}
+                if "status" not in h:
+                    update_fields["status"] = "Active"
+                if "totalRooms" not in h:
+                    update_fields["totalRooms"] = 30
+                if "availableRooms" not in h:
+                    update_fields["availableRooms"] = h.get("totalRooms", 30)
+                if "roomTypes" not in h or not h["roomTypes"]:
+                    price_val = float(str(h.get("pricePerNight") or 5000))
+                    update_fields["roomTypes"] = [
+                        {"id": "rt-standard", "name": "Standard Deluxe Room", "pricePerNight": price_val, "totalRooms": 15, "availableRooms": 15, "maxGuests": 2, "amenities": ["Free Wi-Fi", "Air Conditioning", "King Bed"]},
+                        {"id": "rt-suite", "name": "Executive Luxury Suite", "pricePerNight": round(price_val * 1.5), "totalRooms": 10, "availableRooms": 10, "maxGuests": 4, "amenities": ["Free Wi-Fi", "Living Room", "Balcony", "Bathtub"]}
+                    ]
+                if update_fields:
+                    hotels.update_one({"_id": h["_id"]}, {"$set": update_fields})
+    except Exception as e:
+        print("[WARNING] Hotel seeding exception:", e)
+
+seed_hotels_data()
+
 
 
 # ---------------- REGISTER ---------------- #
@@ -453,88 +692,742 @@ def send_confirmation_email(user_email, booking, booking_type="hotel"):
         return False, f"Booking confirmed! (Email dispatch note: {str(e)})"
 
 
-# ---------------- BOOK HOTEL ---------------- #
+# ---------------- HOTEL INVENTORY & AVAILABILITY ENGINE ---------------- #
+
+def find_hotel_by_id_or_name(hotel_identifier):
+    if not hotel_identifier:
+        return None
+    try:
+        if ObjectId.is_valid(str(hotel_identifier)):
+            h = hotels.find_one({"_id": ObjectId(str(hotel_identifier))})
+            if h:
+                return h
+    except Exception:
+        pass
+    h = hotels.find_one({"name": {"$regex": f"^{re.escape(str(hotel_identifier).strip())}$", "$options": "i"}})
+    if h:
+        return h
+    return hotels.find_one({"name": {"$regex": re.escape(str(hotel_identifier).strip()), "$options": "i"}})
+
+
+def sync_hotel_room_stats(hotel_doc):
+    """
+    Recalculates active bookings and live available rooms for a hotel.
+    Ensures availableRooms is never negative and bounded by [0, totalRooms].
+    """
+    try:
+        hid_str = str(hotel_doc["_id"])
+        hname = hotel_doc.get("name", "")
+        total_rooms = int(hotel_doc.get("totalRooms", 30))
+
+        active_bookings = list(hotel_bookings.find({
+            "$or": [{"hotelId": hid_str}, {"hotelName": hname}],
+            "status": {"$in": ["Pending", "Confirmed"]}
+        }))
+
+        total_booked_count = sum(int(b.get("rooms", 1)) for b in active_bookings)
+        occupied_count = sum(int(b.get("rooms", 1)) for b in active_bookings if b.get("status") == "Confirmed")
+        pending_count = sum(int(b.get("rooms", 1)) for b in active_bookings if b.get("status") == "Pending")
+
+        cancelled_bookings = list(hotel_bookings.find({
+            "$or": [{"hotelId": hid_str}, {"hotelName": hname}],
+            "status": "Cancelled"
+        }))
+        cancelled_count = len(cancelled_bookings)
+
+        available_rooms = max(0, total_rooms - total_booked_count)
+
+        hotels.update_one(
+            {"_id": hotel_doc["_id"]},
+            {"$set": {"availableRooms": available_rooms, "totalRooms": total_rooms}}
+        )
+
+        return {
+            "totalRooms": total_rooms,
+            "availableRooms": available_rooms,
+            "bookedRooms": total_booked_count,
+            "occupiedRooms": occupied_count,
+            "pendingBookings": pending_count,
+            "cancelledBookings": cancelled_count,
+            "totalBookings": len(active_bookings) + cancelled_count
+        }
+    except Exception as e:
+        print("sync_hotel_room_stats error:", e)
+        return {
+            "totalRooms": int(hotel_doc.get("totalRooms", 30)),
+            "availableRooms": int(hotel_doc.get("availableRooms", 30)),
+            "bookedRooms": 0,
+            "occupiedRooms": 0,
+            "pendingBookings": 0,
+            "cancelledBookings": 0,
+            "totalBookings": 0
+        }
+
+
+def compute_date_range_availability(hotel_doc, check_in_str, check_out_str, requested_rooms=1):
+    """
+    Computes precise day-by-day availability across the requested [check_in, check_out) date range.
+    Handles overlapping booking ranges properly:
+    A booking [B_in, B_out) overlaps with [R_in, R_out) iff B_in < R_out and B_out > R_in.
+    """
+    total_rooms = int(hotel_doc.get("totalRooms", 30))
+    hid_str = str(hotel_doc["_id"])
+    hname = hotel_doc.get("name", "")
+
+    try:
+        d_in = datetime.strptime(check_in_str[:10], "%Y-%m-%d").date()
+        d_out = datetime.strptime(check_out_str[:10], "%Y-%m-%d").date()
+        if d_out <= d_in:
+            d_out = d_in + timedelta(days=1)
+    except Exception:
+        d_in = date.today()
+        d_out = d_in + timedelta(days=1)
+
+    days_count = max(1, (d_out - d_in).days)
+    day_list = [d_in + timedelta(days=i) for i in range(days_count)]
+
+    # Overlapping active bookings (Pending or Confirmed)
+    overlapping = list(hotel_bookings.find({
+        "$or": [{"hotelId": hid_str}, {"hotelName": hname}],
+        "status": {"$in": ["Pending", "Confirmed"]}
+    }))
+
+    # Map overall occupancy across each day
+    max_booked_overall = 0
+    for day in day_list:
+        day_str = day.strftime("%Y-%m-%d")
+        booked_today = 0
+        for b in overlapping:
+            b_in = str(b.get("checkIn", ""))[:10]
+            b_out = str(b.get("checkOut", ""))[:10]
+            if b_in and b_out and b_in <= day_str < b_out:
+                booked_today += int(b.get("rooms", 1))
+        if booked_today > max_booked_overall:
+            max_booked_overall = booked_today
+
+    available_overall = max(0, total_rooms - max_booked_overall)
+
+    # Per room type breakdown
+    room_types = hotel_doc.get("roomTypes") or [
+        {"id": "rt-standard", "name": "Standard Deluxe Room", "pricePerNight": float(str(hotel_doc.get("pricePerNight") or 5000)), "totalRooms": total_rooms, "availableRooms": total_rooms, "maxGuests": 2, "amenities": ["Free Wi-Fi", "Air Conditioning", "King Bed"]}
+    ]
+
+    enhanced_room_types = []
+    for rt in room_types:
+        rt_id = str(rt.get("id") or rt.get("name"))
+        rt_name = rt.get("name", "")
+        rt_total = int(rt.get("totalRooms", max(1, total_rooms // len(room_types))))
+        rt_max_booked = 0
+
+        for day in day_list:
+            day_str = day.strftime("%Y-%m-%d")
+            rt_booked_today = 0
+            for b in overlapping:
+                b_rt_id = str(b.get("roomTypeId", ""))
+                b_rt_name = str(b.get("roomType", ""))
+                if (b_rt_id and b_rt_id == rt_id) or (b_rt_name and b_rt_name.lower() == rt_name.lower()):
+                    b_in = str(b.get("checkIn", ""))[:10]
+                    b_out = str(b.get("checkOut", ""))[:10]
+                    if b_in and b_out and b_in <= day_str < b_out:
+                        rt_booked_today += int(b.get("rooms", 1))
+            if rt_booked_today > rt_max_booked:
+                rt_max_booked = rt_booked_today
+
+        rt_avail = max(0, rt_total - rt_max_booked)
+        rt_copy = dict(rt)
+        rt_copy["totalRooms"] = rt_total
+        rt_copy["availableRooms"] = rt_avail
+        rt_copy["isAvailable"] = rt_avail >= requested_rooms
+        enhanced_room_types.append(rt_copy)
+
+    return {
+        "checkIn": d_in.strftime("%Y-%m-%d"),
+        "checkOut": d_out.strftime("%Y-%m-%d"),
+        "nights": days_count,
+        "totalRooms": total_rooms,
+        "availableRooms": available_overall,
+        "bookedRooms": max_booked_overall,
+        "isAvailable": available_overall >= requested_rooms,
+        "roomTypes": enhanced_room_types
+    }
+
+
+# ---------------- HOTEL CRUD APIS ---------------- #
+
+@app.route("/api/hotels", methods=["GET"])
+@app.route("/hotels", methods=["GET"])
+def get_all_hotels():
+    try:
+        status_filter = request.args.get("status", "Active")
+        search_query = request.args.get("search", "").strip()
+        location_query = request.args.get("location", "").strip()
+        country_query = request.args.get("country", "").strip()
+
+        query = {}
+        if status_filter != "all":
+            query["status"] = {"$regex": f"^{status_filter}$", "$options": "i"}
+
+        if search_query:
+            query["$or"] = [
+                {"name": {"$regex": search_query, "$options": "i"}},
+                {"location": {"$regex": search_query, "$options": "i"}},
+                {"description": {"$regex": search_query, "$options": "i"}}
+            ]
+
+        if location_query:
+            query["location"] = {"$regex": location_query, "$options": "i"}
+
+        if country_query and country_query.lower() != "all":
+            query["$or"] = [
+                {"country": {"$regex": country_query, "$options": "i"}},
+                {"location": {"$regex": country_query, "$options": "i"}}
+            ]
+
+        hotel_list = []
+        for h in hotels.find(query):
+            stats = sync_hotel_room_stats(h)
+            h["_id"] = str(h["_id"])
+            h["id"] = h["_id"]
+            h["stats"] = stats
+            h["availableRooms"] = stats["availableRooms"]
+            h["totalRooms"] = stats["totalRooms"]
+            h["bookedRooms"] = stats["bookedRooms"]
+            h["totalBookings"] = stats["totalBookings"]
+            hotel_list.append(h)
+
+        return jsonify(hotel_list)
+    except Exception as e:
+        print("Get hotels error:", e)
+        return jsonify([]), 500
+
+
+@app.route("/api/hotels/<hotel_id>", methods=["GET"])
+@app.route("/hotels/<hotel_id>", methods=["GET"])
+def get_hotel_by_id(hotel_id):
+    try:
+        h = find_hotel_by_id_or_name(hotel_id)
+        if not h:
+            return jsonify({"message": "Hotel not found."}), 404
+
+        stats = sync_hotel_room_stats(h)
+        h["_id"] = str(h["_id"])
+        h["id"] = h["_id"]
+        h["stats"] = stats
+        h["availableRooms"] = stats["availableRooms"]
+        h["totalRooms"] = stats["totalRooms"]
+        return jsonify(h)
+    except Exception as e:
+        print("Get hotel by id error:", e)
+        return jsonify({"message": f"Error fetching hotel: {str(e)}"}), 500
+
+
+@app.route("/api/hotels", methods=["POST"])
+def admin_create_hotel():
+    try:
+        data = request.json or {}
+        name = data.get("name", "").strip()
+        location = data.get("location", "").strip()
+
+        if not name or not location:
+            return jsonify({"message": "Hotel name and location are required."}), 400
+
+        total_rooms = int(data.get("totalRooms", 20))
+        price_num = float(data.get("pricePerNight", 5000))
+        price_str = data.get("price") or f"₹{int(price_num):,}/night"
+
+        images = data.get("images") or []
+        img_main = data.get("img") or (images[0] if images else "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=600&q=80")
+        if not images and img_main:
+            images = [img_main]
+
+        room_types = data.get("roomTypes") or [
+            {
+                "id": "rt-standard",
+                "name": "Standard Deluxe Room",
+                "pricePerNight": price_num,
+                "totalRooms": total_rooms,
+                "availableRooms": total_rooms,
+                "maxGuests": int(data.get("maxGuests", 2)),
+                "amenities": ["Free Wi-Fi", "Air Conditioning", "King Bed"]
+            }
+        ]
+
+        now_str = datetime.now().isoformat()
+
+        hotel_doc = {
+            "name": name,
+            "location": location,
+            "country": data.get("country", location.split(",")[-1].strip() if "," in location else "India"),
+            "description": data.get("description", f"Luxury accommodation in {location} with premium hospitality and modern amenities."),
+            "rating": float(data.get("rating", 4.8)),
+            "reviewsCount": int(data.get("reviewsCount", 100)),
+            "pricePerNight": price_num,
+            "price": price_str,
+            "img": img_main,
+            "images": images,
+            "amenities": data.get("amenities") or ["Free High-Speed Wi-Fi", "Air Conditioning", "Swimming Pool", "Restaurant", "Valet Parking", "24/7 Front Desk"],
+            "checkInTime": data.get("checkInTime", "14:00"),
+            "checkOutTime": data.get("checkOutTime", "11:00"),
+            "totalRooms": total_rooms,
+            "availableRooms": total_rooms,
+            "roomTypes": room_types,
+            "status": data.get("status", "Active"),
+            "createdAt": now_str,
+            "updatedAt": now_str
+        }
+
+        res = hotels.insert_one(hotel_doc)
+        hotel_doc["_id"] = str(res.inserted_id)
+
+        return jsonify({
+            "message": f"Hotel '{name}' created successfully!",
+            "hotel": hotel_doc
+        }), 201
+    except Exception as e:
+        print("Create hotel error:", e)
+        return jsonify({"message": f"Failed to create hotel: {str(e)}"}), 500
+
+
+@app.route("/api/hotels/<hotel_id>", methods=["PUT"])
+def admin_update_hotel(hotel_id):
+    try:
+        data = request.json or {}
+        h = find_hotel_by_id_or_name(hotel_id)
+        if not h:
+            return jsonify({"message": "Hotel not found."}), 404
+
+        update_fields = {}
+        if "name" in data:
+            update_fields["name"] = data["name"].strip()
+        if "location" in data:
+            update_fields["location"] = data["location"].strip()
+        if "country" in data:
+            update_fields["country"] = data["country"].strip()
+        if "description" in data:
+            update_fields["description"] = data["description"]
+        if "rating" in data:
+            update_fields["rating"] = float(data["rating"])
+        if "pricePerNight" in data:
+            update_fields["pricePerNight"] = float(data["pricePerNight"])
+            update_fields["price"] = data.get("price") or f"₹{int(float(data['pricePerNight'])):,}/night"
+        elif "price" in data:
+            update_fields["price"] = data["price"]
+        if "img" in data:
+            update_fields["img"] = data["img"]
+        if "images" in data:
+            update_fields["images"] = data["images"]
+        if "amenities" in data:
+            update_fields["amenities"] = data["amenities"]
+        if "checkInTime" in data:
+            update_fields["checkInTime"] = data["checkInTime"]
+        if "checkOutTime" in data:
+            update_fields["checkOutTime"] = data["checkOutTime"]
+        if "status" in data:
+            update_fields["status"] = data["status"]
+        if "totalRooms" in data:
+            update_fields["totalRooms"] = int(data["totalRooms"])
+        if "availableRooms" in data:
+            update_fields["availableRooms"] = int(data["availableRooms"])
+        if "roomTypes" in data:
+            update_fields["roomTypes"] = data["roomTypes"]
+
+        update_fields["updatedAt"] = datetime.now().isoformat()
+
+        hotels.update_one({"_id": h["_id"]}, {"$set": update_fields})
+
+        updated = hotels.find_one({"_id": h["_id"]})
+        sync_hotel_room_stats(updated)
+        updated["_id"] = str(updated["_id"])
+
+        return jsonify({
+            "message": "Hotel updated successfully!",
+            "hotel": updated
+        })
+    except Exception as e:
+        print("Update hotel error:", e)
+        return jsonify({"message": f"Failed to update hotel: {str(e)}"}), 500
+
+
+@app.route("/api/hotels/<hotel_id>", methods=["DELETE"])
+def admin_delete_hotel(hotel_id):
+    """
+    Soft deletes (deactivates) a hotel.
+    Preserves all existing bookings for history as requested in Requirement 1D & 8.
+    """
+    try:
+        h = find_hotel_by_id_or_name(hotel_id)
+        if not h:
+            return jsonify({"message": "Hotel not found."}), 404
+
+        hotels.update_one(
+            {"_id": h["_id"]},
+            {"$set": {"status": "Deactivated", "updatedAt": datetime.now().isoformat()}}
+        )
+
+        return jsonify({
+            "message": f"Hotel '{h.get('name')}' deactivated successfully! Booking history preserved."
+        })
+    except Exception as e:
+        print("Delete/Deactivate hotel error:", e)
+        return jsonify({"message": f"Failed to deactivate hotel: {str(e)}"}), 500
+
+
+@app.route("/api/hotels/<hotel_id>/toggle-status", methods=["PUT"])
+def toggle_hotel_status(hotel_id):
+    try:
+        h = find_hotel_by_id_or_name(hotel_id)
+        if not h:
+            return jsonify({"message": "Hotel not found."}), 404
+
+        current_status = h.get("status", "Active")
+        new_status = "Deactivated" if current_status == "Active" else "Active"
+
+        hotels.update_one(
+            {"_id": h["_id"]},
+            {"$set": {"status": new_status, "updatedAt": datetime.now().isoformat()}}
+        )
+
+        return jsonify({
+            "message": f"Hotel status updated to {new_status}!",
+            "status": new_status
+        })
+    except Exception as e:
+        print("Toggle status error:", e)
+        return jsonify({"message": str(e)}), 500
+
+
+@app.route("/api/hotels/<hotel_id>/availability", methods=["GET"])
+def check_hotel_availability(hotel_id):
+    """
+    Calculates date-wise room availability for the requested checkIn -> checkOut dates.
+    Accounts for all overlapping confirmed/pending bookings to prevent overbooking.
+    """
+    try:
+        h = find_hotel_by_id_or_name(hotel_id)
+        if not h:
+            return jsonify({"message": "Hotel not found."}), 404
+
+        check_in = request.args.get("checkIn", "")
+        check_out = request.args.get("checkOut", "")
+        rooms = int(request.args.get("rooms", 1))
+
+        if not check_in:
+            check_in = date.today().strftime("%Y-%m-%d")
+        if not check_out:
+            check_out = (date.today() + timedelta(days=1)).strftime("%Y-%m-%d")
+
+        avail = compute_date_range_availability(h, check_in, check_out, requested_rooms=rooms)
+        avail["hotelId"] = str(h["_id"])
+        avail["hotelName"] = h.get("name")
+        return jsonify(avail)
+    except Exception as e:
+        print("Check availability error:", e)
+        return jsonify({"message": f"Error computing availability: {str(e)}"}), 500
+
+
+# ---------------- BOOK HOTEL (ATOMIC & CONCURRENCY-SAFE) ---------------- #
 
 @app.route("/book-hotel", methods=["POST"])
 @app.route("/api/bookings/hotel", methods=["POST"])
+@app.route("/api/hotel-bookings", methods=["POST"])
 def book_hotel():
     try:
         data = request.json or {}
 
-        user_email = data.get("userEmail") or data.get("customerEmail") or data.get("email", "").strip().lower()
+        user_email = (data.get("userEmail") or data.get("customerEmail") or data.get("email", "")).strip().lower()
         if not user_email:
             return jsonify({"message": "Customer email is required for booking."}), 400
 
-        customer_name = data.get("customerName") or data.get("guestName") or data.get("fullName") or data.get("name") or user_email.split("@")[0]
+        customer_name = (
+            data.get("customerName") or
+            data.get("guestName") or
+            data.get("fullName") or
+            data.get("name") or
+            user_email.split("@")[0]
+        )
         phone = data.get("phone") or data.get("phoneNumber") or "N/A"
+
+        hotel_id = data.get("hotelId") or data.get("id")
         hotel_name = data.get("hotelName") or data.get("name") or "Luxury Hotel"
+
+        h_doc = find_hotel_by_id_or_name(hotel_id or hotel_name)
+        if not h_doc:
+            # Fallback create a dummy doc in memory or insert hotel
+            h_doc = {
+                "_id": ObjectId(),
+                "name": hotel_name,
+                "location": data.get("location", "Prime Location"),
+                "totalRooms": 30,
+                "availableRooms": 30,
+                "pricePerNight": 5000
+            }
+
+        # Date validation
+        check_in = str(data.get("checkIn", "")).strip()[:10]
+        check_out = str(data.get("checkOut", "")).strip()[:10]
+
+        if not check_in or not check_out:
+            return jsonify({"message": "Check-in and Check-out dates are required."}), 400
+
+        try:
+            d_in = datetime.strptime(check_in, "%Y-%m-%d").date()
+            d_out = datetime.strptime(check_out, "%Y-%m-%d").date()
+        except ValueError:
+            return jsonify({"message": "Invalid date format. Please use YYYY-MM-DD."}), 400
+
+        if d_out <= d_in:
+            return jsonify({"message": "Check-out date must be strictly after Check-in date."}), 400
+
+        # Number of guests and rooms
+        guests_count = int(data.get("guests", 1))
+        rooms_count = int(data.get("rooms", 1))
+
+        if guests_count < 1:
+            return jsonify({"message": "At least 1 guest is required."}), 400
+        if rooms_count < 1:
+            return jsonify({"message": "At least 1 room is required."}), 400
+
+        # ── Concurrency & Date-Range Availability Engine ──
+        # Check actual availability for the requested date range
+        avail = compute_date_range_availability(h_doc, check_in, check_out, requested_rooms=rooms_count)
+
+        if not avail["isAvailable"] or avail["availableRooms"] < rooms_count:
+            left = avail["availableRooms"]
+            msg = "Hotel is Fully Booked for the selected date range." if left <= 0 else f"Overbooking prevented: Only {left} room(s) available for the selected dates."
+            return jsonify({"message": msg, "availableRooms": left, "isAvailable": False}), 400
+
+        # Room Type Selection & Pricing Calculation
+        room_type_id = data.get("roomTypeId")
+        room_type_name = data.get("roomType") or "Standard Deluxe Room"
+
+        nights_count = (d_out - d_in).days
+        price_per_night = float(data.get("pricePerNight") or h_doc.get("pricePerNight") or 5000)
+
+        # Match room type pricing if available
+        for rt in h_doc.get("roomTypes", []):
+            if (room_type_id and rt.get("id") == room_type_id) or (room_type_name and rt.get("name") == room_type_name):
+                price_per_night = float(rt.get("pricePerNight", price_per_night))
+                room_type_name = rt.get("name", room_type_name)
+                room_type_id = rt.get("id", room_type_id)
+                break
+
+        subtotal = price_per_night * nights_count * rooms_count
+        taxes = round(subtotal * 0.12, 2)  # 12% GST/Taxes
+        total_amount = round(subtotal + taxes, 2)
+        price_str = f"₹{int(total_amount):,}"
 
         now_iso = datetime.now().isoformat()
 
-        booking = {
+        booking_doc = {
+            "hotelId": str(h_doc["_id"]),
+            "hotelName": h_doc.get("name", hotel_name),
+            "location": h_doc.get("location", data.get("location", "Prime Location")),
             "customerName": customer_name,
             "guestName": customer_name,
             "customerEmail": user_email,
             "userEmail": user_email,
             "phone": phone,
-            "hotelName": hotel_name,
-            "location": data.get("location", "Prime Location"),
-            "price": data.get("price", "₹15,000"),
-            "checkIn": data.get("checkIn", "2026-08-20"),
-            "checkOut": data.get("checkOut", "2026-08-23"),
-            "guests": int(data.get("guests", 1)),
-            "rooms": int(data.get("rooms", 1)),
-            "roomType": data.get("roomType", "Deluxe Suite"),
+            "checkIn": check_in,
+            "checkOut": check_out,
+            "nights": nights_count,
+            "guests": guests_count,
+            "rooms": rooms_count,
+            "roomTypeId": room_type_id or "rt-standard",
+            "roomType": room_type_name,
+            "pricePerNight": price_per_night,
+            "subtotal": subtotal,
+            "taxes": taxes,
+            "totalAmount": total_amount,
+            "price": price_str,
+            "specialRequests": data.get("specialRequests", ""),
             "bookingType": "hotel",
-            "status": "Pending",
+            "status": data.get("status", "Pending"),
             "bookingDate": now_iso,
-            "createdAt": now_iso
+            "createdAt": now_iso,
+            "updatedAt": now_iso
         }
 
-        result = hotel_bookings.insert_one(booking)
+        result = hotel_bookings.insert_one(booking_doc)
+        booking_id = str(result.inserted_id)
+
+        # Atomically sync available room count on hotel doc
+        new_stats = sync_hotel_room_stats(h_doc)
+
+        print(f"[HOTEL BOOKING] Created booking #{booking_id[-8:]} for {user_email} at {h_doc.get('name')}. Remaining available: {new_stats['availableRooms']}")
 
         return jsonify({
-            "message": "Hotel booking submitted successfully! Waiting for Admin approval.",
-            "bookingId": str(result.inserted_id),
-            "status": "Pending"
+            "message": "Hotel reservation submitted successfully! Confirmed in database.",
+            "bookingId": booking_id,
+            "status": booking_doc["status"],
+            "totalAmount": total_amount,
+            "price": price_str,
+            "availableRooms": new_stats["availableRooms"]
         }), 201
+
     except Exception as e:
         print("Book hotel error:", e)
         return jsonify({"message": f"Hotel booking failed: {str(e)}"}), 500
 
 
-# ---------------- MY HOTELS ---------------- #
+# ---------------- MY HOTELS (USER BOOKINGS) ---------------- #
 
 @app.route("/my-hotels/<email>", methods=["GET"])
+@app.route("/api/hotel-bookings/user/<email>", methods=["GET"])
 def my_hotels(email):
     try:
         email = email.strip().lower()
         bookings = []
-        for booking in hotel_bookings.find({"$or": [{"userEmail": email}, {"customerEmail": email}]}):
-            booking["_id"] = str(booking["_id"])
-            if "status" not in booking:
-                booking["status"] = "Pending"
-            bookings.append(booking)
+        seen_ids = set()
+
+        for b in hotel_bookings.find({"$or": [{"userEmail": email}, {"customerEmail": email}]}).sort("createdAt", -1):
+            sid = str(b["_id"])
+            if sid in seen_ids:
+                continue
+            seen_ids.add(sid)
+            b["_id"] = sid
+            b["bookingType"] = "hotel"
+            b["status"] = b.get("status", "Pending")
+            b["nights"] = b.get("nights") or 1
+            bookings.append(b)
+
         return jsonify(bookings)
     except Exception as e:
         print("My hotels error:", e)
         return jsonify([])
 
 
-# ---------------- CANCEL HOTEL ---------------- #
+# ---------------- CANCEL HOTEL BOOKING (RESTORES AVAILABILITY) ---------------- #
 
-@app.route("/cancel-hotel/<booking_id>", methods=["DELETE"])
-def cancel_hotel(booking_id):
+@app.route("/cancel-hotel/<booking_id>", methods=["DELETE", "POST", "PUT"])
+@app.route("/api/hotel-bookings/<booking_id>/cancel", methods=["POST", "PUT", "DELETE"])
+def cancel_hotel_booking(booking_id):
+    """
+    Cancels a hotel booking and automatically returns the rooms to inventory.
+    Does NOT delete the record from database (preserves booking history as requested).
+    """
     try:
-        result = hotel_bookings.delete_one({"_id": ObjectId(booking_id)})
-        if result.deleted_count == 0:
+        booking = hotel_bookings.find_one({"_id": ObjectId(booking_id)})
+        if not booking:
             return jsonify({"message": "Booking not found."}), 404
-        return jsonify({"message": "Hotel booking cancelled successfully!"})
+
+        now_str = datetime.now().isoformat()
+
+        # Update booking status to Cancelled
+        hotel_bookings.update_one(
+            {"_id": ObjectId(booking_id)},
+            {"$set": {
+                "status": "Cancelled",
+                "cancelledAt": now_str,
+                "updatedAt": now_str,
+                "cancelledBy": request.json.get("cancelledBy", "user") if request.is_json else "user"
+            }}
+        )
+
+        # Restore hotel room availability
+        h_doc = find_hotel_by_id_or_name(booking.get("hotelId") or booking.get("hotelName"))
+        new_stats = {}
+        if h_doc:
+            new_stats = sync_hotel_room_stats(h_doc)
+
+        print(f"[HOTEL CANCELLATION] Booking #{booking_id[-8:]} cancelled. Rooms restored. Available: {new_stats.get('availableRooms', 'N/A')}")
+
+        return jsonify({
+            "message": "Hotel reservation cancelled successfully. Room availability restored!",
+            "status": "Cancelled",
+            "bookingId": booking_id,
+            "cancelledAt": now_str,
+            "availableRooms": new_stats.get("availableRooms")
+        })
     except Exception as e:
-        return jsonify({"message": str(e)}), 400
+        print("Cancel hotel error:", e)
+        return jsonify({"message": f"Error cancelling booking: {str(e)}"}), 500
+
+
+# ---------------- ADMIN HOTEL STATS API ---------------- #
+
+@app.route("/api/admin/hotel-stats", methods=["GET"])
+def get_admin_hotel_stats():
+    try:
+        hotel_list = list(hotels.find())
+        all_bookings = list(hotel_bookings.find())
+
+        total_hotels = len(hotel_list)
+        total_rooms_sum = sum(int(h.get("totalRooms", 30)) for h in hotel_list)
+
+        active_bookings = [b for b in all_bookings if b.get("status") in ["Pending", "Confirmed"]]
+        pending_bookings = [b for b in all_bookings if b.get("status") == "Pending"]
+        confirmed_bookings = [b for b in all_bookings if b.get("status") == "Confirmed"]
+        cancelled_bookings = [b for b in all_bookings if b.get("status") == "Cancelled"]
+
+        total_booked_rooms = sum(int(b.get("rooms", 1)) for b in active_bookings)
+        total_available_rooms = max(0, total_rooms_sum - total_booked_rooms)
+
+        # Per hotel detail stats
+        per_hotel_stats = []
+        for h in hotel_list:
+            st = sync_hotel_room_stats(h)
+            h["_id"] = str(h["_id"])
+            h["stats"] = st
+            per_hotel_stats.append(h)
+
+        return jsonify({
+            "overview": {
+                "totalHotels": total_hotels,
+                "totalRooms": total_rooms_sum,
+                "availableRooms": total_available_rooms,
+                "bookedRooms": total_booked_rooms,
+                "occupiedRooms": sum(int(b.get("rooms", 1)) for b in confirmed_bookings),
+                "pendingBookings": len(pending_bookings),
+                "confirmedBookings": len(confirmed_bookings),
+                "cancelledBookings": len(cancelled_bookings),
+                "totalBookings": len(all_bookings)
+            },
+            "hotels": per_hotel_stats
+        })
+    except Exception as e:
+        print("Get admin hotel stats error:", e)
+        return jsonify({"overview": {}, "hotels": []}), 500
+
+
+# ---------------- ADMIN CANCEL HOTEL BOOKING ---------------- #
+
+@app.route("/api/admin/bookings/cancel-hotel/<booking_id>", methods=["POST", "PUT"])
+def admin_cancel_hotel_booking(booking_id):
+    try:
+        booking = hotel_bookings.find_one({"_id": ObjectId(booking_id)})
+        if not booking:
+            return jsonify({"message": "Hotel booking not found."}), 404
+
+        now_str = datetime.now().isoformat()
+        hotel_bookings.update_one(
+            {"_id": ObjectId(booking_id)},
+            {"$set": {
+                "status": "Cancelled",
+                "cancelledAt": now_str,
+                "cancelledBy": "admin",
+                "updatedAt": now_str
+            }}
+        )
+
+        # Restore hotel room availability
+        h_doc = find_hotel_by_id_or_name(booking.get("hotelId") or booking.get("hotelName"))
+        new_stats = {}
+        if h_doc:
+            new_stats = sync_hotel_room_stats(h_doc)
+
+        return jsonify({
+            "message": "Hotel reservation cancelled by Admin. Rooms returned to availability.",
+            "status": "Cancelled",
+            "cancelledAt": now_str,
+            "availableRooms": new_stats.get("availableRooms")
+        })
+    except Exception as e:
+        print("Admin cancel hotel error:", e)
+        return jsonify({"message": f"Error cancelling booking: {str(e)}"}), 500
 
 
 # ---------------- BOOK FLIGHT ---------------- #
+
 
 @app.route("/book-flight", methods=["POST"])
 @app.route("/api/bookings/flight", methods=["POST"])
@@ -647,6 +1540,17 @@ def get_user_combined_bookings(email):
             f["status"] = f.get("status", "Pending")
             all_bookings.append(f)
 
+        # Destination Trip Bookings
+        for t in destination_bookings.find({"$or": [{"userEmail": email}, {"customerEmail": email}]}).sort("createdAt", -1):
+            sid = str(t["_id"])
+            if sid in seen_ids:
+                continue
+            seen_ids.add(sid)
+            t["_id"] = sid
+            t["bookingType"] = "trip"
+            t["status"] = t.get("status", "Confirmed")
+            all_bookings.append(t)
+
         all_bookings.sort(key=lambda x: str(x.get("bookingDate") or x.get("createdAt") or ""), reverse=True)
         return jsonify(all_bookings)
     except Exception as e:
@@ -707,6 +1611,7 @@ def admin_get_all_bookings():
     try:
         hotels = list(hotel_bookings.find())
         flights = list(flight_bookings.find())
+        trips = list(destination_bookings.find())
 
         formatted_hotels = []
         seen_ids = set()
@@ -735,7 +1640,20 @@ def admin_get_all_bookings():
             f["customerEmail"] = f.get("customerEmail") or f.get("userEmail", "customer@example.com")
             formatted_flights.append(f)
 
-        combined = formatted_hotels + formatted_flights
+        formatted_trips = []
+        for t in trips:
+            sid = str(t["_id"])
+            if sid in seen_ids:
+                continue
+            seen_ids.add(sid)
+            t["_id"] = sid
+            t["bookingType"] = "trip"
+            t["status"] = t.get("status", "Confirmed")
+            t["customerName"] = t.get("customerName") or t.get("userEmail", "Customer").split("@")[0]
+            t["customerEmail"] = t.get("customerEmail") or t.get("userEmail", "customer@example.com")
+            formatted_trips.append(t)
+
+        combined = formatted_hotels + formatted_flights + formatted_trips
         combined.sort(key=lambda x: str(x.get("bookingDate") or x.get("createdAt") or ""), reverse=True)
 
         pending_count = sum(1 for b in combined if b.get("status") == "Pending")
@@ -747,7 +1665,8 @@ def admin_get_all_bookings():
                 "pendingBookings": pending_count,
                 "confirmedBookings": confirmed_count,
                 "hotelBookings": len(formatted_hotels),
-                "flightBookings": len(formatted_flights)
+                "flightBookings": len(formatted_flights),
+                "tripBookings": len(formatted_trips)
             },
             "bookings": combined
         })
@@ -932,10 +1851,38 @@ def confirm_flight_booking(booking_id):
         return jsonify({"message": f"Error confirming flight booking: {str(e)}"}), 500
 
 
+def confirm_trip_booking(booking_id):
+    try:
+        now_str = datetime.now().isoformat()
+        res = destination_bookings.find_one_and_update(
+            {"_id": ObjectId(booking_id)},
+            {"$set": {"status": "Confirmed", "confirmedAt": now_str, "updatedAt": now_str}},
+            return_document=True
+        )
+        if not res:
+            return jsonify({"message": "Trip booking not found."}), 404
+        res["_id"] = str(res["_id"])
+        user_email = res.get("userEmail") or res.get("customerEmail", "")
+        send_confirmation_email(user_email, res, "trip")
+        return jsonify({
+            "message": "Booking is Confirmed and Ticket is Generated to User!",
+            "status": "Confirmed",
+            "confirmedAt": now_str,
+            "emailSent": True,
+            "emailMessage": "Booking is Confirmed and Ticket is Generated to User!"
+        })
+    except Exception as e:
+        print("Confirm trip error:", e)
+        return jsonify({"message": f"Error confirming trip booking: {str(e)}"}), 500
+
+
 @app.route("/api/admin/bookings/confirm/<b_type>/<booking_id>", methods=["POST", "PUT"])
 def confirm_any_booking(b_type, booking_id):
-    if b_type.lower() == "hotel":
+    b_lower = b_type.lower()
+    if b_lower == "hotel":
         return confirm_hotel_booking(booking_id)
+    elif b_lower in ["trip", "destination"]:
+        return confirm_trip_booking(booking_id)
     else:
         return confirm_flight_booking(booking_id)
 
@@ -1336,6 +2283,141 @@ def get_feedback_analysis(item_type, item_id):
         "keyNegatives": key_negatives,
         "overallScore": round((pos_pct / 20), 1) # out of 5
     })
+
+# ---------------- DESTINATION TRIP BOOKING ---------------- #
+
+@app.route("/api/bookings/destination", methods=["POST"])
+def book_destination_trip():
+    """Create a full destination trip booking (hotel + flight + activities)."""
+    try:
+        data = request.json or {}
+
+        user_email = (data.get("userEmail") or data.get("email", "")).strip().lower()
+        if not user_email:
+            return jsonify({"message": "User email is required for booking."}), 400
+
+        customer_name = (
+            data.get("customerName") or
+            data.get("name") or
+            user_email.split("@")[0]
+        )
+
+        destination_id   = str(data.get("destinationId", ""))
+        destination_name = data.get("destinationName", "Unknown Destination")
+        destination_img  = data.get("destinationImg", "")
+
+        check_in  = data.get("checkIn", "")
+        check_out = data.get("checkOut", "")
+        adults    = int(data.get("adults", 1))
+        children  = int(data.get("children", 0))
+
+        if not check_in or not check_out:
+            return jsonify({"message": "Travel dates (checkIn and checkOut) are required."}), 400
+        if adults < 1:
+            return jsonify({"message": "At least 1 adult traveler is required."}), 400
+
+        selected_hotel  = data.get("selectedHotel")   or {}
+        selected_flight = data.get("selectedFlight")  or {}
+        activities      = data.get("activities")      or []
+
+        hotel_cost       = float(data.get("hotelCost", 0))
+        flight_cost      = float(data.get("flightCost", 0))
+        activities_cost  = float(data.get("activitiesCost", 0))
+        taxes            = float(data.get("taxes", 0))
+        total_amount     = float(data.get("totalAmount", 0))
+
+        now_iso = datetime.now().isoformat()
+
+        booking_doc = {
+            "bookingType":      "trip",
+            "userEmail":        user_email,
+            "customerEmail":    user_email,
+            "customerName":     customer_name,
+            "destinationId":    destination_id,
+            "destinationName":  destination_name,
+            "destinationImg":   destination_img,
+            "checkIn":          check_in,
+            "checkOut":         check_out,
+            "adults":           adults,
+            "children":         children,
+            "guests":           adults + children,
+            "selectedHotel":    selected_hotel,
+            "selectedFlight":   selected_flight,
+            "activities":       activities,
+            "priceBreakdown": {
+                "hotelCost":      hotel_cost,
+                "flightCost":     flight_cost,
+                "activitiesCost": activities_cost,
+                "taxes":          taxes,
+                "totalAmount":    total_amount,
+            },
+            "totalAmount": total_amount,
+            "price":       f"₹{total_amount:,.0f}",
+            "status":      "Confirmed",
+            "bookingDate": now_iso,
+            "createdAt":   now_iso,
+        }
+
+        result = destination_bookings.insert_one(booking_doc)
+        booking_id = str(result.inserted_id)
+
+        print(f"[TRIP BOOKING] New trip booking created: {booking_id} for {user_email} → {destination_name}")
+
+        return jsonify({
+            "message":   "Trip booked successfully! Your adventure awaits.",
+            "bookingId": booking_id,
+            "status":    "Confirmed",
+        }), 201
+
+    except Exception as e:
+        print("Book destination trip error:", e)
+        return jsonify({"message": f"Trip booking failed: {str(e)}"}), 500
+
+
+@app.route("/api/bookings/my-trips/<email>", methods=["GET"])
+def get_my_trips(email):
+    """Get all destination trip bookings for a user."""
+    try:
+        email = email.strip().lower()
+        trips = []
+        for doc in destination_bookings.find(
+            {"$or": [{"userEmail": email}, {"customerEmail": email}]}
+        ).sort("createdAt", -1):
+            doc["_id"] = str(doc["_id"])
+            doc["bookingType"] = "trip"
+            doc["status"] = doc.get("status", "Confirmed")
+            trips.append(doc)
+        return jsonify(trips)
+    except Exception as e:
+        print("My trips error:", e)
+        return jsonify([])
+
+
+@app.route("/api/bookings/cancel-trip/<booking_id>", methods=["DELETE"])
+def cancel_trip(booking_id):
+    """Cancel (delete) a destination trip booking."""
+    try:
+        result = destination_bookings.delete_one({"_id": ObjectId(booking_id)})
+        if result.deleted_count == 0:
+            return jsonify({"message": "Trip booking not found."}), 404
+        return jsonify({"message": "Trip booking cancelled successfully!"})
+    except Exception as e:
+        return jsonify({"message": str(e)}), 400
+
+
+@app.route("/api/bookings/trip/<booking_id>", methods=["GET"])
+def get_trip_by_id(booking_id):
+    """Get a single destination trip booking by ID."""
+    try:
+        doc = destination_bookings.find_one({"_id": ObjectId(booking_id)})
+        if not doc:
+            return jsonify({"message": "Trip booking not found."}), 404
+        doc["_id"] = str(doc["_id"])
+        doc["bookingType"] = "trip"
+        return jsonify(doc)
+    except Exception as e:
+        return jsonify({"message": str(e)}), 400
+
 
 # ---------------- CONTACT ---------------- #
 

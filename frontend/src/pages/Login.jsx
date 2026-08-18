@@ -118,10 +118,12 @@ function Login() {
       );
       localStorage.setItem("role", userRole);
 
+      const redirectUrl = new URLSearchParams(location.search).get("redirect");
+
       if (userRole === "admin") {
-        navigate("/admin-dashboard");
+        navigate(redirectUrl || "/admin/dashboard");
       } else {
-        navigate("/home");
+        navigate(redirectUrl || "/home");
       }
     } catch (err) {
       console.warn("Login API endpoint note, checking registered users database:", err);
@@ -144,10 +146,11 @@ function Login() {
         );
         localStorage.setItem("role", roleToAssign);
 
+        const redirectUrl = new URLSearchParams(location.search).get("redirect");
         if (roleToAssign === "admin") {
-          navigate("/admin-dashboard");
+          navigate(redirectUrl || "/admin/dashboard");
         } else {
-          navigate("/home");
+          navigate(redirectUrl || "/home");
         }
         return;
       }

@@ -6,24 +6,32 @@ import SharedNavbar from "../components/SharedNavbar";
 export default function UserDashboard() {
   const navigate = useNavigate();
 
-  const user = JSON.parse(localStorage.getItem("user"));
+  const user = JSON.parse(localStorage.getItem("user") || "{}");
   const email = user?.email;
 
+  const [tripCount, setTripCount] = useState(0);
   const [hotelCount, setHotelCount] = useState(0);
   const [flightCount, setFlightCount] = useState(0);
 
   useEffect(() => {
-    loadDashboard();
-  }, []);
+    if (email) {
+      loadDashboard();
+    }
+  }, [email]);
 
   const loadDashboard = async () => {
     try {
-      const hotels = await axios.get(`http://127.0.0.1:5000/my-hotels/${email}`);
-      const flights = await axios.get(`http://127.0.0.1:5000/my-flights/${email}`);
-      setHotelCount(hotels.data.length);
-      setFlightCount(flights.data.length);
+      const [tripsRes, hotelsRes, flightsRes] = await Promise.allSettled([
+        axios.get(`http://127.0.0.1:5000/api/bookings/my-trips/${email}`),
+        axios.get(`http://127.0.0.1:5000/my-hotels/${email}`),
+        axios.get(`http://127.0.0.1:5000/my-flights/${email}`),
+      ]);
+
+      if (tripsRes.status === "fulfilled") setTripCount((tripsRes.value.data || []).length);
+      if (hotelsRes.status === "fulfilled") setHotelCount((hotelsRes.value.data || []).length);
+      if (flightsRes.status === "fulfilled") setFlightCount((flightsRes.value.data || []).length);
     } catch (err) {
-      console.log(err);
+      console.log("Dashboard fetch warning:", err);
     }
   };
 
@@ -75,7 +83,7 @@ export default function UserDashboard() {
               Welcome back, {user?.name || "Traveler"} 👋
             </h1>
             <p style={{ color: "#6B7280", marginTop: 8, fontSize: 15 }}>
-              Manage all your travel bookings in one place.
+              Manage all your destination trips, hotel reservations, and flights in one place.
             </p>
           </div>
 
@@ -93,9 +101,19 @@ export default function UserDashboard() {
               onMouseEnter={e => { e.currentTarget.style.boxShadow = "0 6px 20px rgba(0,0,0,0.10)"; e.currentTarget.style.transform = "translateY(-3px)"; }}
               onMouseLeave={e => { e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.06)"; e.currentTarget.style.transform = "none"; }}
             >
+              <div style={{ fontSize: 36, marginBottom: 8 }}>🌍</div>
+              <div style={{ fontSize: 40, fontWeight: 900, color: "#2563EB" }}>{tripCount}</div>
+              <div style={{ color: "#6B7280", fontSize: 13, fontWeight: 600, marginTop: 4, textTransform: "uppercase", letterSpacing: "0.5px" }}>Destination Trips</div>
+            </div>
+
+            <div
+              style={statCardStyle}
+              onMouseEnter={e => { e.currentTarget.style.boxShadow = "0 6px 20px rgba(0,0,0,0.10)"; e.currentTarget.style.transform = "translateY(-3px)"; }}
+              onMouseLeave={e => { e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.06)"; e.currentTarget.style.transform = "none"; }}
+            >
               <div style={{ fontSize: 36, marginBottom: 8 }}>🏨</div>
               <div style={{ fontSize: 40, fontWeight: 900, color: "#2563EB" }}>{hotelCount}</div>
-              <div style={{ color: "#6B7280", fontSize: 13, fontWeight: 600, marginTop: 4, textTransform: "uppercase", letterSpacing: "0.5px" }}>Hotel Bookings</div>
+              <div style={{ color: "#6B7280", fontSize: 13, fontWeight: 600, marginTop: 4, textTransform: "uppercase", letterSpacing: "0.5px" }}>Hotel Stays</div>
             </div>
 
             <div
@@ -105,7 +123,7 @@ export default function UserDashboard() {
             >
               <div style={{ fontSize: 36, marginBottom: 8 }}>✈️</div>
               <div style={{ fontSize: 40, fontWeight: 900, color: "#2563EB" }}>{flightCount}</div>
-              <div style={{ color: "#6B7280", fontSize: 13, fontWeight: 600, marginTop: 4, textTransform: "uppercase", letterSpacing: "0.5px" }}>Flight Bookings</div>
+              <div style={{ color: "#6B7280", fontSize: 13, fontWeight: 600, marginTop: 4, textTransform: "uppercase", letterSpacing: "0.5px" }}>Flight Tickets</div>
             </div>
           </div>
 
@@ -127,7 +145,16 @@ export default function UserDashboard() {
               style={{ ...quickBtnStyle, background: "linear-gradient(135deg, #2563eb, #3b82f6)", color: "#ffffff", border: "none" }}
               onClick={() => navigate("/my-bookings")}
             >
-              📋 My Bookings Status
+              📋 All My Bookings
+            </button>
+
+            <button
+              style={quickBtnStyle}
+              onClick={() => navigate("/search?tab=places")}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = "#2563EB"; e.currentTarget.style.color = "#2563EB"; e.currentTarget.style.background = "rgba(37,99,235,0.04)"; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = "#E5E7EB"; e.currentTarget.style.color = "#374151"; e.currentTarget.style.background = "#FFFFFF"; }}
+            >
+              🌍 Explore Destinations
             </button>
 
             <button
@@ -154,16 +181,7 @@ export default function UserDashboard() {
               onMouseEnter={e => { e.currentTarget.style.borderColor = "#2563EB"; e.currentTarget.style.color = "#2563EB"; e.currentTarget.style.background = "rgba(37,99,235,0.04)"; }}
               onMouseLeave={e => { e.currentTarget.style.borderColor = "#E5E7EB"; e.currentTarget.style.color = "#374151"; e.currentTarget.style.background = "#FFFFFF"; }}
             >
-              ⭐ Reviews
-            </button>
-
-            <button
-              style={quickBtnStyle}
-              onClick={() => navigate("/home")}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = "#2563EB"; e.currentTarget.style.color = "#2563EB"; e.currentTarget.style.background = "rgba(37,99,235,0.04)"; }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = "#E5E7EB"; e.currentTarget.style.color = "#374151"; e.currentTarget.style.background = "#FFFFFF"; }}
-            >
-              🌍 Explore Places
+              ⭐ AI Reviews
             </button>
           </div>
         </div>
