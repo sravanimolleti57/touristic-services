@@ -2,38 +2,59 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import AdminNavbar from "../components/AdminNavbar";
 import {
-  FaChartLine, FaHourglassHalf, FaCheckCircle, FaHotel, FaPlane,
-  FaArrowRight, FaClock, FaCheck, FaExclamationCircle, FaUser
+  FaChartLine, FaHourglassHalf, FaCheckCircle, FaHotel,
+  FaArrowRight, FaClock, FaCheck, FaUsers, FaCompass, FaRupeeSign,
+  FaClipboardList, FaTimesCircle, FaSuitcaseRolling, FaSyncAlt
 } from "react-icons/fa";
 import axios from "axios";
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
   const [stats, setStats] = useState({
+    totalUsers: 0,
+    totalHotels: 0,
+    totalDestinations: 0,
     totalBookings: 0,
     pendingBookings: 0,
     confirmedBookings: 0,
-    hotelBookings: 0,
-    flightBookings: 0
+    cancelledBookings: 0,
+    totalRevenue: 0,
+    recentBookings: []
   });
-  const [recentBookings, setRecentBookings] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
-    fetchDashboardData();
+    fetchDashboardOverview();
   }, []);
 
-  const fetchDashboardData = async () => {
+  const fetchDashboardOverview = async () => {
+    setRefreshing(true);
     try {
-      const res = await axios.get("http://127.0.0.1:5000/api/admin/bookings/all");
+      const res = await axios.get("http://127.0.0.1:5000/api/admin/overview");
       if (res.data) {
-        setStats(res.data.stats || {});
-        setRecentBookings((res.data.bookings || []).slice(0, 6));
+        setStats(res.data);
       }
     } catch (err) {
       console.warn("Error loading admin dashboard stats:", err);
     } finally {
       setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  const handleQuickApprove = async (bookingId, bType) => {
+    try {
+      if (bType === "hotel") {
+        await axios.post(`http://127.0.0.1:5000/api/admin/bookings/confirm-hotel/${bookingId}`);
+      } else {
+        await axios.post(`http://127.0.0.1:5000/api/admin/bookings/confirm/${bType || "trip"}/${bookingId}`);
+      }
+      alert("Booking approved and confirmed successfully!");
+      fetchDashboardOverview();
+    } catch (err) {
+      console.error(err);
+      alert(err.response?.data?.message || "Failed to approve booking.");
     }
   };
 
@@ -42,219 +63,334 @@ export default function AdminDashboard() {
       <AdminNavbar />
       <div style={{
         minHeight: "100vh",
-        background: "linear-gradient(135deg, #090d16 0%, #0f172a 100%)",
-        color: "#ffffff",
-        padding: "110px 40px 60px",
-        fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif"
+        background: "#F8FAFC",
+        color: "#0F172A",
+        padding: "100px 36px 60px",
+        fontFamily: "'Inter', system-ui, -apple-system, sans-serif"
       }}>
-        <div style={{ maxWidth: 1200, margin: "0 auto" }}>
-          {/* Dashboard Header */}
-          <div style={{ marginBottom: 36, display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: 16 }}>
+        <div style={{ maxWidth: 1240, margin: "0 auto" }}>
+
+          {/* Header Banner */}
+          <div style={{
+            marginBottom: 32, display: "flex", justifyContent: "space-between",
+            alignItems: "flex-end", flexWrap: "wrap", gap: 16
+          }}>
             <div>
-              <div style={{ display: "inline-flex", alignItems: "center", gap: 8, color: "#a855f7", fontSize: 13, fontWeight: 700, marginBottom: 6 }}>
-                <FaChartLine /> System Control & Analytics
+              <div style={{
+                display: "inline-flex", alignItems: "center", gap: 8,
+                color: "#2563EB", fontSize: 13, fontWeight: 800, marginBottom: 6
+              }}>
+                <FaChartLine /> SYSTEM METRICS &amp; PLATFORM OVERVIEW
               </div>
-              <h1 style={{ fontSize: "2.2rem", fontWeight: 900, margin: 0, color: "#ffffff" }}>
-                Admin Management Hub
+              <h1 style={{ fontSize: "2.2rem", fontWeight: 900, margin: 0, color: "#0F172A" }}>
+                Admin Management Console
               </h1>
-              <p style={{ color: "#94a3b8", fontSize: "0.95rem", margin: "4px 0 0" }}>
-                Review real-time hotel & flight reservation requests and approve pending bookings.
+              <p style={{ color: "#64748B", fontSize: "0.95rem", margin: "4px 0 0" }}>
+                Real-time control over user accounts, hotel inventories, destination trip packages, and bookings.
               </p>
             </div>
 
-            <div style={{ display: "flex", gap: 12 }}>
+            <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+              <button
+                onClick={fetchDashboardOverview}
+                disabled={refreshing}
+                style={{
+                  padding: "10px 16px", borderRadius: 10,
+                  background: "#FFFFFF", border: "1px solid #E2E8F0",
+                  color: "#475569", fontWeight: 700, fontSize: 13, cursor: "pointer",
+                  display: "flex", alignItems: "center", gap: 6, boxShadow: "0 1px 3px rgba(0,0,0,0.04)"
+                }}
+              >
+                <FaSyncAlt className={refreshing ? "spin-icon" : ""} /> {refreshing ? "Refreshing..." : "Refresh Data"}
+              </button>
+
               <button
                 onClick={() => navigate("/admin/hotels")}
                 style={{
-                  padding: "12px 20px", borderRadius: 12,
-                  background: "linear-gradient(135deg, #2563eb 0%, #3b82f6 100%)",
-                  color: "#ffffff", fontWeight: 700, border: "none", cursor: "pointer",
-                  display: "flex", alignItems: "center", gap: 8, fontSize: 14
+                  padding: "10px 18px", borderRadius: 10,
+                  background: "linear-gradient(135deg, #2563EB 0%, #3B82F6 100%)",
+                  color: "#FFFFFF", fontWeight: 800, border: "none", cursor: "pointer",
+                  display: "flex", alignItems: "center", gap: 6, fontSize: 13,
+                  boxShadow: "0 4px 12px rgba(37,99,235,0.25)"
                 }}
               >
-                <FaHotel /> Hotel Approvals
-              </button>
-              <button
-                onClick={() => navigate("/admin/flights")}
-                style={{
-                  padding: "12px 20px", borderRadius: 12,
-                  background: "linear-gradient(135deg, #7e22ce 0%, #a855f7 100%)",
-                  color: "#ffffff", fontWeight: 700, border: "none", cursor: "pointer",
-                  display: "flex", alignItems: "center", gap: 8, fontSize: 14
-                }}
-              >
-                <FaPlane /> Flight Approvals
+                <FaHotel /> Hotel Inventory
               </button>
             </div>
           </div>
 
-          {/* Stats Cards */}
+          {/* Stats Cards Grid */}
           <div style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))",
-            gap: 20,
-            marginBottom: 36
+            gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+            gap: 16,
+            marginBottom: 32
           }}>
-            {/* Card 1: Total Bookings */}
-            <div style={{
-              background: "rgba(30, 41, 59, 0.6)", backdropFilter: "blur(12px)",
-              border: "1px solid rgba(255, 255, 255, 0.08)", borderRadius: 18, padding: "24px 20px"
-            }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                <span style={{ fontSize: 13, color: "#94a3b8", fontWeight: 600 }}>Total Bookings</span>
-                <div style={{ width: 36, height: 36, borderRadius: 10, background: "rgba(56, 189, 248, 0.15)", color: "#38bdf8", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <FaChartLine />
+            {/* Total Users */}
+            <div
+              onClick={() => navigate("/admin/users")}
+              style={{
+                background: "#FFFFFF", border: "1px solid #E2E8F0", borderRadius: 18,
+                padding: "20px 22px", boxShadow: "0 2px 8px rgba(0,0,0,0.02)", cursor: "pointer",
+                transition: "transform 0.2s, box-shadow 0.2s"
+              }}
+              onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 8px 20px rgba(0,0,0,0.06)"; }}
+              onMouseLeave={e => { e.currentTarget.style.transform = "none"; e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.02)"; }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                <span style={{ fontSize: 12, color: "#64748B", fontWeight: 700, textTransform: "uppercase" }}>Registered Users</span>
+                <div style={{ width: 36, height: 36, borderRadius: 10, background: "#EFF6FF", color: "#2563EB", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <FaUsers size={16} />
                 </div>
               </div>
-              <div style={{ fontSize: "2.2rem", fontWeight: 900, color: "#ffffff" }}>{stats.totalBookings || 0}</div>
-              <div style={{ fontSize: 12, color: "#64748b", marginTop: 4 }}>System reservation requests</div>
+              <div style={{ fontSize: "1.8rem", fontWeight: 900, color: "#0F172A" }}>{stats.totalUsers || 0}</div>
+              <div style={{ fontSize: 12, color: "#2563EB", fontWeight: 600, marginTop: 4 }}>Manage users &rarr;</div>
             </div>
 
-            {/* Card 2: Pending Approvals */}
-            <div style={{
-              background: "rgba(30, 41, 59, 0.6)", backdropFilter: "blur(12px)",
-              border: "1px solid rgba(245, 158, 11, 0.25)", borderRadius: 18, padding: "24px 20px"
-            }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                <span style={{ fontSize: 13, color: "#f59e0b", fontWeight: 600 }}>Pending Approval</span>
-                <div style={{ width: 36, height: 36, borderRadius: 10, background: "rgba(245, 158, 11, 0.15)", color: "#f59e0b", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <FaHourglassHalf />
+            {/* Total Hotels */}
+            <div
+              onClick={() => navigate("/admin/hotels")}
+              style={{
+                background: "#FFFFFF", border: "1px solid #E2E8F0", borderRadius: 18,
+                padding: "20px 22px", boxShadow: "0 2px 8px rgba(0,0,0,0.02)", cursor: "pointer",
+                transition: "transform 0.2s, box-shadow 0.2s"
+              }}
+              onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 8px 20px rgba(0,0,0,0.06)"; }}
+              onMouseLeave={e => { e.currentTarget.style.transform = "none"; e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.02)"; }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                <span style={{ fontSize: 12, color: "#64748B", fontWeight: 700, textTransform: "uppercase" }}>Hotels Listed</span>
+                <div style={{ width: 36, height: 36, borderRadius: 10, background: "#F0FDF4", color: "#16A34A", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <FaHotel size={16} />
                 </div>
               </div>
-              <div style={{ fontSize: "2.2rem", fontWeight: 900, color: "#f59e0b" }}>{stats.pendingBookings || 0}</div>
-              <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 4 }}>Awaiting admin confirmation</div>
+              <div style={{ fontSize: "1.8rem", fontWeight: 900, color: "#0F172A" }}>{stats.totalHotels || 0}</div>
+              <div style={{ fontSize: 12, color: "#16A34A", fontWeight: 600, marginTop: 4 }}>Manage inventory &rarr;</div>
             </div>
 
-            {/* Card 3: Confirmed Bookings */}
-            <div style={{
-              background: "rgba(30, 41, 59, 0.6)", backdropFilter: "blur(12px)",
-              border: "1px solid rgba(16, 185, 129, 0.25)", borderRadius: 18, padding: "24px 20px"
-            }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                <span style={{ fontSize: 13, color: "#10b981", fontWeight: 600 }}>Confirmed Bookings</span>
-                <div style={{ width: 36, height: 36, borderRadius: 10, background: "rgba(16, 185, 129, 0.15)", color: "#10b981", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <FaCheckCircle />
+            {/* Total Destinations */}
+            <div
+              onClick={() => navigate("/admin/destinations")}
+              style={{
+                background: "#FFFFFF", border: "1px solid #E2E8F0", borderRadius: 18,
+                padding: "20px 22px", boxShadow: "0 2px 8px rgba(0,0,0,0.02)", cursor: "pointer",
+                transition: "transform 0.2s, box-shadow 0.2s"
+              }}
+              onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 8px 20px rgba(0,0,0,0.06)"; }}
+              onMouseLeave={e => { e.currentTarget.style.transform = "none"; e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.02)"; }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                <span style={{ fontSize: 12, color: "#64748B", fontWeight: 700, textTransform: "uppercase" }}>Destinations</span>
+                <div style={{ width: 36, height: 36, borderRadius: 10, background: "#FAF5FF", color: "#9333EA", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <FaCompass size={16} />
                 </div>
               </div>
-              <div style={{ fontSize: "2.2rem", fontWeight: 900, color: "#10b981" }}>{stats.confirmedBookings || 0}</div>
-              <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 4 }}>Confirmed & emails dispatched</div>
+              <div style={{ fontSize: "1.8rem", fontWeight: 900, color: "#0F172A" }}>{stats.totalDestinations || 8}</div>
+              <div style={{ fontSize: 12, color: "#9333EA", fontWeight: 600, marginTop: 4 }}>View packages &rarr;</div>
             </div>
 
-            {/* Card 4: Hotel Bookings */}
-            <div style={{
-              background: "rgba(30, 41, 59, 0.6)", backdropFilter: "blur(12px)",
-              border: "1px solid rgba(59, 130, 246, 0.25)", borderRadius: 18, padding: "24px 20px"
-            }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                <span style={{ fontSize: 13, color: "#3b82f6", fontWeight: 600 }}>Hotel Bookings</span>
-                <div style={{ width: 36, height: 36, borderRadius: 10, background: "rgba(59, 130, 246, 0.15)", color: "#3b82f6", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <FaHotel />
+            {/* Total Bookings */}
+            <div
+              onClick={() => navigate("/admin/bookings")}
+              style={{
+                background: "#FFFFFF", border: "1px solid #E2E8F0", borderRadius: 18,
+                padding: "20px 22px", boxShadow: "0 2px 8px rgba(0,0,0,0.02)", cursor: "pointer",
+                transition: "transform 0.2s, box-shadow 0.2s"
+              }}
+              onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 8px 20px rgba(0,0,0,0.06)"; }}
+              onMouseLeave={e => { e.currentTarget.style.transform = "none"; e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.02)"; }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                <span style={{ fontSize: 12, color: "#64748B", fontWeight: 700, textTransform: "uppercase" }}>Total Bookings</span>
+                <div style={{ width: 36, height: 36, borderRadius: 10, background: "#FEF3C7", color: "#D97706", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <FaClipboardList size={16} />
                 </div>
               </div>
-              <div style={{ fontSize: "2.2rem", fontWeight: 900, color: "#3b82f6" }}>{stats.hotelBookings || 0}</div>
-              <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 4 }}>Hotel stays reserved</div>
+              <div style={{ fontSize: "1.8rem", fontWeight: 900, color: "#0F172A" }}>{stats.totalBookings || 0}</div>
+              <div style={{ fontSize: 12, color: "#D97706", fontWeight: 600, marginTop: 4 }}>
+                {stats.pendingBookings || 0} pending review
+              </div>
             </div>
 
-            {/* Card 5: Flight Bookings */}
-            <div style={{
-              background: "rgba(30, 41, 59, 0.6)", backdropFilter: "blur(12px)",
-              border: "1px solid rgba(168, 85, 247, 0.25)", borderRadius: 18, padding: "24px 20px"
-            }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                <span style={{ fontSize: 13, color: "#a855f7", fontWeight: 600 }}>Flight Bookings</span>
-                <div style={{ width: 36, height: 36, borderRadius: 10, background: "rgba(168, 85, 247, 0.15)", color: "#a855f7", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <FaPlane />
+            {/* Confirmed Revenue */}
+            <div
+              style={{
+                background: "#FFFFFF", border: "1px solid #E2E8F0", borderRadius: 18,
+                padding: "20px 22px", boxShadow: "0 2px 8px rgba(0,0,0,0.02)"
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                <span style={{ fontSize: 12, color: "#64748B", fontWeight: 700, textTransform: "uppercase" }}>Confirmed Revenue</span>
+                <div style={{ width: 36, height: 36, borderRadius: 10, background: "#ECFDF5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <FaRupeeSign size={16} />
                 </div>
               </div>
-              <div style={{ fontSize: "2.2rem", fontWeight: 900, color: "#a855f7" }}>{stats.flightBookings || 0}</div>
-              <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 4 }}>Flight tickets requested</div>
+              <div style={{ fontSize: "1.8rem", fontWeight: 900, color: "#059669" }}>
+                ₹{Number(stats.totalRevenue || 0).toLocaleString("en-IN")}
+              </div>
+              <div style={{ fontSize: 12, color: "#64748B", marginTop: 4 }}>{stats.confirmedBookings || 0} confirmed reservations</div>
+            </div>
+          </div>
+
+          {/* Quick Management Shortcuts */}
+          <div style={{
+            background: "#FFFFFF", border: "1px solid #E2E8F0", borderRadius: 20,
+            padding: "22px 28px", marginBottom: 32, boxShadow: "0 2px 8px rgba(0,0,0,0.02)"
+          }}>
+            <h3 style={{ fontSize: 15, fontWeight: 800, color: "#0F172A", margin: "0 0 16px" }}>
+              Admin Fast Access Hub
+            </h3>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14 }}>
+              {[
+                { title: "Manage Users", desc: "View registered users & roles", path: "/admin/users", icon: <FaUsers color="#2563EB" /> },
+                { title: "Destinations", desc: "Trip packages & itineraries", path: "/admin/destinations", icon: <FaCompass color="#9333EA" /> },
+                { title: "Hotel Inventory", desc: "Manage hotels, pricing & rooms", path: "/admin/hotels", icon: <FaHotel color="#16A34A" /> },
+                { title: "Activities & Tours", desc: "Sightseeing experiences & tours", path: "/admin/activities", icon: <FaSuitcaseRolling color="#EA580C" /> },
+                { title: "Master Bookings", desc: "Review all reservations & statuses", path: "/admin/bookings", icon: <FaClipboardList color="#D97706" /> },
+              ].map(item => (
+                <div
+                  key={item.title}
+                  onClick={() => navigate(item.path)}
+                  style={{
+                    padding: "14px 18px", borderRadius: 14, background: "#F8FAFC",
+                    border: "1px solid #E2E8F0", cursor: "pointer", display: "flex",
+                    alignItems: "center", gap: 14, transition: "all 0.2s"
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = "#93C5FD"; e.currentTarget.style.background = "#EFF6FF"; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = "#E2E8F0"; e.currentTarget.style.background = "#F8FAFC"; }}
+                >
+                  <div style={{ fontSize: 22 }}>{item.icon}</div>
+                  <div>
+                    <div style={{ fontSize: 14, fontWeight: 800, color: "#0F172A" }}>{item.title}</div>
+                    <div style={{ fontSize: 12, color: "#64748B" }}>{item.desc}</div>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
 
           {/* Recent Reservations Feed */}
           <div style={{
-            background: "rgba(30, 41, 59, 0.5)", backdropFilter: "blur(16px)",
-            border: "1px solid rgba(255, 255, 255, 0.08)", borderRadius: 24, padding: "28px 32px"
+            background: "#FFFFFF", border: "1px solid #E2E8F0", borderRadius: 16,
+            padding: "20px 24px", boxShadow: "0 2px 8px rgba(0,0,0,0.02)"
           }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
               <div>
-                <h3 style={{ fontSize: "1.25rem", fontWeight: 800, margin: 0 }}>Recent Booking Activity</h3>
-                <p style={{ fontSize: 13, color: "#94a3b8", margin: "4px 0 0" }}>Latest customer reservation submissions</p>
+                <h3 style={{ fontSize: 15, fontWeight: 800, color: "#0F172A", margin: 0 }}>
+                  Recent System Bookings &amp; Reservation Requests
+                </h3>
+                <p style={{ color: "#64748B", fontSize: 12, margin: "2px 0 0" }}>
+                  Live feed of newly created hotel stays and destination trips.
+                </p>
               </div>
               <button
                 onClick={() => navigate("/admin/bookings")}
                 style={{
-                  background: "none", border: "none", color: "#a855f7", cursor: "pointer",
-                  fontSize: 14, fontWeight: 700, display: "flex", alignItems: "center", gap: 6
+                  background: "#EFF6FF", border: "1px solid #BFDBFE", color: "#2563EB",
+                  padding: "6px 14px", borderRadius: 8, fontSize: 12, fontWeight: 700,
+                  cursor: "pointer", display: "flex", alignItems: "center", gap: 6
                 }}
               >
-                View All Bookings <FaArrowRight />
+                View Master Log <FaArrowRight size={10} />
               </button>
             </div>
 
             {loading ? (
-              <div style={{ padding: 40, textAlign: "center", color: "#94a3b8" }}>Loading dashboard overview...</div>
-            ) : recentBookings.length === 0 ? (
-              <div style={{ padding: "40px", textAlign: "center", color: "#64748b" }}>
-                <FaExclamationCircle size={32} style={{ marginBottom: 8 }} />
-                <div>No recent bookings found. Make a booking as a User to test the admin approval flow!</div>
-              </div>
+              <div style={{ padding: 40, textAlign: "center", color: "#64748B" }}>Loading recent bookings...</div>
+            ) : (!stats.recentBookings || stats.recentBookings.length === 0) ? (
+              <div style={{ padding: 40, textAlign: "center", color: "#64748B" }}>No booking records found in database.</div>
             ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                {recentBookings.map((b) => {
-                  const isPending = b.status === "Pending";
-                  const isHotel = b.bookingType === "hotel";
-                  const itemName = b.hotelName || b.flightName || "Reservation";
+              <div style={{ overflowX: "auto" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                  <thead>
+                    <tr style={{ background: "#F8FAFC", borderBottom: "1px solid #E2E8F0", color: "#64748B" }}>
+                      <th style={{ padding: "12px 16px", textAlign: "left", fontWeight: 700 }}>Type</th>
+                      <th style={{ padding: "12px 16px", textAlign: "left", fontWeight: 700 }}>Booking ID</th>
+                      <th style={{ padding: "12px 16px", textAlign: "left", fontWeight: 700 }}>Customer Name</th>
+                      <th style={{ padding: "12px 16px", textAlign: "left", fontWeight: 700 }}>Item / Service</th>
+                      <th style={{ padding: "12px 16px", textAlign: "left", fontWeight: 700 }}>Stay / Travel Dates</th>
+                      <th style={{ padding: "12px 16px", textAlign: "left", fontWeight: 700 }}>Amount</th>
+                      <th style={{ padding: "12px 16px", textAlign: "left", fontWeight: 700 }}>Status</th>
+                      <th style={{ padding: "12px 16px", textAlign: "center", fontWeight: 700 }}>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {stats.recentBookings.map((b) => {
+                      const isPending = (b.status || "Pending") === "Pending";
+                      const isConfirmed = b.status === "Confirmed";
+                      const isCancelled = b.status === "Cancelled";
+                      const bType = b.bookingType || (b.destinationName ? "trip" : "hotel");
+                      const itemName = b.destinationName || b.hotelName || "Reservation";
 
-                  return (
-                    <div
-                      key={b._id}
-                      style={{
-                        background: "rgba(15, 23, 42, 0.6)", borderRadius: 14,
-                        padding: "16px 20px", border: "1px solid rgba(255,255,255,0.06)",
-                        display: "flex", justifyContent: "space-between", alignItems: "center",
-                        flexWrap: "wrap", gap: 16
-                      }}
-                    >
-                      <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-                        <div style={{
-                          width: 42, height: 42, borderRadius: 12,
-                          background: isHotel ? "rgba(59, 130, 246, 0.15)" : "rgba(168, 85, 247, 0.15)",
-                          color: isHotel ? "#3b82f6" : "#a855f7",
-                          display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18
-                        }}>
-                          {isHotel ? <FaHotel /> : <FaPlane />}
-                        </div>
-                        <div>
-                          <div style={{ fontSize: 15, fontWeight: 800, color: "#ffffff" }}>{itemName}</div>
-                          <div style={{ fontSize: 12, color: "#94a3b8", display: "flex", alignItems: "center", gap: 8, marginTop: 2 }}>
-                            <span><FaUser size={10} /> {b.customerName || b.userEmail}</span>
-                            <span>•</span>
-                            <span>{isHotel ? `Check-in: ${b.checkIn}` : `Date: ${b.departureDate || b.travelDate}`}</span>
-                          </div>
-                        </div>
-                      </div>
+                      return (
+                        <tr key={b._id} style={{ borderBottom: "1px solid #F1F5F9" }}>
+                          <td style={{ padding: "14px 16px" }}>
+                            <span style={{
+                              padding: "4px 8px", borderRadius: 8, fontSize: 11, fontWeight: 800,
+                              background: bType === "hotel" ? "#EFF6FF" : "#F0FDF4",
+                              color: bType === "hotel" ? "#2563EB" : "#16A34A",
+                              display: "inline-flex", alignItems: "center", gap: 4
+                            }}>
+                              {bType === "hotel" ? <FaHotel size={10} /> : <FaSuitcaseRolling size={10} />}
+                              {bType.toUpperCase()}
+                            </span>
+                          </td>
 
-                      <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-                        <div style={{ textAlign: "right" }}>
-                          <div style={{ fontSize: 15, fontWeight: 800, color: "#38bdf8" }}>{b.price}</div>
-                          <div style={{ fontSize: 11, color: "#64748b" }}>ID: {String(b._id).slice(-8)}</div>
-                        </div>
+                          <td style={{ padding: "14px 16px", fontFamily: "monospace", color: "#2563EB", fontWeight: 700 }}>
+                            #{String(b._id).slice(-8)}
+                          </td>
 
-                        <span style={{
-                          padding: "6px 14px", borderRadius: 20, fontSize: 12, fontWeight: 800,
-                          background: isPending ? "rgba(245, 158, 11, 0.15)" : "rgba(16, 185, 129, 0.15)",
-                          color: isPending ? "#f59e0b" : "#10b981",
-                          border: isPending ? "1px solid rgba(245, 158, 11, 0.3)" : "1px solid rgba(16, 185, 129, 0.3)",
-                          display: "inline-flex", alignItems: "center", gap: 6
-                        }}>
-                          {isPending ? <FaClock size={11} /> : <FaCheck size={11} />}
-                          {b.status}
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })}
+                          <td style={{ padding: "14px 16px", fontWeight: 700, color: "#0F172A" }}>
+                            {b.customerName || b.userEmail || "Customer"}
+                          </td>
+
+                          <td style={{ padding: "14px 16px", color: "#334155", fontWeight: 600 }}>
+                            {itemName}
+                          </td>
+
+                          <td style={{ padding: "14px 16px", color: "#64748B", fontSize: 12 }}>
+                            {b.checkIn ? `${b.checkIn} → ${b.checkOut}` : (b.departureDate || b.travelDate || "Scheduled")}
+                          </td>
+
+                          <td style={{ padding: "14px 16px", fontWeight: 800, color: "#16A34A" }}>
+                            {b.price || `₹${Number(b.totalAmount || 0).toLocaleString("en-IN")}`}
+                          </td>
+
+                          <td style={{ padding: "14px 16px" }}>
+                            <span style={{
+                              padding: "4px 10px", borderRadius: 16, fontSize: 11, fontWeight: 800,
+                              background: isConfirmed ? "#DCFCE7" : isPending ? "#FEF3C7" : "#FEE2E2",
+                              color: isConfirmed ? "#15803D" : isPending ? "#B45309" : "#DC2626",
+                              border: isConfirmed ? "1px solid #86EFAC" : isPending ? "1px solid #FCD34D" : "1px solid #FCA5A5",
+                              display: "inline-flex", alignItems: "center", gap: 5
+                            }}>
+                              {isConfirmed ? <FaCheckCircle size={10} /> : isPending ? <FaClock size={10} /> : <FaTimesCircle size={10} />}
+                              {b.status || "Pending"}
+                            </span>
+                          </td>
+
+                          <td style={{ padding: "14px 16px", textAlign: "center" }}>
+                            {isPending ? (
+                              <button
+                                onClick={() => handleQuickApprove(b._id, bType)}
+                                style={{
+                                  background: "linear-gradient(135deg, #10B981, #059669)",
+                                  border: "none", color: "#FFFFFF", padding: "6px 12px",
+                                  borderRadius: 8, fontSize: 11, fontWeight: 800, cursor: "pointer",
+                                  display: "inline-flex", alignItems: "center", gap: 4
+                                }}
+                              >
+                                <FaCheck size={9} /> Approve
+                              </button>
+                            ) : (
+                              <span style={{ color: "#64748B", fontSize: 11 }}>—</span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
             )}
           </div>

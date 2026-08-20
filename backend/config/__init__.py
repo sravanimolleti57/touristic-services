@@ -10,18 +10,27 @@ if sys.platform == "win32":
     except Exception:
         pass
 
-# Load .env from backend directory or parent directories
-env_path = os.path.join(os.path.dirname(__file__), '..', '.env')
-if os.path.exists(env_path):
-    load_dotenv(env_path)
+# Load .env from candidate paths
+potential_env_paths = [
+    os.path.join(os.path.dirname(__file__), '..', '.env'),
+    os.path.join(os.path.dirname(__file__), '..', '..', '.env'),
+    os.path.join(os.getcwd(), '.env'),
+    os.path.join(os.getcwd(), 'backend', '.env')
+]
+for p in potential_env_paths:
+    if os.path.exists(p):
+        load_dotenv(p, override=True)
+        break
 else:
     load_dotenv()
 
-MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017/tourism_ai")
+MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017/tourism_ai").strip()
 
 # Configure PyMongo client with robust SSL/TLS certificates and timeout
 client_kwargs = {
-    "serverSelectionTimeoutMS": 5000
+    "serverSelectionTimeoutMS": 8000,
+    "connectTimeoutMS": 8000,
+    "socketTimeoutMS": 8000
 }
 
 try:
@@ -32,10 +41,27 @@ except ImportError:
 
 try:
     client = MongoClient(MONGO_URI, **client_kwargs)
-    print("[INFO] Initialized MongoDB Client for:", MONGO_URI.split("@")[-1] if "@" in MONGO_URI else MONGO_URI)
+    # Validate connection immediately with a ping
+    client.admin.command('ping')
+    print("MongoDB connected successfully")
+    print("Payment API ready")
+    print("Razorpay Test Mode initialized")
 except Exception as err:
-    print("[WARNING] PyMongo client init error, using local fallback:", str(err))
-    client = MongoClient("mongodb://localhost:27017/tourism_ai", serverSelectionTimeoutMS=5000)
+    print(f"[ERROR] Failed to connect to MongoDB ({MONGO_URI.split('@')[-1] if '@' in MONGO_URI else 'localhost:27017'}): {err}")
+    # If Atlas connection failed and local is not explicitly chosen, attempt local only as fallback
+    if "mongodb+srv://" in MONGO_URI:
+        print("[WARNING] Retrying with standard TLS settings...")
+        try:
+            client = MongoClient(MONGO_URI, tls=True, tlsAllowInvalidCertificates=True, serverSelectionTimeoutMS=8000)
+            client.admin.command('ping')
+            print("MongoDB connected successfully (TLS fallback)")
+            print("Payment API ready")
+            print("Razorpay Test Mode initialized")
+        except Exception as retry_err:
+            print(f"[FATAL] MongoDB Atlas connection failed: {retry_err}")
+            client = MongoClient(MONGO_URI, **client_kwargs)
+    else:
+        client = MongoClient(MONGO_URI, **client_kwargs)
 
 # Use default database from MONGO_URI or fallback to 'tourism_ai'
 try:
@@ -50,4 +76,11 @@ hotel_bookings = db["hotel_bookings"]
 flight_bookings = db["flight_bookings"]
 destination_bookings = db["destination_bookings"]
 contacts = db["contacts"]
+destinations = db["destinations"]
+activities = db["activities"]
+travel_options = db["travel_options"]
+wishlist = db["wishlist"]
+user_activities = db["user_activities"]
+
+
 

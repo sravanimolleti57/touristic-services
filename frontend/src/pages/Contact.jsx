@@ -130,40 +130,40 @@ export default function Contact() {
       )}
 
       {/* ── Main Content Container ──────────────────────────── */}
-      <div style={{ maxWidth: "1240px", margin: "0 auto", padding: "120px 24px 80px" }}>
+      <div style={{ maxWidth: "1360px", margin: "0 auto", padding: "76px 24px 44px" }}>
         
         {/* ── Hero Section ─────────────────────────────────── */}
-        <div style={{ textAlign: "center", maxWidth: "760px", margin: "0 auto 56px" }}>
+        <div style={{ textAlign: "center", maxWidth: "720px", margin: "0 auto 28px" }}>
           <div
             style={{
               display: "inline-flex",
               alignItems: "center",
-              gap: "8px",
-              padding: "6px 16px",
-              borderRadius: "20px",
+              gap: "6px",
+              padding: "4px 12px",
+              borderRadius: "16px",
               background: "rgba(37, 99, 235, 0.08)",
               color: "#2563EB",
-              fontSize: "12px",
+              fontSize: "11px",
               fontWeight: 800,
               textTransform: "uppercase",
               letterSpacing: "1px",
-              marginBottom: "16px",
+              marginBottom: "10px",
             }}
           >
-            <FaGlobe size={13} /> Get In Touch
+            <FaGlobe size={11} /> Get In Touch
           </div>
 
           <h1
             style={{
-              fontSize: "clamp(32px, 4vw, 48px)",
+              fontSize: "clamp(26px, 3.2vw, 34px)",
               fontWeight: 900,
               color: "#111827",
-              letterSpacing: "-0.02em",
-              margin: "0 0 16px 0",
               lineHeight: 1.15,
+              marginBottom: "10px",
+              letterSpacing: "-0.02em",
             }}
           >
-            Contact <span style={{ color: "#2563EB" }}>Us</span>
+            We'd Love to Hear <span style={{ color: "#2563EB" }}>From You</span>
           </h1>
 
           <p

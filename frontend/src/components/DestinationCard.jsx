@@ -1,12 +1,20 @@
 import React from "react";
 import { FaStar, FaMapMarkerAlt } from "react-icons/fa";
 
-export default function DestinationCard({ destination, onClick }) {
+export default function DestinationCard({ destination, onExplore, onClick }) {
   if (!destination) return null;
+
+  const handleClick = (e) => {
+    if (onExplore) {
+      onExplore(destination.id || destination._id || destination.placeId || destination.name);
+    } else if (onClick) {
+      onClick(destination);
+    }
+  };
 
   return (
     <div
-      onClick={onClick}
+      onClick={handleClick}
       style={{
         background: "#FFFFFF",
         borderRadius: 22,
@@ -26,7 +34,7 @@ export default function DestinationCard({ destination, onClick }) {
       }}
     >
       <img
-        src={destination.image || "https://images.unsplash.com/photo-1507525428034-b723cf961d3e"}
+        src={destination.image || destination.img || "https://images.unsplash.com/photo-1507525428034-b723cf961d3e"}
         alt={destination.title || destination.name}
         style={{ width: "100%", height: 200, objectFit: "cover", display: "block" }}
       />
@@ -42,9 +50,24 @@ export default function DestinationCard({ destination, onClick }) {
           <span style={{ color: "#F59E0B", display: "flex", alignItems: "center", gap: 4, fontWeight: 700, fontSize: "0.9rem" }}>
             <FaStar /> {destination.rating || 4.8}
           </span>
-          <span style={{ color: "#2563EB", fontWeight: 800, fontSize: "0.95rem" }}>
-            {destination.price || "Explore"}
-          </span>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleClick(e);
+            }}
+            style={{
+              background: "linear-gradient(135deg,#2563EB,#3B82F6)",
+              border: "none",
+              color: "white",
+              padding: "6px 14px",
+              borderRadius: 8,
+              fontWeight: 700,
+              fontSize: "0.85rem",
+              cursor: "pointer"
+            }}
+          >
+            Explore →
+          </button>
         </div>
       </div>
     </div>

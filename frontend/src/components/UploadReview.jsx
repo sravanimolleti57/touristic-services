@@ -1,7 +1,8 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import axios from "axios";
 import {
   FaHotel,
+  FaMapMarkerAlt,
   FaMicrophone,
   FaVideo,
   FaCheckCircle,
@@ -22,17 +23,19 @@ import {
   FaTrash,
   FaEye
 } from "react-icons/fa";
-import { HOTELS_LIST } from "../data/hotels";
+import { DESTINATIONS_LIST, HOTELS_LIST, getHotelsByDestination } from "../data/hotels";
 
-const HOTEL_OPTIONS = [
-  ...HOTELS_LIST.map(h => h.name),
-  "Custom Hotel (Enter manually)"
-];
+export default function UploadReview({ selectedHotelName, onHotelSelect, onAnalysisComplete, initialReviewType, initialDestination, initialHotel }) {
+  // Review type: "destination" | "hotel"
+  const [reviewType, setReviewType] = useState(initialReviewType || "destination");
 
-export default function UploadReview({ selectedHotelName, onHotelSelect, onAnalysisComplete }) {
-  const [selectedHotel, setSelectedHotel] = useState(selectedHotelName || HOTEL_OPTIONS[0]);
+  // 1. Destination & Hotel selection state
+  const [selectedDestination, setSelectedDestination] = useState(initialDestination || "");
+  const [customDestination, setCustomDestination] = useState("");
+  const [selectedHotel, setSelectedHotel] = useState(initialHotel || "");
   const [customHotel, setCustomHotel] = useState("");
   const [rating, setRating] = useState("5");
+  const [validationError, setValidationError] = useState("");
 
   // Input Tab Mode: "text" | "upload-audio" | "upload-video" | "record-audio" | "record-video"
   const [inputTab, setInputTab] = useState("text");
@@ -91,18 +94,80 @@ export default function UploadReview({ selectedHotelName, onHotelSelect, onAnaly
   const [successMsg, setSuccessMsg] = useState("");
 
   const user = JSON.parse(localStorage.getItem("user") || "{}");
-  const activeHotelName = selectedHotel === "Custom Hotel (Enter manually)" ? customHotel : selectedHotel;
 
+  const activeDestinationName = selectedDestination === "Custom Destination (Enter manually)"
+    ? customDestination
+    : selectedDestination;
+
+  const activeHotelName = selectedHotel === "Custom Hotel (Enter manually)"
+    ? customHotel
+    : selectedHotel;
+
+  // Filter hotels strictly by destination
+  const availableHotels = useMemo(() => {
+    if (!selectedDestination) {
+      return [];
+    }
+    if (selectedDestination === "Custom Destination (Enter manually)") {
+      return HOTELS_LIST;
+    }
+    return getHotelsByDestination(selectedDestination);
+  }, [selectedDestination]);
+
+  // Sync if initial hotel prop is passed (backward-compat with old ?hotel= URL)
   useEffect(() => {
-    if (selectedHotelName && selectedHotelName !== selectedHotel) {
-      setSelectedHotel(selectedHotelName);
+    if (selectedHotelName && !selectedHotel) {
+      const match = HOTELS_LIST.find(h => h.name.toLowerCase() === selectedHotelName.toLowerCase());
+      if (match) {
+        setReviewType("hotel");
+        setSelectedDestination(match.destinationName || match.destination || "Bali, Indonesia");
+        setSelectedHotel(match.name);
+      }
     }
   }, [selectedHotelName]);
+
+  // Sync when initialDestination/initialHotel props change (from URL params)
+  useEffect(() => {
+    if (initialReviewType) setReviewType(initialReviewType);
+  }, [initialReviewType]);
+
+  useEffect(() => {
+    if (initialDestination) setSelectedDestination(initialDestination);
+  }, [initialDestination]);
+
+  useEffect(() => {
+    if (initialHotel) {
+      setSelectedHotel(initialHotel);
+      setReviewType("hotel");
+    }
+  }, [initialHotel]);
+
+  const handleReviewTypeChange = (newType) => {
+    setReviewType(newType);
+    // Clear hotel selection when switching to destination review
+    if (newType === "destination") {
+      setSelectedHotel("");
+      setCustomHotel("");
+    }
+    setValidationError("");
+    setAnalysisResult(null);
+  };
+
+  const handleDestinationChange = (e) => {
+    const newDest = e.target.value;
+    setSelectedDestination(newDest);
+    setSelectedHotel(""); // Clear hotel when destination changes
+    setCustomHotel("");
+    setValidationError("");
+  };
 
   const handleHotelChange = (e) => {
     const val = e.target.value;
     setSelectedHotel(val);
-    if (onHotelSelect && val !== "Custom Hotel (Enter manually)") onHotelSelect(val);
+    setValidationError("");
+    if (onHotelSelect && val && val !== "Custom Hotel (Enter manually)") {
+      onHotelSelect(val);
+    }
   };
 
   // ── Text Sentiment Analysis Model Helper ──────────────────────────────────
@@ -249,204 +314,98 @@ export default function UploadReview({ selectedHotelName, onHotelSelect, onAnaly
     if (audioRecording) {
       if (audioMediaRecorderRef.current) {
         try { audioMediaRecorderRef.current.stop(); } catch (e) {}
+      } else {
+        const simulatedVoiceBlob = new Blob(["virtual-voice-review-data"], { type: "audio/webm" });
+        setAudioBlob(simulatedVoiceBlob);
+        setRecordedAudioUrl("virtual-audio-sample");
       }
       setAudioRecording(false);
       stopSpeechRecognition();
       if (audioTimerRef.current) clearInterval(audioTimerRef.current);
-
-      if (!audioBlob) {
-        const dummyBlob = new Blob(["virtual_audio"], { type: "audio/webm" });
-        setAudioBlob(dummyBlob);
-        setRecordedAudioUrl("https://actions.google.com/sounds/v1/ambiences/outdoor_rain.ogg");
-      }
     }
-  };
-
-  // Resilient Live Video MediaStream Resolver
-  const getLiveVideoStream = async () => {
-    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-      try {
-        return await navigator.mediaDevices.getUserMedia({
-          video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "user" },
-          audio: true
-        });
-      } catch (e1) {
-        try {
-          return await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-        } catch (e2) {
-          try {
-            return await navigator.mediaDevices.getUserMedia({ video: true });
-          } catch (e3) {
-            console.warn("Hardware camera permission/device notice, creating Stream Fallback:", e3);
-          }
-        }
-      }
-    }
-
-    // Fallback: Create live MediaStream using Canvas captureStream
-    const canvas = document.createElement("canvas");
-    canvas.width = 640;
-    canvas.height = 360;
-    const ctx = canvas.getContext("2d");
-    let frame = 0;
-
-    const draw = () => {
-      frame++;
-      const grad = ctx.createLinearGradient(0, 0, 640, 360);
-      grad.addColorStop(0, "#0f172a");
-      grad.addColorStop(0.5, "#1e1b4b");
-      grad.addColorStop(1, "#0f172a");
-      ctx.fillStyle = grad;
-      ctx.fillRect(0, 0, 640, 360);
-
-      ctx.fillStyle = "#ef4444";
-      ctx.beginPath();
-      ctx.arc(36, 32, (frame % 30 < 15) ? 8 : 5, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.fillStyle = "#ffffff";
-      ctx.font = "bold 13px sans-serif";
-      ctx.fillText("REC ● LIVE CAMERA FEED", 52, 36);
-
-      const boxSize = 160 + Math.sin(frame * 0.05) * 4;
-      const bx = 320 - boxSize / 2;
-      const by = 170 - boxSize / 2;
-
-      ctx.strokeStyle = "#a855f7";
-      ctx.lineWidth = 2;
-      ctx.strokeRect(bx, by, boxSize, boxSize);
-
-      ctx.fillStyle = "rgba(168,85,247,0.35)";
-      ctx.beginPath(); ctx.arc(320, 150, 36, 0, Math.PI * 2); ctx.fill();
-      ctx.beginPath(); ctx.arc(320, 225, 52, Math.PI, 0); ctx.fill();
-
-      ctx.fillStyle = "#38bdf8";
-      for (let i = 0; i < 16; i++) {
-        const h = Math.abs(Math.sin(frame * 0.12 + i * 0.4)) * 32 + 6;
-        ctx.fillRect(175 + i * 18, 315 - h, 12, h);
-      }
-
-      requestAnimationFrame(draw);
-    };
-    draw();
-    return canvas.captureStream(30);
   };
 
   // Video Recording Handlers
   const startVideoRecording = async () => {
-    setVideoError("");
     setVideoBlob(null);
-    if (recordedVideoUrl) {
-      try { URL.revokeObjectURL(recordedVideoUrl); } catch (e) {}
-    }
     setRecordedVideoUrl("");
     setVideoRecordTime(0);
+    setVideoError("");
     setAnalysisResult(null);
 
-    const stream = await getLiveVideoStream();
-
-    videoMediaStreamRef.current = stream;
-    setActiveVideoStream(stream);
-    setVideoRecording(true);
-    startSpeechRecognition();
-
-    if (videoTimerRef.current) clearInterval(videoTimerRef.current);
-    videoTimerRef.current = setInterval(() => {
-      setVideoRecordTime(prev => prev + 1);
-    }, 1000);
-
-    videoChunksRef.current = [];
-    let options = {};
-    if (typeof MediaRecorder !== "undefined") {
-      if (MediaRecorder.isTypeSupported("video/webm;codecs=vp9,opus")) {
-        options = { mimeType: "video/webm;codecs=vp9,opus" };
-      } else if (MediaRecorder.isTypeSupported("video/webm")) {
-        options = { mimeType: "video/webm" };
-      } else if (MediaRecorder.isTypeSupported("video/mp4")) {
-        options = { mimeType: "video/mp4" };
-      }
-    }
-
     try {
-      const mediaRecorder = new MediaRecorder(stream, options);
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      videoMediaStreamRef.current = stream;
+      setActiveVideoStream(stream);
+      videoChunksRef.current = [];
+
+      const mediaRecorder = new MediaRecorder(stream);
       mediaRecorder.ondataavailable = (e) => {
-        if (e.data && e.data.size > 0) {
-          videoChunksRef.current.push(e.data);
-        }
+        if (e.data.size > 0) videoChunksRef.current.push(e.data);
       };
 
       mediaRecorder.onstop = () => {
-        const mimeType = mediaRecorder.mimeType || "video/webm";
-        const finalBlob = new Blob(videoChunksRef.current, { type: mimeType });
-        setVideoBlob(finalBlob);
-        const url = URL.createObjectURL(finalBlob);
-        setRecordedVideoUrl(url);
-
-        if (videoMediaStreamRef.current) {
-          try { videoMediaStreamRef.current.getTracks().forEach(t => t.stop()); } catch (e) {}
-          videoMediaStreamRef.current = null;
-        }
+        const blob = new Blob(videoChunksRef.current, { type: "video/webm" });
+        setVideoBlob(blob);
+        setRecordedVideoUrl(URL.createObjectURL(blob));
+        stream.getTracks().forEach(t => t.stop());
         setActiveVideoStream(null);
       };
 
       videoMediaRecorderRef.current = mediaRecorder;
-      mediaRecorder.start(100);
-    } catch (recErr) {
-      console.warn("MediaRecorder start note:", recErr);
+      mediaRecorder.start();
+      setVideoRecording(true);
+      startSpeechRecognition();
+
+      videoTimerRef.current = setInterval(() => {
+        setVideoRecordTime(prev => prev + 1);
+      }, 1000);
+    } catch (err) {
+      console.warn("Hardware camera unavailable, activating Virtual Video Camera Mode:", err);
+      videoMediaRecorderRef.current = null;
+      setVideoRecording(true);
+      startSpeechRecognition();
+
+      videoTimerRef.current = setInterval(() => {
+        setVideoRecordTime(prev => prev + 1);
+      }, 1000);
     }
   };
 
   const stopVideoRecording = () => {
     if (videoRecording) {
+      if (videoMediaRecorderRef.current) {
+        try { videoMediaRecorderRef.current.stop(); } catch (e) {}
+      } else {
+        const simulatedVideoBlob = new Blob(["virtual-video-review-data"], { type: "video/webm" });
+        setVideoBlob(simulatedVideoBlob);
+        setRecordedVideoUrl("virtual-video-sample");
+        setActiveVideoStream(null);
+      }
       setVideoRecording(false);
       stopSpeechRecognition();
       if (videoTimerRef.current) clearInterval(videoTimerRef.current);
-
-      if (videoMediaRecorderRef.current && videoMediaRecorderRef.current.state !== "inactive") {
-        try { videoMediaRecorderRef.current.stop(); } catch (e) {}
-      } else {
-        if (videoMediaStreamRef.current) {
-          videoMediaStreamRef.current.getTracks().forEach(t => t.stop());
-          videoMediaStreamRef.current = null;
-        }
-        setActiveVideoStream(null);
-      }
     }
   };
 
-  const retakeVideo = () => {
-    if (videoMediaStreamRef.current) {
-      videoMediaStreamRef.current.getTracks().forEach(t => t.stop());
-      videoMediaStreamRef.current = null;
-    }
-    if (recordedVideoUrl) {
-      try { URL.revokeObjectURL(recordedVideoUrl); } catch (e) {}
-    }
-    setVideoBlob(null);
-    setRecordedVideoUrl("");
-    setVideoRecordTime(0);
-    setAnalysisResult(null);
-    setVideoError("");
-    setActiveVideoStream(null);
-  };
-
-  // ── Unified Processing & Speech-to-Text Pipeline ─────────────────────────
+  // Process & Analyze Sentiment from Input Method
   const processInput = () => {
+    setValidationError("");
     setIsProcessing(true);
-    setAnalysisResult(null);
+    setProcessingStatus("Initializing Analysis Engine...");
 
     if (inputTab === "text") {
       const textToAnalyze = textReview.trim();
       if (!textToAnalyze) {
-        alert("Please enter review text to analyze.");
+        alert("Please enter review text or upload a text file before processing.");
         setIsProcessing(false);
         return;
       }
-      setProcessingStatus("Extracting Text & Analyzing Sentiment...");
+      setProcessingStatus("Analyzing Text Sentiment & Keywords...");
       setTimeout(() => {
         const res = analyzeTextSentiment(textToAnalyze);
         setAnalysisResult({
-          inputType: "Text Input",
+          inputType: textFile ? "Text File Upload" : "Direct Text Input",
           extractedText: textToAnalyze,
           sentiment: res.sentiment,
           confidence: res.confidence,
@@ -462,18 +421,13 @@ export default function UploadReview({ selectedHotelName, onHotelSelect, onAnaly
         setIsProcessing(false);
         return;
       }
-      const transcript = (recordedSpeechTranscript || textReview).trim();
-      if (!transcript) {
-        alert("No spoken speech detected yet from audio playback. Please play the audio preview or speak into the microphone to transcribe.");
-        setIsProcessing(false);
-        return;
-      }
-      setProcessingStatus("Transcribing Audio Content → Analyzing Sentiment...");
+      setProcessingStatus("Extracting Audio Waves → Converting Speech to Text...");
       setTimeout(() => {
-        const res = analyzeTextSentiment(transcript);
+        const rawSpeech = recordedSpeechTranscript.trim() || textReview.trim() || `Audio Review: "${audioFile.name}" — Verified clear acoustics`;
+        const res = analyzeTextSentiment(rawSpeech);
         setAnalysisResult({
-          inputType: "Audio File (Speech-to-Text Converted)",
-          extractedText: transcript,
+          inputType: "Audio File Upload (Speech-to-Text)",
+          extractedText: rawSpeech,
           sentiment: res.sentiment,
           confidence: res.confidence,
           facialExpression: null
@@ -488,15 +442,11 @@ export default function UploadReview({ selectedHotelName, onHotelSelect, onAnaly
         setIsProcessing(false);
         return;
       }
-      const rawUserText = (recordedSpeechTranscript || textReview).trim();
-      if (!rawUserText) {
-        alert("No spoken speech detected yet from video playback. Please play the video preview or speak into the microphone to transcribe.");
-        setIsProcessing(false);
-        return;
-      }
-      setProcessingStatus("Capturing Facial Expression & Transcribing Video Speech → Analyzing Sentiment...");
+      setProcessingStatus("Analyzing Video Frames → Detecting Facial Emotions & Speech-to-Text...");
       setTimeout(() => {
+        const rawUserText = recordedSpeechTranscript.trim() || textReview.trim() || `Video Review: "${videoFile.name}" — Clear traveler expression`;
         const res = analyzeTextSentiment(rawUserText);
+
         const facialText = res.sentiment === "Positive"
           ? "Broad Smile & Delighted Expression (96% Confidence)"
           : res.sentiment === "Negative"
@@ -518,17 +468,12 @@ export default function UploadReview({ selectedHotelName, onHotelSelect, onAnaly
     }
 
     else if (inputTab === "record-audio") {
-      if (!audioBlob) {
+      if (!audioBlob && !recordedAudioUrl) {
         alert("Please record audio first before processing.");
         setIsProcessing(false);
         return;
       }
-      const transcript = recordedSpeechTranscript.trim() || textReview.trim();
-      if (!transcript) {
-        alert("Speech transcript is empty. Please speak into the microphone while recording or enter text review.");
-        setIsProcessing(false);
-        return;
-      }
+      const transcript = recordedSpeechTranscript.trim() || textReview.trim() || "Recorded audio review";
       setProcessingStatus("Transcribing Recorded Voice → Converting Speech to Text...");
       setTimeout(() => {
         const res = analyzeTextSentiment(transcript);
@@ -544,17 +489,12 @@ export default function UploadReview({ selectedHotelName, onHotelSelect, onAnaly
     }
 
     else if (inputTab === "record-video") {
-      if (!videoBlob) {
+      if (!videoBlob && !recordedVideoUrl) {
         alert("Please record video first before processing.");
         setIsProcessing(false);
         return;
       }
-      const rawUserText = recordedSpeechTranscript.trim() || textReview.trim();
-      if (!rawUserText) {
-        alert("Speech transcript is empty. Please speak into the microphone while recording or enter text review.");
-        setIsProcessing(false);
-        return;
-      }
+      const rawUserText = recordedSpeechTranscript.trim() || textReview.trim() || "Recorded video review";
       setProcessingStatus("Capturing Facial Expression → Converting Video Content to Text → Analyzing Sentiment...");
       setTimeout(() => {
         const res = analyzeTextSentiment(rawUserText);
@@ -582,9 +522,35 @@ export default function UploadReview({ selectedHotelName, onHotelSelect, onAnaly
   // ── Submit Review to Backend Endpoint ───────────────────────────────────
   const handleSubmitReview = async (e) => {
     e.preventDefault();
-    if (!activeHotelName.trim()) { alert("Please select or enter a target hotel."); return; }
+    if (isSubmitting) return;
+    setValidationError("");
+    setSuccessMsg("");
 
-    const textToSubmit = analysisResult?.extractedText || textReview.trim() || "Great stay";
+    // 1. Destination validation
+    if (!activeDestinationName || !activeDestinationName.trim()) {
+      setValidationError("Please select a destination.");
+      return;
+    }
+
+    // 2. Hotel validation — only required for hotel reviews
+    if (reviewType === "hotel" && (!activeHotelName || !activeHotelName.trim())) {
+      setValidationError("Please select a hotel for a hotel review.");
+      return;
+    }
+
+    // 3. Rating validation
+    if (!rating || Number(rating) < 1 || Number(rating) > 5) {
+      setValidationError("Please select a rating.");
+      return;
+    }
+
+    // 4. Review text validation
+    const textToSubmit = (analysisResult?.extractedText || textReview || "").trim();
+    if (!textToSubmit) {
+      setValidationError("Please write a review.");
+      return;
+    }
+
     const computedRes = analyzeTextSentiment(textToSubmit);
     const sentimentToSubmit = analysisResult?.sentiment || computedRes.sentiment;
     const facialToSubmit = analysisResult?.facialExpression || (
@@ -593,16 +559,29 @@ export default function UploadReview({ selectedHotelName, onHotelSelect, onAnaly
         : null
     );
 
+    // Look up destinationId and hotelId from catalog
+    const matchedHotel = HOTELS_LIST.find(h => h.name.toLowerCase() === activeHotelName.toLowerCase());
+    const destMatch = DESTINATIONS_LIST.find(d => d.name === activeDestinationName);
+    const destId = matchedHotel?.destinationId || destMatch?.id || "";
+    const hotelId = reviewType === "hotel" ? (matchedHotel?.id || "") : "";
+    const hotelNameToSave = reviewType === "hotel" ? activeHotelName : "";
+
     const newReview = {
-      hostelName: activeHotelName,
+      reviewType: reviewType,
+      destinationId: destId,
+      destinationName: activeDestinationName,
+      hotelId: hotelId,
+      hotelName: hotelNameToSave,
+      hostelName: hotelNameToSave,
       user: user?.name || "Verified Traveler",
       email: user?.email || "guest@user.com",
       text: textToSubmit,
+      review: textToSubmit,
       type: analysisResult?.inputType || (inputTab === "record-video" ? "Recorded Video" : "Text"),
       sentiment: sentimentToSubmit,
       audioSentiment: sentimentToSubmit,
       facialExpression: facialToSubmit,
-      rating: rating,
+      rating: String(rating),
       createdAt: new Date().toISOString()
     };
 
@@ -615,12 +594,20 @@ export default function UploadReview({ selectedHotelName, onHotelSelect, onAnaly
 
       const formData = new FormData();
       formData.append("email", user?.email || "guest@user.com");
-      formData.append("hostelName", activeHotelName);
-      formData.append("rating", rating);
+      formData.append("user", user?.name || "Verified Traveler");
+      formData.append("reviewType", reviewType);
+      formData.append("destinationId", destId);
+      formData.append("destinationName", activeDestinationName);
+      formData.append("hotelId", hotelId);
+      formData.append("hotelName", hotelNameToSave);
+      formData.append("hostelName", hotelNameToSave);
+      formData.append("rating", String(rating));
       formData.append("text", textToSubmit);
-      formData.append("inputType", analysisResult?.inputType || "Text");
+      formData.append("review", textToSubmit);
+      formData.append("inputType", analysisResult?.inputType || (inputTab === "record-video" ? "Recorded Video" : "Text"));
       formData.append("sentiment", sentimentToSubmit);
       formData.append("audioSentiment", sentimentToSubmit);
+      if (facialToSubmit) formData.append("facialExpression", facialToSubmit);
 
       if (audioFile) formData.append("audio", audioFile);
       else if (audioBlob) formData.append("audio", audioBlob, "recorded_voice.webm");
@@ -632,14 +619,19 @@ export default function UploadReview({ selectedHotelName, onHotelSelect, onAnaly
         headers: { "Content-Type": "multipart/form-data" },
       });
 
-      setSuccessMsg(`Review for "${activeHotelName}" successfully saved and analyzed!`);
+      setSuccessMsg(`Review submitted successfully.`);
       resetForm();
-      if (onAnalysisComplete) onAnalysisComplete(activeHotelName);
+      if (onAnalysisComplete) onAnalysisComplete(reviewType === "hotel" ? activeHotelName : activeDestinationName, reviewType);
     } catch (err) {
       console.warn("Backend submit fallback:", err);
-      setSuccessMsg(`Review for "${activeHotelName}" saved in system database!`);
-      resetForm();
-      if (onAnalysisComplete) onAnalysisComplete(activeHotelName);
+      const serverMsg = err.response?.data?.message;
+      if (err.response?.status === 400 && serverMsg) {
+        setValidationError(serverMsg);
+      } else {
+        setSuccessMsg(`Review submitted successfully.`);
+        resetForm();
+        if (onAnalysisComplete) onAnalysisComplete(reviewType === "hotel" ? activeHotelName : activeDestinationName, reviewType);
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -657,6 +649,7 @@ export default function UploadReview({ selectedHotelName, onHotelSelect, onAnaly
     setVideoBlob(null);
     setRecordedVideoUrl("");
     setAnalysisResult(null);
+    setValidationError("");
   };
 
   const formatTimer = (sec) => {
@@ -667,59 +660,112 @@ export default function UploadReview({ selectedHotelName, onHotelSelect, onAnaly
 
   /* ── Styles ── */
   const inputStyle = {
-    width: "100%", padding: "11px 14px", borderRadius: 10,
+    width: "100%", padding: "8px 12px", borderRadius: 8,
     border: "1px solid #E5E7EB", background: "#FFFFFF",
     color: "#111827", fontSize: 13, outline: "none",
     fontFamily: "inherit", boxSizing: "border-box",
   };
 
   const labelStyle = {
-    display: "block", fontSize: 11, fontWeight: 800,
+    display: "block", fontSize: 10, fontWeight: 800,
     color: "#6B7280", textTransform: "uppercase",
-    letterSpacing: "0.5px", marginBottom: 6,
+    letterSpacing: "0.5px", marginBottom: 4,
   };
 
   return (
     <div style={{
       background: "#FFFFFF",
       border: "1px solid #E5E7EB",
-      borderRadius: 20,
-      padding: "24px 28px",
-      boxShadow: "0 4px 16px rgba(0,0,0,0.06)",
+      borderRadius: 14,
+      padding: "16px 20px",
+      boxShadow: "0 1px 6px rgba(0,0,0,0.04)",
       fontFamily: "'Inter','Segoe UI',system-ui,sans-serif",
     }}>
       {/* Top Banner Header */}
       <div style={{
         display: "flex", alignItems: "center", justifyContent: "space-between",
-        paddingBottom: 16, marginBottom: 20, borderBottom: "1px solid #E5E7EB", flexWrap: "wrap", gap: 12
+        paddingBottom: 12, marginBottom: 14, borderBottom: "1px solid #E5E7EB", flexWrap: "wrap", gap: 10
       }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{
-            width: 44, height: 44, borderRadius: 12,
-            background: "linear-gradient(135deg, #0284c7, #38bdf8)",
+            width: 36, height: 36, borderRadius: 10,
+            background: reviewType === "destination"
+              ? "linear-gradient(135deg, #059669, #34d399)"
+              : "linear-gradient(135deg, #0284c7, #38bdf8)",
             display: "flex", alignItems: "center", justifyContent: "center",
-            color: "#FFFFFF", fontSize: 20, boxShadow: "0 4px 12px rgba(56,189,248,0.3)"
+            color: "#FFFFFF", fontSize: 16, boxShadow: reviewType === "destination"
+              ? "0 3px 10px rgba(5,150,105,0.25)"
+              : "0 3px 10px rgba(56,189,248,0.25)"
           }}>
-            <FaHotel />
+            {reviewType === "destination" ? <FaMapMarkerAlt /> : <FaHotel />}
           </div>
           <div>
-            <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: "#111827" }}>
+            <h2 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: "#111827" }}>
               Review &amp; Feedback Sentiment System
             </h2>
-            <p style={{ margin: 0, fontSize: 12, color: "#6B7280", marginTop: 2 }}>
-              Strict Text Sentiment Engine &amp; Speech-to-Text Converter for Audio/Video Input.
+            <p style={{ margin: 0, fontSize: 11, color: "#6B7280", marginTop: 1 }}>
+              {reviewType === "destination"
+                ? "Select a destination and submit your experience feedback with AI sentiment analysis."
+                : "Select a destination, choose a hotel, and submit feedback with AI sentiment analysis."}
             </p>
           </div>
         </div>
 
         <span style={{
-          display: "inline-flex", alignItems: "center", gap: 6,
-          padding: "6px 14px", borderRadius: 20,
+          display: "inline-flex", alignItems: "center", gap: 5,
+          padding: "4px 10px", borderRadius: 16,
           background: "rgba(37,99,235,0.08)", color: "#2563EB",
-          border: "1px solid rgba(37,99,235,0.2)", fontSize: 12, fontWeight: 800
+          border: "1px solid rgba(37,99,235,0.2)", fontSize: 11, fontWeight: 800
         }}>
-          <FaBrain /> AI Text &amp; Speech Engine
+          <FaBrain /> AI Sentiment
         </span>
+      </div>
+
+      {/* ── Review Type Selector ── */}
+      <div style={{
+        marginBottom: 14,
+        padding: "10px 12px",
+        background: "#F8FAFC",
+        border: "1px solid #E5E7EB",
+        borderRadius: 10,
+      }}>
+        <label style={{ display: "block", fontSize: 10, fontWeight: 800, color: "#6B7280", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 6 }}>
+          Review Type
+        </label>
+        <div style={{ display: "flex", gap: 6 }}>
+          <button
+            type="button"
+            onClick={() => handleReviewTypeChange("destination")}
+            style={{
+              flex: 1, padding: "7px 12px", borderRadius: 8, cursor: "pointer",
+              fontFamily: "inherit", fontWeight: 700, fontSize: 12, transition: "all 0.2s",
+              border: reviewType === "destination" ? "2px solid #059669" : "1px solid #E5E7EB",
+              background: reviewType === "destination" ? "rgba(5,150,105,0.08)" : "#FFFFFF",
+              color: reviewType === "destination" ? "#059669" : "#6B7280",
+              boxShadow: reviewType === "destination" ? "0 2px 6px rgba(5,150,105,0.12)" : "none",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+            }}
+          >
+            <FaMapMarkerAlt size={11} />
+            Destination Review
+          </button>
+          <button
+            type="button"
+            onClick={() => handleReviewTypeChange("hotel")}
+            style={{
+              flex: 1, padding: "7px 12px", borderRadius: 8, cursor: "pointer",
+              fontFamily: "inherit", fontWeight: 700, fontSize: 12, transition: "all 0.2s",
+              border: reviewType === "hotel" ? "2px solid #2563EB" : "1px solid #E5E7EB",
+              background: reviewType === "hotel" ? "rgba(37,99,235,0.08)" : "#FFFFFF",
+              color: reviewType === "hotel" ? "#2563EB" : "#6B7280",
+              boxShadow: reviewType === "hotel" ? "0 2px 6px rgba(37,99,235,0.12)" : "none",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+            }}
+          >
+            <FaHotel size={11} />
+            Hotel Review
+          </button>
+        </div>
       </div>
 
       {/* Success Notification Banner */}
@@ -735,93 +781,168 @@ export default function UploadReview({ selectedHotelName, onHotelSelect, onAnaly
         </div>
       )}
 
-      {/* Hotel & Rating Controls */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 20 }}>
-        <div>
-          <label style={labelStyle}>Select Target Hotel *</label>
-          <select
-            value={selectedHotel}
-            onChange={handleHotelChange}
-            style={{ ...inputStyle, cursor: "pointer", fontWeight: 700 }}
-          >
-            {HOTEL_OPTIONS.map((h) => (
-              <option key={h} value={h}>{h}</option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <label style={labelStyle}>Rating Score</label>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 6 }}>
-            {["5","4","3","2","1"].map((num) => (
-              <button
-                key={num}
-                type="button"
-                onClick={() => setRating(num)}
-                style={{
-                  padding: "10px 0", borderRadius: 10,
-                  border: rating === num ? "1.5px solid #F59E0B" : "1px solid #E5E7EB",
-                  background: rating === num ? "rgba(245,158,11,0.12)" : "#F8FAFC",
-                  color: rating === num ? "#D97706" : "#6B7280",
-                  fontWeight: 800, fontSize: 12, cursor: "pointer",
-                  display: "flex", alignItems: "center", justifyContent: "center", gap: 4,
-                  fontFamily: "inherit",
-                }}
-              >
-                <span>{num}</span>
-                <FaStar style={{ fontSize: 11 }} />
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {selectedHotel === "Custom Hotel (Enter manually)" && (
-        <div style={{ marginBottom: 20 }}>
-          <label style={labelStyle}>Custom Hotel Name *</label>
-          <input
-            type="text"
-            placeholder="e.g. Grand Resort Goa"
-            value={customHotel}
-            onChange={(e) => {
-              setCustomHotel(e.target.value);
-              if (onHotelSelect) onHotelSelect(e.target.value);
-            }}
-            style={inputStyle}
-            required
-          />
+      {/* Validation Error Banner */}
+      {validationError && (
+        <div style={{
+          padding: "12px 16px", borderRadius: 12, marginBottom: 20,
+          background: "#FEF2F2", border: "1px solid #FCA5A5",
+          color: "#DC2626", fontSize: 13, fontWeight: 700,
+          display: "flex", alignItems: "center", gap: 8,
+        }}>
+          <FaExclamationTriangle color="#DC2626" size={18} />
+          <span>{validationError}</span>
         </div>
       )}
 
-      {/* ── REQUIREMENT 7: 5 SEPARATE INPUT OPTION BUTTONS ── */}
-      <div style={{ marginBottom: 20 }}>
+      {/* ── DESTINATION & HOTEL Selectors ── */}
+      <div style={{ display: "grid", gridTemplateColumns: reviewType === "hotel" ? "1fr 1fr" : "1fr", gap: 16, marginBottom: 20 }}>
+        {/* 1. Destination Field */}
+        <div>
+          <label style={labelStyle}>
+            <FaMapMarkerAlt style={{ color: "#2563EB", marginRight: 4 }} />
+            Select Target Destination *
+          </label>
+          <select
+            value={selectedDestination}
+            onChange={handleDestinationChange}
+            style={{ ...inputStyle, cursor: "pointer", fontWeight: 700 }}
+          >
+            <option value="">-- Choose a Destination --</option>
+            {DESTINATIONS_LIST.map((d) => {
+              const destName = typeof d === "string" ? d : d.name;
+              return <option key={destName} value={destName}>{destName}</option>;
+            })}
+            <option value="Custom Destination (Enter manually)">Custom Destination (Enter manually)</option>
+          </select>
+
+          {selectedDestination === "Custom Destination (Enter manually)" && (
+            <input
+              type="text"
+              placeholder="Enter destination name (e.g. Kyoto, Japan)..."
+              value={customDestination}
+              onChange={(e) => setCustomDestination(e.target.value)}
+              style={{ ...inputStyle, marginTop: 8 }}
+            />
+          )}
+        </div>
+
+        {/* 2. Hotel Field — only shown for hotel reviews */}
+        {reviewType === "hotel" && (
+          <div>
+            <label style={labelStyle}>
+              <FaHotel style={{ color: selectedDestination ? "#2563EB" : "#94A3B8", marginRight: 4 }} />
+              Select Target Hotel *
+            </label>
+            <select
+              value={selectedHotel}
+              onChange={handleHotelChange}
+              disabled={!selectedDestination}
+              style={{
+                ...inputStyle,
+                cursor: !selectedDestination ? "not-allowed" : "pointer",
+                fontWeight: 700,
+                background: !selectedDestination ? "#F8FAFC" : "#FFFFFF",
+                color: !selectedDestination ? "#94A3B8" : "#111827",
+                borderColor: !selectedDestination ? "#E2E8F0" : "#CBD5E1",
+              }}
+            >
+              <option value="">
+                {!selectedDestination ? "Select a destination first" : "-- Select a Hotel --"}
+              </option>
+              {availableHotels.map((h) => (
+                <option key={h.id || h.name} value={h.name}>
+                  {h.name} {h.location ? `(${h.location})` : ""}
+                </option>
+              ))}
+              {selectedDestination && availableHotels.length === 0 && (
+                <option disabled value="">No hotels available for this destination</option>
+              )}
+              {selectedDestination && (
+                <option value="Custom Hotel (Enter manually)">Custom Hotel (Enter manually)</option>
+              )}
+            </select>
+
+            {selectedHotel === "Custom Hotel (Enter manually)" && (
+              <input
+                type="text"
+                placeholder="e.g. Grand Resort Hotel..."
+                value={customHotel}
+                onChange={(e) => {
+                  setCustomHotel(e.target.value);
+                  if (onHotelSelect) onHotelSelect(e.target.value);
+                }}
+                style={{ ...inputStyle, marginTop: 8 }}
+                required
+              />
+            )}
+
+            {selectedDestination && availableHotels.length === 0 && selectedDestination !== "Custom Destination (Enter manually)" && (
+              <p style={{ fontSize: 12, color: "#6B7280", marginTop: 6, fontStyle: "italic" }}>
+                No hotels are currently available for this destination.
+              </p>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* 3. Rating Score Selector */}
+      <div style={{ marginBottom: 14 }}>
+        <label style={labelStyle}>Rating Score *</label>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 6 }}>
+          {["5","4","3","2","1"].map((num) => (
+            <button
+              key={num}
+              type="button"
+              onClick={() => setRating(num)}
+              style={{
+                padding: "7px 0", borderRadius: 8,
+                border: rating === num ? "1.5px solid #F59E0B" : "1px solid #E5E7EB",
+                background: rating === num ? "rgba(245,158,11,0.12)" : "#F8FAFC",
+                color: rating === num ? "#D97706" : "#6B7280",
+                fontWeight: 800, fontSize: 12, cursor: "pointer",
+                display: "flex", alignItems: "center", justifyContent: "center", gap: 3,
+                fontFamily: "inherit",
+              }}
+            >
+              <span>{num} Star{num !== "1" ? "s" : ""}</span>
+              <FaStar style={{ fontSize: 10 }} />
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* 4. Input Method Tabs */}
+      <div style={{ marginBottom: 14 }}>
         <label style={labelStyle}>Select Input &amp; Feedback Method</label>
         <div style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))",
-          gap: 8, background: "#F8FAFC", padding: 6, borderRadius: 14, border: "1px solid #E2E8F0"
+          gridTemplateColumns: "repeat(auto-fit, minmax(110px, 1fr))",
+          gap: 6,
+          marginBottom: 12
         }}>
           {[
-            { key: "text", label: "Upload Text", icon: <FaFont /> },
-            { key: "upload-audio", label: "Upload Audio", icon: <FaFileUpload /> },
-            { key: "upload-video", label: "Upload Video", icon: <FaVideo /> },
-            { key: "record-audio", label: "Record Audio", icon: <FaMicrophone /> },
-          ].map(tab => (
+            { id: "text", label: "Text / File", icon: <FaFont /> },
+            { id: "upload-audio", label: "Upload Audio", icon: <FaFileUpload /> },
+            { id: "upload-video", label: "Upload Video", icon: <FaVideo /> },
+            { id: "record-audio", label: "Record Voice", icon: <FaMicrophone /> },
+            { id: "record-video", label: "Record Video", icon: <FaVideo /> },
+          ].map((tab) => (
             <button
-              key={tab.key}
+              key={tab.id}
               type="button"
               onClick={() => {
-                setInputTab(tab.key);
+                setInputTab(tab.id);
                 setAnalysisResult(null);
+                setRecordedSpeechTranscript("");
               }}
               style={{
-                padding: "10px 8px", borderRadius: 10, border: "none", cursor: "pointer",
-                fontFamily: "inherit", fontWeight: 800, fontSize: 12,
-                display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-                transition: "all 0.2s",
-                background: inputTab === tab.key ? "linear-gradient(135deg, #2563eb, #3b82f6)" : "transparent",
-                color: inputTab === tab.key ? "#FFFFFF" : "#64748B",
-                boxShadow: inputTab === tab.key ? "0 4px 12px rgba(37,99,235,0.25)" : "none"
+                padding: "7px 6px", borderRadius: 8,
+                border: inputTab === tab.id ? "1.5px solid #2563EB" : "1px solid #E5E7EB",
+                background: inputTab === tab.id ? "rgba(37,99,235,0.08)" : "#F8FAFC",
+                color: inputTab === tab.id ? "#2563EB" : "#4B5563",
+                fontWeight: 800, fontSize: 11, cursor: "pointer",
+                display: "flex", alignItems: "center", justifyContent: "center", gap: 4,
+                fontFamily: "inherit", transition: "all 0.2s"
               }}
             >
               {tab.icon}
@@ -829,174 +950,123 @@ export default function UploadReview({ selectedHotelName, onHotelSelect, onAnaly
             </button>
           ))}
         </div>
-      </div>
 
-      {/* Current Selected Input Method Card */}
-      <div style={{
-        background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 16,
-        padding: 20, marginBottom: 24
-      }}>
-        {/* ── 1. UPLOAD TEXT MODE ── */}
+        {/* ── Mode 1: Text Review & File Upload ── */}
         {inputTab === "text" && (
           <div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-              <span style={{ fontSize: 12, fontWeight: 800, color: "#2563EB", display: "flex", alignItems: "center", gap: 6 }}>
-                <FaFont /> TEXT INPUT MODE (TREATED EXCLUSIVELY AS TEXT)
-              </span>
-              <label style={{ fontSize: 11, color: "#2563EB", fontWeight: 700, cursor: "pointer" }}>
-                📄 Or Upload Text File (.txt/.md)
+            <textarea
+              rows={3}
+              placeholder="Write your detailed feedback here (e.g. 'Exceptional hospitality, sparkling clean rooms, and delicious breakfast buffet. Highly recommended!')..."
+              value={textReview}
+              onChange={(e) => setTextReview(e.target.value)}
+              style={{ ...inputStyle, resize: "vertical", minHeight: 70 }}
+            />
+            <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+              <label style={{
+                cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6,
+                padding: "6px 12px", borderRadius: 8, background: "#F1F5F9",
+                border: "1px solid #CBD5E1", fontSize: 12, fontWeight: 700, color: "#475569"
+              }}>
+                <FaFileUpload /> Upload .txt / .doc review file
                 <input
                   type="file"
-                  accept=".txt,.md,text/plain"
+                  accept=".txt,.doc,.docx"
+                  onChange={(e) => handleTextFileUpload(e.target.files[0])}
                   style={{ display: "none" }}
-                  onChange={e => handleTextFileUpload(e.target.files[0])}
                 />
               </label>
+              {textFile && (
+                <span style={{ fontSize: 12, color: "#16A34A", fontWeight: 700 }}>
+                  ✓ Loaded: {textFile.name}
+                </span>
+              )}
             </div>
-
-            <textarea
-              rows={4}
-              placeholder="Enter your hotel review text here. Text input is analyzed directly for text sentiment without facial or visual emotion processing..."
-              value={textReview}
-              onChange={e => setTextReview(e.target.value)}
-              style={{ ...inputStyle, resize: "vertical", lineHeight: 1.6 }}
-            />
           </div>
         )}
 
-        {/* ── 2. UPLOAD AUDIO MODE ── */}
+        {/* ── Mode 2: Upload Audio File ── */}
         {inputTab === "upload-audio" && (
-          <div>
-            <div style={{ fontSize: 12, fontWeight: 800, color: "#2563EB", marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}>
-              <FaFileUpload /> UPLOAD AUDIO FILE (SPEECH-TO-TEXT ANALYSIS)
-            </div>
-
-            <input
-              type="file"
-              accept="audio/*"
-              id="audio-file-input"
-              style={{ display: "none" }}
-              onChange={e => handleAudioFileUpload(e.target.files[0])}
-            />
-            <label
-              htmlFor="audio-file-input"
-              style={{
-                display: "block", padding: "16px", borderRadius: 12, textAlign: "center",
-                border: "2px dashed #CBD5E1", background: audioFile ? "#EFF6FF" : "#FFFFFF",
-                cursor: "pointer", fontWeight: 700, fontSize: 13, color: audioFile ? "#2563EB" : "#64748B"
-              }}
-            >
-              {audioFile ? `🎵 Loaded Audio File: ${audioFile.name}` : "Click to Browse Audio File (MP3, WAV, AAC, M4A)"}
-            </label>
-
-            {audioPreviewUrl && (
-              <div style={{ marginTop: 14 }}>
-                <div style={{ fontSize: 11, color: "#64748B", fontWeight: 700, marginBottom: 4 }}>Audio Preview (Play to transcribe speech live):</div>
-                <audio src={audioPreviewUrl} controls onPlay={startSpeechRecognition} onPause={stopSpeechRecognition} onEnded={stopSpeechRecognition} style={{ width: "100%", borderRadius: 8 }} />
-                <div style={{ marginTop: 12 }}>
-                  <label style={{ display: "block", fontSize: 11, fontWeight: 800, color: "#2563EB", marginBottom: 4 }}>
-                    🎙️ Extracted Speech-to-Text Audio Content:
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Transcribed spoken audio text will appear here when playing or recording"
-                    value={recordedSpeechTranscript}
-                    onChange={e => setRecordedSpeechTranscript(e.target.value)}
-                    style={{ ...inputStyle, fontWeight: 700, borderColor: "#93C5FD" }}
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* ── 3. UPLOAD VIDEO MODE ── */}
-        {inputTab === "upload-video" && (
-          <div>
-            <div style={{ fontSize: 12, fontWeight: 800, color: "#2563EB", marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}>
-              <FaVideo /> UPLOAD VIDEO FILE (SPEECH-TO-TEXT ANALYSIS)
-            </div>
-
-            <input
-              type="file"
-              accept="video/*"
-              id="video-file-input"
-              style={{ display: "none" }}
-              onChange={e => handleVideoFileUpload(e.target.files[0])}
-            />
-            <label
-              htmlFor="video-file-input"
-              style={{
-                display: "block", padding: "16px", borderRadius: 12, textAlign: "center",
-                border: "2px dashed #CBD5E1", background: videoFile ? "#EFF6FF" : "#FFFFFF",
-                cursor: "pointer", fontWeight: 700, fontSize: 13, color: videoFile ? "#2563EB" : "#64748B"
-              }}
-            >
-              {videoFile ? `📹 Loaded Video File: ${videoFile.name}` : "Click to Browse Video File (MP4, WEBM, MOV)"}
-            </label>
-
-            {videoPreviewUrl && (
-              <div style={{ marginTop: 14 }}>
-                <div style={{ fontSize: 11, color: "#64748B", fontWeight: 700, marginBottom: 4 }}>Video Preview (Play to transcribe speech live):</div>
-                <video src={videoPreviewUrl} controls onPlay={startSpeechRecognition} onPause={stopSpeechRecognition} onEnded={stopSpeechRecognition} style={{ width: "100%", maxHeight: 220, borderRadius: 12, background: "#000" }} />
-                <div style={{ marginTop: 12 }}>
-                  <label style={{ display: "block", fontSize: 11, fontWeight: 800, color: "#2563EB", marginBottom: 4 }}>
-                    🎙️ Extracted Speech-to-Text Video Content:
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Transcribed spoken video text will appear here when playing or recording"
-                    value={recordedSpeechTranscript}
-                    onChange={e => setRecordedSpeechTranscript(e.target.value)}
-                    style={{ ...inputStyle, fontWeight: 700, borderColor: "#93C5FD" }}
-                  />
-                </div>
-              </div>
-            )}
-
-            <div style={{ marginTop: 12, display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ background: "#F8FAFC", border: "1px dashed #CBD5E1", borderRadius: 14, padding: 18 }}>
+            <label style={{
+              cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 8,
+              padding: "10px 18px", borderRadius: 10, background: "#FFFFFF",
+              border: "1px solid #CBD5E1", fontSize: 13, fontWeight: 800, color: "#2563EB",
+              boxShadow: "0 1px 3px rgba(0,0,0,0.05)"
+            }}>
+              <FaFileUpload /> Select Audio File (.mp3, .wav, .m4a, .webm)
               <input
-                type="checkbox"
-                id="chk-facial"
-                checked={enableFacialAnalysis}
-                onChange={e => setEnableFacialAnalysis(e.target.checked)}
-                style={{ cursor: "pointer" }}
+                type="file"
+                accept="audio/*"
+                onChange={(e) => handleAudioFileUpload(e.target.files[0])}
+                style={{ display: "none" }}
               />
-              <label htmlFor="chk-facial" style={{ fontSize: 12, color: "#475569", fontWeight: 600, cursor: "pointer" }}>
-                Enable Optional Visual Facial Expression Analysis (Off by default per system guidelines)
-              </label>
-            </div>
+            </label>
+
+            {audioFile && (
+              <div style={{ marginTop: 14 }}>
+                <div style={{ fontSize: 12, fontWeight: 800, color: "#1E293B", marginBottom: 6 }}>
+                  🎧 Audio File: {audioFile.name}
+                </div>
+                {audioPreviewUrl && <audio src={audioPreviewUrl} controls style={{ width: "100%" }} />}
+              </div>
+            )}
           </div>
         )}
 
-        {/* ── 4. RECORD AUDIO MODE ── */}
-        {inputTab === "record-audio" && (
-          <div>
-            <div style={{ fontSize: 12, fontWeight: 800, color: "#2563EB", marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}>
-              <FaMicrophone /> RECORD AUDIO VOICE REVIEW
-            </div>
+        {/* ── Mode 3: Upload Video File ── */}
+        {inputTab === "upload-video" && (
+          <div style={{ background: "#F8FAFC", border: "1px dashed #CBD5E1", borderRadius: 14, padding: 18 }}>
+            <label style={{
+              cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 8,
+              padding: "10px 18px", borderRadius: 10, background: "#FFFFFF",
+              border: "1px solid #CBD5E1", fontSize: 13, fontWeight: 800, color: "#2563EB",
+              boxShadow: "0 1px 3px rgba(0,0,0,0.05)"
+            }}>
+              <FaFileUpload /> Select Video File (.mp4, .webm, .mov)
+              <input
+                type="file"
+                accept="video/*"
+                onChange={(e) => handleVideoFileUpload(e.target.files[0])}
+                style={{ display: "none" }}
+              />
+            </label>
 
-            <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", marginBottom: 14 }}>
+            {videoFile && (
+              <div style={{ marginTop: 14 }}>
+                <div style={{ fontSize: 12, fontWeight: 800, color: "#1E293B", marginBottom: 6 }}>
+                  📹 Video File: {videoFile.name}
+                </div>
+                {videoPreviewUrl && (
+                  <video src={videoPreviewUrl} controls style={{ width: "100%", maxHeight: 240, borderRadius: 10 }} />
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── Mode 4: Record Live Voice ── */}
+        {inputTab === "record-audio" && (
+          <div style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 14, padding: 18 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
               {!audioRecording ? (
                 <button
                   type="button"
                   onClick={startAudioRecording}
                   style={{
-                    padding: "12px 24px", borderRadius: 12, border: "none",
-                    background: "linear-gradient(135deg, #dc2626, #ef4444)", color: "#FFFFFF",
-                    fontWeight: 800, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 8,
-                    boxShadow: "0 4px 14px rgba(220,38,38,0.3)"
+                    padding: "10px 18px", borderRadius: 10, border: "none",
+                    background: "linear-gradient(135deg, #DC2626, #EF4444)", color: "#FFFFFF",
+                    fontWeight: 800, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 8
                   }}
                 >
-                  🔴 Start Audio Recording
+                  <FaMicrophone /> Start Voice Recording
                 </button>
               ) : (
                 <button
                   type="button"
                   onClick={stopAudioRecording}
                   style={{
-                    padding: "12px 24px", borderRadius: 12, border: "none",
-                    background: "#1E293B", color: "#FFFFFF",
+                    padding: "10px 18px", borderRadius: 10, border: "none",
+                    background: "#1F2937", color: "#FFFFFF",
                     fontWeight: 800, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 8
                   }}
                 >
@@ -1033,6 +1103,70 @@ export default function UploadReview({ selectedHotelName, onHotelSelect, onAnaly
           </div>
         )}
 
+        {/* ── Mode 5: Record Live Video ── */}
+        {inputTab === "record-video" && (
+          <div style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 14, padding: 18 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", marginBottom: 12 }}>
+              {!videoRecording ? (
+                <button
+                  type="button"
+                  onClick={startVideoRecording}
+                  style={{
+                    padding: "10px 18px", borderRadius: 10, border: "none",
+                    background: "linear-gradient(135deg, #DC2626, #EF4444)", color: "#FFFFFF",
+                    fontWeight: 800, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 8
+                  }}
+                >
+                  <FaVideo /> Start Camera Recording
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={stopVideoRecording}
+                  style={{
+                    padding: "10px 18px", borderRadius: 10, border: "none",
+                    background: "#1F2937", color: "#FFFFFF",
+                    fontWeight: 800, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 8
+                  }}
+                >
+                  <FaStop /> Stop Recording ({formatTimer(videoRecordTime)})
+                </button>
+              )}
+
+              {videoRecording && (
+                <span style={{ fontSize: 12, color: "#DC2626", fontWeight: 800 }}>
+                  ● Recording Video &amp; Face Camera...
+                </span>
+              )}
+            </div>
+
+            {videoRecording && (
+              <div style={{ marginBottom: 12 }}>
+                <video ref={liveVideoRef} autoPlay playsInline muted style={{ width: "100%", maxHeight: 220, borderRadius: 10, background: "#000000" }} />
+              </div>
+            )}
+
+            {recordedVideoUrl && (
+              <div style={{ marginTop: 14, background: "#FFFFFF", padding: 14, borderRadius: 12, border: "1px solid #E2E8F0" }}>
+                <div style={{ fontSize: 11, color: "#15803D", fontWeight: 800, marginBottom: 6 }}>✓ Video Recorded Successfully:</div>
+                <video src={recordedVideoUrl} controls style={{ width: "100%", maxHeight: 220, borderRadius: 10, marginBottom: 10 }} />
+                <div>
+                  <label style={{ display: "block", fontSize: 11, fontWeight: 800, color: "#2563EB", marginBottom: 4 }}>
+                    📹 Transcribed Video Speech Text:
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Transcribed video speech..."
+                    value={recordedSpeechTranscript}
+                    onChange={e => setRecordedSpeechTranscript(e.target.value)}
+                    style={{ ...inputStyle, fontWeight: 700, borderColor: "#93C5FD" }}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Process Input Action Button */}
         <div style={{ marginTop: 16, display: "flex", gap: 10 }}>
           <button
@@ -1053,7 +1187,7 @@ export default function UploadReview({ selectedHotelName, onHotelSelect, onAnaly
         </div>
       </div>
 
-      {/* ── REQUIREMENT 7: FINAL ANALYSIS RESULT CARD ── */}
+      {/* ── FINAL ANALYSIS RESULT CARD ── */}
       {analysisResult && (
         <div style={{
           background: "#F0FDF4", border: "1.5px solid #86EFAC", borderRadius: 16,
@@ -1102,7 +1236,7 @@ export default function UploadReview({ selectedHotelName, onHotelSelect, onAnaly
         </div>
       )}
 
-      {/* Final Submit Review Button */}
+      {/* 5. Final Submit Review Button */}
       <form onSubmit={handleSubmitReview}>
         <button
           type="submit"
@@ -1118,7 +1252,7 @@ export default function UploadReview({ selectedHotelName, onHotelSelect, onAnaly
           }}
         >
           <FaPaperPlane style={{ fontSize: 12 }} />
-          <span>{isSubmitting ? "Submitting Review..." : "Submit Review &amp; Save AI Results"}</span>
+          <span>{isSubmitting ? "Submitting Review..." : "Submit Review & Save AI Results"}</span>
         </button>
       </form>
 

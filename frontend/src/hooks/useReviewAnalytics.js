@@ -19,30 +19,23 @@ export function useReviewAnalytics(reviews = []) {
     try {
       // Call emotion analysis endpoint http://127.0.0.1:5001/predict for each text review
       const promises = reviews.map(async (rev) => {
+        if (rev.sentiment || rev.audioSentiment) {
+          return (rev.sentiment || rev.audioSentiment).toLowerCase();
+        }
+
         const text = rev.text || rev.review || "";
         if (!text.trim()) {
-          // Fallback based on star rating
           const rating = parseInt(rev.rating || "5", 10);
           return rating >= 4 ? "positive" : rating === 3 ? "neutral" : "negative";
         }
 
-        try {
-          let res;
-          try {
-            res = await axios.post("http://127.0.0.1:5000/predict", { review: text }, { timeout: 3000 });
-          } catch {
-            res = await axios.post("http://127.0.0.1:5001/predict", { review: text }, { timeout: 3000 });
-          }
-          return res.data?.predicted_sentiment || "positive";
-        } catch (err) {
-          // Fallback logic if ports are offline
-          const lower = text.toLowerCase();
-          const ratingNum = parseInt(rev.rating || "5", 10);
-          if (lower.includes("bad") || lower.includes("terrible") || lower.includes("worst") || lower.includes("dirty") || lower.includes("poor") || lower.includes("disappointed")) return "negative";
-          if (lower.includes("ok") || lower.includes("okay") || lower.includes("average") || lower.includes("fair") || lower.includes("decent") || lower.includes("fine") || lower.includes("normal") || lower.includes("standard") || ratingNum === 3) return "neutral";
-          if (ratingNum <= 2) return "negative";
-          return "positive";
-        }
+        // Fast local evaluation fallback
+        const lower = text.toLowerCase();
+        const ratingNum = parseInt(rev.rating || "5", 10);
+        if (lower.includes("bad") || lower.includes("terrible") || lower.includes("worst") || lower.includes("dirty") || lower.includes("poor") || lower.includes("disappointed")) return "negative";
+        if (lower.includes("ok") || lower.includes("okay") || lower.includes("average") || lower.includes("fair") || lower.includes("decent") || lower.includes("fine") || lower.includes("normal") || lower.includes("standard") || ratingNum === 3) return "neutral";
+        if (ratingNum <= 2) return "negative";
+        return "positive";
       });
 
       const results = await Promise.all(promises);

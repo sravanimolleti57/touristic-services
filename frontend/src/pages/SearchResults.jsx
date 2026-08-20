@@ -19,6 +19,8 @@ import { FLIGHTS, BUSES, TRAINS, AIRLINE_META, getOfficialBookingUrl, fetchLiveF
 import CalendarWidget from "../components/CalendarWidget";
 import SharedNavbar from "../components/SharedNavbar";
 import FeedbackAnalysisModal from "../components/FeedbackAnalysisModal";
+import HotelSentimentDonut from "../components/HotelSentimentDonut";
+import SearchAutocomplete from "../components/SearchAutocomplete";
 import "../styles/shared.css";
 
 /**
@@ -108,23 +110,42 @@ function SentimentBadge({ label }) {
   );
 }
 
-function PlaceCard({ item, wishlist, toggleWishlist, onExplore }) {
+function PlaceCard({ item, wishlist, toggleWishlist, onExplore, onFeedbackAnalysis }) {
+  const destId = item.id || item._id;
+
   return (
     <div style={S.card}>
-      <div style={{ position: "relative" }}>
-        <img src={item.img} alt={item.name} style={S.cardImg} onError={e => { e.target.src = "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&q=80"; }} />
-        <button onClick={() => toggleWishlist(item.id)} style={S.heartBtn}>
-          {wishlist.includes(item.id) ? <FaHeart color="#ef4444" /> : <FaRegHeart color="white" />}
+      <div
+        style={{ position: "relative", cursor: "pointer" }}
+        onClick={() => onExplore(destId)}
+      >
+        <img
+          src={item.img}
+          alt={item.name}
+          style={S.cardImg}
+          onError={e => { e.target.src = "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&q=80"; }}
+        />
+        <button
+          onClick={(e) => { e.stopPropagation(); toggleWishlist(destId); }}
+          style={S.heartBtn}
+          title="Save to Wishlist"
+        >
+          {wishlist.includes(destId) ? <FaHeart color="#ef4444" /> : <FaRegHeart color="white" />}
         </button>
         <span style={S.catBadge}>{item.category}</span>
       </div>
       <div style={S.cardBody}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
           <div>
-            <h3 style={S.cardTitle}>{item.name}</h3>
+            <h3
+              style={{ ...S.cardTitle, cursor: "pointer" }}
+              onClick={() => onExplore(destId)}
+            >
+              {item.name}
+            </h3>
             <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4 }}>
               <Stars rating={item.rating} />
-              <span style={S.ratingText}>{item.rating} ({item.reviews.toLocaleString()} reviews)</span>
+              <span style={S.ratingText}>{item.rating} ({(item.reviews || 200).toLocaleString()} reviews)</span>
             </div>
           </div>
           <div style={{ textAlign: "right" }}>
@@ -133,48 +154,87 @@ function PlaceCard({ item, wishlist, toggleWishlist, onExplore }) {
           </div>
         </div>
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 10 }}>
-          {item.tags.map(t => <span key={t} style={S.tag}>{t}</span>)}
+          {(item.tags || []).map(t => <span key={t} style={S.tag}>{t}</span>)}
         </div>
-        <div style={{ marginTop: 10, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <SentimentBadge label={item.sentiment} />
-          <button onClick={() => onExplore(item.id)} style={S.actionBtn}>Explore →</button>
+        <div style={{ marginTop: 12, display: "flex", gap: 8, alignItems: "center" }}>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              if (onFeedbackAnalysis) onFeedbackAnalysis(item);
+            }}
+            style={{
+              flex: 1, padding: "9px 6px", borderRadius: 10,
+              border: "1px solid rgba(37,99,235,0.25)",
+              background: "rgba(37,99,235,0.07)", color: "#2563EB",
+              cursor: "pointer", fontSize: 11, fontWeight: 700,
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
+              transition: "all 0.2s", fontFamily: "inherit",
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.background = "rgba(37,99,235,0.14)";
+              e.currentTarget.style.borderColor = "rgba(37,99,235,0.5)";
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.background = "rgba(37,99,235,0.07)";
+              e.currentTarget.style.borderColor = "rgba(37,99,235,0.25)";
+            }}
+            title={`View feedback analysis for ${item.name}`}
+          >
+            <FaChartPie size={12} color="#3b82f6" /> Feedback Analysis
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onExplore(destId);
+            }}
+            style={{ ...S.actionBtn, flex: 1, textAlign: "center", padding: "9px 6px", fontSize: 12 }}
+            title={`Explore ${item.name}`}
+          >
+            Explore →
+          </button>
         </div>
       </div>
     </div>
   );
 }
 
-function HotelCard({ item, wishlist, toggleWishlist, onBook, onFeedbackAnalysis }) {
+function HotelCard({ item, wishlist, toggleWishlist, onBook, onFeedbackAnalysis, onExplore }) {
+  const isDeactivated = (item.status || "Active").toLowerCase() === "deactivated";
   return (
-    <div style={S.card}>
-      <div style={{ position: "relative" }}>
-        <img src={item.img} alt={item.name} style={S.cardImg} onError={e => { e.target.src = "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400&q=80"; }} />
-        <button onClick={() => toggleWishlist(item.id)} style={S.heartBtn}>
-          {wishlist.includes(item.id) ? <FaHeart color="#ef4444" /> : <FaRegHeart color="white" />}
+    <div style={{ ...S.card, opacity: isDeactivated ? 0.75 : 1 }}>
+      <div style={{ position: "relative", cursor: "pointer" }} onClick={() => onExplore(item._id || item.id)}>
+        <img src={item.img || (item.images && item.images[0])} alt={item.name} style={S.cardImg} onError={e => { e.target.src = "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400&q=80"; }} />
+        <button onClick={(e) => { e.stopPropagation(); toggleWishlist(item.id || item._id); }} style={S.heartBtn}>
+          {wishlist.includes(item.id || item._id) ? <FaHeart color="#ef4444" /> : <FaRegHeart color="white" />}
         </button>
         <span style={{ ...S.catBadge, background: "rgba(37,99,235,0.9)", color: "white" }}>
-          📍 {item.country || item.location.split(",").pop().trim()}
+          📍 {item.country || (item.location ? item.location.split(",").pop().trim() : "India")}
         </span>
       </div>
       <div style={S.cardBody}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
           <div>
-            <h3 style={S.cardTitle}>{item.name}</h3>
+            <h3 style={{ ...S.cardTitle, cursor: "pointer" }} onClick={() => onExplore(item._id || item.id)}>{item.name}</h3>
             <div style={{ display: "flex", alignItems: "center", gap: 4, color: "#64748B", fontSize: 12, marginTop: 3 }}>
-              <FaMapMarkerAlt size={10} /> {item.location}
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4 }}>
-              <Stars rating={item.rating} />
-              <span style={S.ratingText}>{item.rating} ({item.reviews.toLocaleString()})</span>
+              <FaMapMarkerAlt size={10} color="#EF4444" /> {item.location}
             </div>
           </div>
           <div style={{ textAlign: "right" }}>
-            <div style={S.price}>{item.price}</div>
+            <div style={S.price}>{item.price || `₹${Number(item.pricePerNight || 5000).toLocaleString("en-IN")}/night`}</div>
           </div>
         </div>
-        <div style={{ display: "flex", gap: 6, marginTop: 10, flexWrap: "wrap" }}>
-          {item.amenities.map(a => (
-            <span key={a} title={AMENITY_LABELS[a]} style={S.amenity}>{AMENITY_ICONS[a]} {AMENITY_LABELS[a]}</span>
+
+        {/* AI Sentiment Analysis Donut (Replaces simple star rating) */}
+        <HotelSentimentDonut
+          hotel={item}
+          onOpenAnalysis={onFeedbackAnalysis}
+        />
+
+        <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
+          {(item.amenities || ["wifi", "pool", "restaurant", "ac"]).slice(0, 4).map((a, idx) => (
+            <span key={idx} style={S.amenity}>
+              {AMENITY_ICONS[a.toLowerCase()] || "✓"} {AMENITY_LABELS[a.toLowerCase()] || a}
+            </span>
           ))}
         </div>
         <div style={{ marginTop: 14, display: "flex", gap: 8, alignItems: "center" }}>
@@ -187,10 +247,10 @@ function HotelCard({ item, wishlist, toggleWishlist, onBook, onFeedbackAnalysis 
               transition: "all 0.2s", fontFamily: "inherit"
             }}
           >
-            <FaChartPie size={12} color="#3b82f6" /> Feedback Analysis
+            <FaChartPie size={12} color="#3b82f6" /> AI Feedback
           </button>
-          <button onClick={() => onBook(item)} style={{ ...S.actionBtn, flex: 1, textAlign: "center", padding: "9px 6px", fontSize: 12 }}>
-            Book Now →
+          <button onClick={() => onExplore(item._id || item.id)} style={{ ...S.actionBtn, flex: 1, textAlign: "center", padding: "9px 6px", fontSize: 12 }}>
+            View &amp; Book →
           </button>
         </div>
       </div>
@@ -1164,13 +1224,42 @@ export default function SearchResults() {
   const [liveTracker, setLiveTracker] = useState([]);
   const [trackerLoading, setTrackerLoading] = useState(false);
   const [showTracker, setShowTracker] = useState(false);
-  const [liveFlightResults, setLiveFlightResults] = useState(null); // null = use static
-  const [flightSource, setFlightSource] = useState("static"); // "live" | "simulated" | "static"
+  const [liveFlightResults, setLiveFlightResults] = useState(null);
+  const [flightSource, setFlightSource] = useState("static");
   const [flightSearchLoading, setFlightSearchLoading] = useState(false);
   const [selectedHotelForCalendar, setSelectedHotelForCalendar] = useState(null);
   const [selectedCountryFilter, setSelectedCountryFilter] = useState("All");
   const [locationParam, setLocationParam] = useState("");
   const [transportCategoryFilter, setTransportCategoryFilter] = useState("all");
+  const [liveHotelsList, setLiveHotelsList] = useState(HOTELS);
+  const [liveDestinationsList, setLiveDestinationsList] = useState(PLACES);
+
+  useEffect(() => {
+    fetchBackendHotels();
+    fetchBackendDestinations();
+  }, []);
+
+  const fetchBackendDestinations = async () => {
+    try {
+      const res = await axios.get("http://127.0.0.1:5000/api/destinations");
+      if (res.data && res.data.length > 0) {
+        setLiveDestinationsList(res.data);
+      }
+    } catch (err) {
+      console.warn("Could not fetch live destinations from backend, using fallback:", err);
+    }
+  };
+
+  const fetchBackendHotels = async () => {
+    try {
+      const res = await axios.get("http://127.0.0.1:5000/api/hotels?status=Active");
+      if (res.data && res.data.length > 0) {
+        setLiveHotelsList(res.data);
+      }
+    } catch (err) {
+      console.warn("Could not fetch live hotels from backend, using fallback:", err);
+    }
+  };
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -1190,26 +1279,6 @@ export default function SearchResults() {
     }
     if (loc) {
       setLocationParam(loc);
-    }
-  }, [location.search]);
-
-
-
-
-
-
-
-
-
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const q = params.get("q") || "";
-    const tab = params.get("tab") || "places";
-    const date = params.get("date") || "";
-    setQuery(q);
-    setActiveTab(tab);
-    if (date) {
-      setFlightDate(date);
     }
   }, [location.search]);
 
@@ -1277,24 +1346,24 @@ export default function SearchResults() {
 
       if (query.trim()) {
         const qLower = query.toLowerCase();
-        const matchName = h.name.toLowerCase().includes(qLower);
-        const matchLoc = h.location.toLowerCase().includes(qLower);
+        const matchName = (h.name || "").toLowerCase().includes(qLower);
+        const matchLoc = (h.location || "").toLowerCase().includes(qLower);
         const matchCountry = (h.country || "").toLowerCase().includes(qLower);
         if (!matchName && !matchLoc && !matchCountry) return false;
       }
 
       if (locationParam.trim()) {
         const locLower = locationParam.toLowerCase();
-        const matchLoc = h.location.toLowerCase().includes(locLower);
+        const matchLoc = (h.location || "").toLowerCase().includes(locLower);
         const matchCountry = (h.country || "").toLowerCase().includes(locLower);
-        const matchName = h.name.toLowerCase().includes(locLower);
+        const matchName = (h.name || "").toLowerCase().includes(locLower);
         if (!matchLoc && !matchCountry && !matchName) return false;
       }
 
       if (selectedCountryFilter !== "All") {
         const countryLower = selectedCountryFilter.toLowerCase();
         const hCountry = (h.country || "").toLowerCase();
-        const hLoc = h.location.toLowerCase();
+        const hLoc = (h.location || "").toLowerCase();
 
         const matchCountry = hCountry.includes(countryLower) || hLoc.includes(countryLower) || countryLower.includes(hCountry);
         if (!matchCountry) return false;
@@ -1304,11 +1373,11 @@ export default function SearchResults() {
     });
 
     if (sortBy === "rating") {
-      result.sort((a, b) => b.rating - a.rating);
+      result.sort((a, b) => (b.rating || 0) - (a.rating || 0));
     } else if (sortBy === "price") {
       result.sort((a, b) => {
-        const pA = parseInt(String(a.price).replace(/[^0-9]/g, "")) || 0;
-        const pB = parseInt(String(b.price).replace(/[^0-9]/g, "")) || 0;
+        const pA = typeof a.pricePerNight === "number" ? a.pricePerNight : (parseInt(String(a.price).replace(/[^0-9]/g, "")) || 0);
+        const pB = typeof b.pricePerNight === "number" ? b.pricePerNight : (parseInt(String(b.price).replace(/[^0-9]/g, "")) || 0);
         return pA - pB;
       });
     }
@@ -1316,8 +1385,8 @@ export default function SearchResults() {
     return result;
   };
 
-  const places = filterAndSort(PLACES);
-  const hotels = filterHotels(HOTELS);
+  const places = filterAndSort(liveDestinationsList);
+  const hotels = filterHotels(liveHotelsList);
 
   // Flight filtering & sorting — uses live results when available, falls back to static
   const filterFlights = () => {
@@ -1396,10 +1465,10 @@ export default function SearchResults() {
       `}</style>
 
       <div className="sr-main">
-        <div style={{ maxWidth: 1360, margin: "0 auto", padding: "24px 36px 60px" }}>
+        <div style={{ maxWidth: 1360, margin: "0 auto", padding: "16px 24px 48px" }}>
 
           {/* Top bar: back + search */}
-          <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 28 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
             <button
               onClick={() => navigate("/home")}
               className="sr-btn-ghost sr-btn-sm"
@@ -1407,352 +1476,60 @@ export default function SearchResults() {
             >
               <FaArrowLeft size={11} /> Back
             </button>
-            <div className="sr-search-wrap">
-              <FaSearch style={{ color: "#3b82f6", flexShrink: 0 }} />
-              <input
-                value={query}
-                onChange={e => setQuery(e.target.value)}
-                placeholder={`Search ${activeTab}...`}
-              />
-              {query && <FaTimes style={{ cursor: "pointer", color: "#64748b", flexShrink: 0 }} onClick={() => setQuery("")} />}
-            </div>
-          </div>
-
-          {/* Tabs */}
-          <div className="sr-tabs" style={{ marginBottom: 20 }}>
-            {["places", "hotels", "flights"].map(tab => (
-              <button key={tab} className={`sr-tab${activeTab === tab ? " active" : ""}`}
-                onClick={() => setActiveTab(tab)}
-              >
-                {tab === "places" ? <FaMapMarkerAlt size={13} /> : tab === "hotels" ? <FaBed size={13} /> : <FaPlane size={13} />}
-                {" "}
-                {tab.charAt(0).toUpperCase() + tab.slice(1)}
-                <span className="sr-tab-count">{counts[tab]}</span>
-              </button>
-            ))}
+            <SearchAutocomplete
+              value={query}
+              onChange={setQuery}
+              type={activeTab === "places" ? "destinations" : activeTab === "hotels" ? "hotels" : activeTab === "flights" ? "travel" : "all"}
+              placeholder={
+                activeTab === "places" ? "Search destinations, cities, countries..." :
+                activeTab === "hotels" ? "Search hotels, resorts, locations..." :
+                activeTab === "flights" ? "Search flight routes, airlines, buses, trains..." :
+                "Search experiences, destinations, hotels..."
+              }
+              onSelect={(item, title) => {
+                setQuery(title);
+              }}
+              onSubmit={(val) => {
+                setQuery(val);
+              }}
+              style={{ flex: 1 }}
+              inputStyle={{
+                background: "#FFFFFF",
+                color: "#0F172A",
+                borderColor: "#E2E8F0",
+                fontSize: 14,
+                borderRadius: 12
+              }}
+            />
           </div>
 
           {/* Inline filter bar */}
           <div className="sr-filter-bar">
-            <FaSlidersH size={13} color="#3b82f6" />
-            <span style={{ fontSize: 12, color: "#64748b", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginRight: 4 }}>Filters</span>
-            <div style={{ width: 1, height: 20, background: "rgba(148,163,184,0.12)", margin: "0 4px" }} />
+            <FaSlidersH size={12} color="#3b82f6" />
+            <span style={{ fontSize: 11, color: "#64748b", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginRight: 2 }}>Filters</span>
+            <div style={{ width: 1, height: 16, background: "rgba(148,163,184,0.15)", margin: "0 2px" }} />
 
-            {activeTab === "flights" ? (
-              <>
-                {["All", "Economy", "Premium Economy", "Business"].map(c => (
-                  <button key={c} className={`sr-filter-pill${flightClass === c ? " active" : ""}`}
-                    onClick={() => setFlightClass(c)}>{c}
-                  </button>
-                ))}
-                <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8 }}>
-                  <span style={{ fontSize: 12, color: "#64748b" }}>Sort:</span>
-                  <select value={flightSort} onChange={e => setFlightSort(e.target.value)} className="sr-filter-select">
-                    <option value="price">Lowest Price</option>
-                    <option value="departure">Earliest Dep.</option>
-                    <option value="duration">Shortest</option>
-                  </select>
-                </div>
-              </>
-            ) : (
-              <>
-                {[{ v: 0, l: "All" }, { v: 4, l: "4+ Stars" }, { v: 4.5, l: "4.5+ Stars" }, { v: 4.8, l: "4.8+ Stars" }].map(({ v, l }) => (
-                  <button key={v} className={`sr-filter-pill${minRating === v ? " active" : ""}`}
-                    onClick={() => setMinRating(v)}>{l}
-                  </button>
-                ))}
-                <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8 }}>
-                  <span style={{ fontSize: 12, color: "#64748b" }}>Sort:</span>
-                  <select value={sortBy} onChange={e => setSortBy(e.target.value)} className="sr-filter-select">
-                    <option value="rating">Top Rated</option>
-                    <option value="price">Price</option>
-                  </select>
-                </div>
-              </>
-            )}
+            {[{ v: 0, l: "All" }, { v: 4, l: "4+ Stars" }, { v: 4.5, l: "4.5+ Stars" }, { v: 4.8, l: "4.8+ Stars" }].map(({ v, l }) => (
+              <button key={v} className={`sr-filter-pill${minRating === v ? " active" : ""}`}
+                onClick={() => setMinRating(v)}>{l}
+              </button>
+            ))}
+            <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 6 }}>
+              <span style={{ fontSize: 11, color: "#64748b" }}>Sort:</span>
+              <select value={sortBy} onChange={e => setSortBy(e.target.value)} className="sr-filter-select">
+                <option value="rating">Top Rated</option>
+                <option value="price">Price</option>
+              </select>
+            </div>
           </div>
 
-          {/* Classified Country & Place Filter Bar for Hotels */}
-          {activeTab === "hotels" && (
-            <div style={{
-              background: "#FFFFFF",
-              border: "1px solid #E5E7EB",
-              borderRadius: 16,
-              padding: "16px 20px",
-              marginBottom: 20,
-              boxShadow: "0 2px 8px rgba(0,0,0,0.04)"
-            }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10, flexWrap: "wrap", gap: 8 }}>
-                <div style={{ fontSize: 13, fontWeight: 800, color: "#111827", display: "flex", alignItems: "center", gap: 8 }}>
-                  <FaMapMarkerAlt color="#2563EB" /> Filter Hotels by Country / Destination:
-                </div>
-                {(locationParam || selectedCountryFilter !== "All") && (
-                  <button
-                    onClick={() => { setLocationParam(""); setSelectedCountryFilter("All"); }}
-                    style={{
-                      background: "rgba(239, 68, 68, 0.08)", border: "1px solid rgba(239, 68, 68, 0.2)",
-                      color: "#DC2626", padding: "4px 12px", borderRadius: 16, cursor: "pointer",
-                      fontSize: 12, fontWeight: 700
-                    }}
-                  >
-                    Clear Location Filter ✕
-                  </button>
-                )}
-              </div>
-
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-                {["All", "India", "Indonesia", "France", "Japan", "USA", "UAE", "Switzerland", "Italy", "Singapore"].map(country => {
-                  const isActive = (selectedCountryFilter.toLowerCase() === country.toLowerCase()) || (locationParam && country !== "All" && locationParam.toLowerCase().includes(country.toLowerCase()));
-                  return (
-                    <button
-                      key={country}
-                      onClick={() => {
-                        setSelectedCountryFilter(country);
-                        setLocationParam("");
-                      }}
-                      style={{
-                        padding: "7px 16px",
-                        borderRadius: 20,
-                        fontSize: 12,
-                        fontWeight: 700,
-                        cursor: "pointer",
-                        border: isActive ? "1px solid #2563EB" : "1px solid #E5E7EB",
-                        background: isActive ? "linear-gradient(135deg, #2563EB, #3B82F6)" : "#F9FAFB",
-                        color: isActive ? "#FFFFFF" : "#4B5563",
-                        boxShadow: isActive ? "0 2px 8px rgba(37,99,235,0.25)" : "none",
-                        transition: "all 0.2s",
-                        fontFamily: "inherit"
-                      }}
-                    >
-                      {country === "All" ? "🌐 All Destinations" : country}
-                    </button>
-                  );
-                })}
-              </div>
-
-              {(locationParam || selectedCountryFilter !== "All") && (
-                <div style={{ marginTop: 12, fontSize: 12, color: "#2563EB", background: "rgba(37,99,235,0.06)", padding: "8px 12px", borderRadius: 10, fontWeight: 600 }}>
-                  📍 Displaying luxury hotels located in: <strong>{locationParam ? `${locationParam} ${selectedCountryFilter !== "All" ? `(${selectedCountryFilter})` : ""}` : selectedCountryFilter}</strong> ({hotels.length} hotels found)
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Flight, Bus & Train search form */}
-          {activeTab === "flights" && (
-            <>
-              {/* Category Filter Pills */}
-              <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
-                {[
-                  { key: "all", label: "🌐 All Transport", count: FLIGHTS.length + BUSES.length + TRAINS.length },
-                  { key: "flights", label: "✈️ Flights", count: FLIGHTS.length },
-                  { key: "buses", label: "🚌 Buses", count: BUSES.length },
-                  { key: "trains", label: "🚆 Trains", count: TRAINS.length },
-                ].map(cat => {
-                  const isActive = transportCategoryFilter === cat.key;
-                  return (
-                    <button
-                      key={cat.key}
-                      onClick={() => setTransportCategoryFilter(cat.key)}
-                      style={{
-                        padding: "8px 18px", borderRadius: 20, fontSize: 12, fontWeight: 800,
-                        cursor: "pointer", border: isActive ? "1px solid #2563EB" : "1px solid #E5E7EB",
-                        background: isActive ? "linear-gradient(135deg, #2563EB, #3B82F6)" : "#FFFFFF",
-                        color: isActive ? "#FFFFFF" : "#374151", boxShadow: isActive ? "0 4px 12px rgba(37,99,235,0.2)" : "none",
-                        transition: "all 0.2s", fontFamily: "inherit"
-                      }}
-                    >
-                      {cat.label} ({cat.count})
-                    </button>
-                  );
-                })}
-              </div>
-
-              <div style={{
-                background: "#FFFFFF",
-                border: "1px solid #E8EDF5",
-                borderRadius: 20, padding: "24px 28px", marginBottom: 20,
-                boxShadow: "0 10px 30px rgba(15,23,42,.08)",
-              }}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                    <h3 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: "#1F2937", display: "flex", alignItems: "center", gap: 10 }}>
-                      <FaPlane size={18} color="#2563EB" /> Search Transport (Flights, Buses &amp; Trains)
-                    </h3>
-                    {liveFlightResults !== null && (
-                      <span style={{
-                        fontSize: 10, fontWeight: 700, padding: "3px 10px", borderRadius: 20,
-                        background: flightSource === "live" ? "rgba(34,197,94,0.12)" : "rgba(99,102,241,0.1)",
-                        color: flightSource === "live" ? "#16A34A" : "#6366F1",
-                        border: `1px solid ${flightSource === "live" ? "rgba(34,197,94,0.3)" : "rgba(99,102,241,0.25)"}`,
-                      }}>
-                        {flightSource === "live" ? "🟢 Live Data" : "🔵 Simulated"}
-                      </span>
-                    )}
-                  </div>
-                  <button onClick={loadLiveTracker} style={{
-                    padding: "8px 16px", borderRadius: 10, border: "1px solid rgba(34,197,94,0.3)",
-                    background: "rgba(34,197,94,0.08)", color: "#16A34A",
-                    cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit",
-                    display: "flex", alignItems: "center", gap: 6,
-                  }}>
-                    <FaSatelliteDish size={10} /> Live Tracker
-                  </button>
-                </div>
-                <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                  {[{ label: "From", value: flightFrom, set: setFlightFrom, ph: "Delhi, Mumbai..." },
-                  { label: "To", value: flightTo, set: setFlightTo, ph: "Goa, Bangalore..." }].map(({ label, value, set, ph }) => (
-                    <div key={label} style={{ flex: 1, minWidth: 130 }}>
-                      <div style={{ fontSize: 10, color: "#64748B", marginBottom: 4, textTransform: "uppercase", letterSpacing: 1 }}>{label}</div>
-                      <div style={{ display: "flex", alignItems: "center", background: "#F9FAFB", borderRadius: 10, padding: "10px 14px", border: "1px solid #E5E7EB" }}>
-                        <FaMapMarkerAlt size={11} color="#2563EB" style={{ marginRight: 8, flexShrink: 0 }} />
-                        <input value={value} onChange={e => set(e.target.value)} placeholder={ph}
-                          style={{ background: "transparent", border: "none", outline: "none", color: "#111827", fontSize: 13, width: "100%", fontFamily: "inherit" }} />
-                      </div>
-                    </div>
-                  ))}
-                  <div style={{ flex: 1, minWidth: 130 }}>
-                    <div style={{ fontSize: 10, color: "#64748B", marginBottom: 4, textTransform: "uppercase", letterSpacing: 1 }}>Date</div>
-                    <div style={{ display: "flex", alignItems: "center", background: "#F9FAFB", borderRadius: 10, padding: "10px 14px", border: "1px solid #E5E7EB" }}>
-                      <FaCalendarAlt size={11} color="#2563EB" style={{ marginRight: 8, flexShrink: 0 }} />
-                      <input type="date" value={flightDate} onChange={e => setFlightDate(e.target.value)}
-                        style={{ background: "transparent", border: "none", outline: "none", color: "#111827", fontSize: 13, width: "100%", fontFamily: "inherit", colorScheme: "light" }} />
-                    </div>
-                  </div>
-                  <div style={{ flex: 1, minWidth: 110 }}>
-                    <div style={{ fontSize: 10, color: "#64748B", marginBottom: 4, textTransform: "uppercase", letterSpacing: 1 }}>Passengers</div>
-                    <div style={{ display: "flex", alignItems: "center", background: "#F9FAFB", borderRadius: 10, padding: "10px 14px", border: "1px solid #E5E7EB" }}>
-                      <FaUsers size={11} color="#2563EB" style={{ marginRight: 8, flexShrink: 0 }} />
-                      <input type="number" min={1} max={9} value={passengers} onChange={e => setPassengers(Number(e.target.value))}
-                        style={{ background: "transparent", border: "none", outline: "none", color: "#111827", fontSize: 13, width: "100%", fontFamily: "inherit" }} />
-                    </div>
-                  </div>
-                  <button
-                    onClick={handleSearch}
-                    disabled={flightSearchLoading}
-                    className="sr-btn"
-                    style={{ alignSelf: "flex-end", opacity: flightSearchLoading ? 0.7 : 1, cursor: flightSearchLoading ? "not-allowed" : "pointer" }}
-                  >
-                    {flightSearchLoading ? "Searching..." : "Search Flights"}
-                  </button>
-                </div>
-              </div>
-
-              {/* Live Tracker Panel */}
-              {showTracker && (
-                <div style={{
-                  background: "#FFFFFF",
-                  border: "1px solid rgba(34,197,94,0.3)",
-                  borderRadius: 20, padding: "20px 24px", marginBottom: 20,
-                  boxShadow: "0 10px 30px rgba(15,23,42,.08)",
-                }}>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <FaSatelliteDish size={13} color="#16A34A" />
-                      <span style={{ fontSize: 14, fontWeight: 700, color: "#16A34A" }}>Live Flight Tracker</span>
-                      <span style={{ fontSize: 11, color: "#64748B" }}>via AviationStack API</span>
-                    </div>
-                    <button onClick={() => setShowTracker(false)} style={{ background: "none", border: "none", color: "#64748B", cursor: "pointer", fontSize: 16 }}><FaTimes /></button>
-                  </div>
-                  {trackerLoading ? (
-                    <div style={{ textAlign: "center", padding: 20, color: "#64748B", fontSize: 13 }}>
-                      <div style={{ fontSize: 28, marginBottom: 8 }}><FaPlane size={28} /></div>Loading live flight data...
-                    </div>
-                  ) : (
-                    <div style={{ overflowX: "auto" }}>
-                      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
-                        <thead>
-                          <tr style={{ borderBottom: "1px solid #E5E7EB" }}>
-                            {["Flight", "Airline", "Route", "Scheduled", "Gate", "Status", "Delay"].map(h => (
-                              <th key={h} style={{ padding: "8px 10px", textAlign: "left", color: "#64748B", fontWeight: 600, textTransform: "uppercase", fontSize: 10, letterSpacing: 1 }}>{h}</th>
-                            ))}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {liveTracker.map((fl, i) => (
-                            <tr key={i} className="sr-live-row" style={{ borderBottom: "1px solid #F1F5F9" }}>
-                              <td style={{ padding: "10px", fontWeight: 700, color: "#111827" }}>{fl.flightNo}</td>
-                              <td style={{ padding: "10px", color: "#4B5563" }}>{fl.airline}</td>
-                              <td style={{ padding: "10px", color: "#4B5563" }}>{fl.departure.iata} → {fl.arrival.iata}</td>
-                              <td style={{ padding: "10px", color: "#111827", fontWeight: 600 }}>{fl.departure.scheduled}</td>
-                              <td style={{ padding: "10px", color: "#2563EB", fontWeight: 600 }}>{fl.departure.gate}</td>
-                              <td style={{ padding: "10px" }}>
-                                <span style={{
-                                  fontSize: 11, fontWeight: 600, padding: "3px 10px", borderRadius: 20,
-                                  color: statusColors[fl.status] || "#64748B",
-                                  background: (statusColors[fl.status] || "#64748B") + "18",
-                                  border: `1px solid ${(statusColors[fl.status] || "#64748B")}40`,
-                                  textTransform: "capitalize",
-                                }}>{fl.status}</span>
-                              </td>
-                              <td style={{ padding: "10px", color: fl.departure.delay > 0 ? "#ef4444" : "#16A34A", fontWeight: 600 }}>
-                                {fl.departure.delay > 0 ? `+${fl.departure.delay}m` : "On Time"}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </div>
-              )}
-            </>
-          )}
-
-          {/* Hotel Availability Calendar */}
-          {activeTab === "hotels" && (
-            selectedHotelForCalendar ? (
-              <div className="sr-calendar-panel">
-                <div style={{
-                  background: "linear-gradient(135deg,rgba(139,92,246,0.06),#FFFFFF)",
-                  border: "1px solid rgba(139,92,246,0.20)",
-                  borderRadius: 20, padding: "20px 24px",
-                  display: "flex", alignItems: "flex-start", gap: 24, flexWrap: "wrap",
-                  boxShadow: "0 10px 30px rgba(15,23,42,.08)",
-                }}>
-                  <div style={{ flex: "0 0 auto", maxWidth: 240 }}>
-                    <div style={{ display: "inline-flex", alignItems: "center", gap: 7, background: "rgba(139,92,246,0.10)", border: "1px solid rgba(139,92,246,0.25)", borderRadius: 20, padding: "4px 14px", marginBottom: 12 }}>
-                      <FaBed size={14} color="#7C3AED" />
-                      <span style={{ fontSize: 11, fontWeight: 700, color: "#7C3AED", textTransform: "uppercase", letterSpacing: 1 }}>Room Availability</span>
-                    </div>
-                    <h3 style={{ margin: "0 0 6px", fontSize: 16, fontWeight: 800, color: "#1F2937" }}>{selectedHotelForCalendar.name}</h3>
-                    <p style={{ margin: "0 0 16px", fontSize: 12, color: "#64748B", lineHeight: 1.6 }}>Check available dates before confirming your booking.</p>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                      {[{ c: "#ef4444", label: "Fully Booked", sub: "No rooms available" }, { c: "#16A34A", label: "Holiday / Open", sub: "Great availability" }].map(({ c, label, sub }) => (
-                        <div key={label} style={{ display: "flex", alignItems: "center", gap: 10, background: `${c}08`, border: `1px solid ${c}20`, borderRadius: 10, padding: "8px 12px" }}>
-                          <span style={{ width: 10, height: 10, borderRadius: "50%", background: c, boxShadow: `0 0 6px ${c}99`, flexShrink: 0 }} />
-                          <div><div style={{ fontSize: 11, fontWeight: 700, color: `${c}dd` }}>{label}</div><div style={{ fontSize: 10, color: "#64748B" }}>{sub}</div></div>
-                        </div>
-                      ))}
-                    </div>
-                    <button onClick={() => setSelectedHotelForCalendar(null)} style={{ marginTop: 14, fontSize: 12, color: "#64748B", background: "none", border: "none", cursor: "pointer", padding: 0, fontFamily: "inherit" }}>
-                      <FaTimes size={11} style={{ marginRight: 4 }} /> Hide calendar
-                    </button>
-                  </div>
-                  <div style={{ flex: 1, minWidth: 280 }}>
-                    <CalendarWidget compact availabilityData={HOTEL_AVAILABILITY}
-                      onDateSelect={date => setFlightDate(date.toISOString().split("T")[0])} />
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="sr-calendar-placeholder">
-                <div className="ph-icon"><FaBed size={36} /></div>
-                <div className="ph-title">Select a hotel to view room availability</div>
-                <div className="ph-sub">Click "Book Now" on any hotel below to see the availability calendar</div>
-              </div>
-            )
-          )}
-
-
-
           {/* Results header */}
-          <div style={{ marginBottom: 20, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ marginBottom: 16, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <div>
-              <h2 style={{ fontSize: 22, fontWeight: 800, margin: 0, color: "#1F2937" }}>
-                {activeTab === "places" ? <><FaMapMarkerAlt size={18} style={{ marginRight: 8 }} />Destinations</> : activeTab === "hotels" ? <><FaBed size={18} style={{ marginRight: 8 }} />Hotels</> : <><FaPlane size={18} style={{ marginRight: 8 }} />Flights</>}
+              <h2 style={{ fontSize: 20, fontWeight: 800, margin: 0, color: "#1F2937" }}>
+                <FaMapMarkerAlt size={16} style={{ marginRight: 6 }} />Destinations
               </h2>
-              <p style={{ color: "#64748b", fontSize: 13, marginTop: 4 }}>
+              <p style={{ color: "#64748b", fontSize: 12, marginTop: 2 }}>
                 {loading ? "Searching..." : `${currentCount} result${currentCount !== 1 ? "s" : ""} found`}
                 {query && ` for "${query}"`}
               </p>
@@ -1760,7 +1537,7 @@ export default function SearchResults() {
             {!loading && currentCount > 0 && (
               <button
                 onClick={() => { setQuery(""); setMinRating(0); setFlightFrom(""); setFlightTo(""); setFlightClass("All"); }}
-                style={{ fontSize: 12, color: "#64748b", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit" }}
+                style={{ fontSize: 11, color: "#64748b", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit" }}
               >
                 Clear filters
               </button>
@@ -1769,14 +1546,14 @@ export default function SearchResults() {
 
           {/* Card grid / skeleton / empty */}
           {loading ? (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(300px,1fr))", gap: 20 }}>
-              {[1, 2, 3, 4, 5, 6].map(i => (
-                <div key={i} className="sr-skeleton" style={{ height: 320 }} />
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(260px,1fr))", gap: 16 }}>
+              {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
+                <div key={i} className="sr-skeleton" style={{ height: 270 }} />
               ))}
             </div>
           ) : currentCount === 0 ? (
             <div className="sr-empty">
-              <div className="sr-empty-icon"><FaSearch size={48} /></div>
+              <div className="sr-empty-icon"><FaSearch size={36} /></div>
               <h3>No results found</h3>
               <p>Try a different search term or clear your filters.</p>
               <button className="sr-btn" onClick={() => { setQuery(""); setMinRating(0); setFlightFrom(""); setFlightTo(""); setFlightClass("All"); }}>
@@ -1784,21 +1561,15 @@ export default function SearchResults() {
               </button>
             </div>
           ) : (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(300px,1fr))", gap: 20 }}>
-              {activeTab === "places" && places.map(item => (
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(260px,1fr))", gap: 16 }}>
+              {places.map(item => (
                 <PlaceCard key={item.id} item={item} wishlist={wishlist} toggleWishlist={toggleWishlist}
-                  onExplore={id => navigate(`/explore/${id}`)} />
-              ))}
-              {activeTab === "hotels" && hotels.map(item => (
-                <HotelCard key={item.id} item={item} wishlist={wishlist} toggleWishlist={toggleWishlist}
-                  onBook={hotel => { setBookingHotel(hotel); setSelectedHotelForCalendar(hotel); }}
-                  onFeedbackAnalysis={hotel => { setSelectedAnalysisItem(hotel); setAnalysisItemType("hotel"); }} />
-              ))}
-              {activeTab === "flights" && flights.map(item => (
-                <FlightCard key={item.id} item={item}
-                  onViewDetails={setSelectedFlight}
-                  onBook={handleDirectFlightBooking}
-                  onFeedbackAnalysis={flight => { setSelectedAnalysisItem(flight); setAnalysisItemType("flight"); }} />
+                  onExplore={id => navigate(`/explore/${id}`)}
+                  onFeedbackAnalysis={(dest) => {
+                    setSelectedAnalysisItem(dest);
+                    setAnalysisItemType("destination");
+                  }}
+                />
               ))}
             </div>
           )}
@@ -1815,17 +1586,17 @@ export default function SearchResults() {
 }
 
 const S = {
-  card: { background: "#FFFFFF", borderRadius: 22, overflow: "hidden", border: "1px solid #E8EDF5", boxShadow: "0 10px 30px rgba(15,23,42,.08)", transition: "transform .3s cubic-bezier(.34,1.56,.64,1), border-color .3s, box-shadow .3s" },
-  cardImg: { width: "100%", height: 190, objectFit: "cover", display: "block" },
-  cardBody: { padding: "16px 18px" },
-  cardTitle: { fontSize: 16, fontWeight: 700, color: "#1F2937", margin: 0 },
+  card: { background: "#FFFFFF", borderRadius: 16, overflow: "hidden", border: "1px solid #E8EDF5", boxShadow: "0 4px 16px rgba(15,23,42,.06)", transition: "transform .25s cubic-bezier(.34,1.56,.64,1), border-color .25s, box-shadow .25s" },
+  cardImg: { width: "100%", height: 155, objectFit: "cover", display: "block" },
+  cardBody: { padding: "12px 14px" },
+  cardTitle: { fontSize: 15, fontWeight: 700, color: "#1F2937", margin: 0 },
   ratingText: { fontSize: 11, color: "#64748B" },
-  price: { fontSize: 17, fontWeight: 800, color: "#2563EB" },
+  price: { fontSize: 15, fontWeight: 800, color: "#2563EB" },
   priceLabel: { fontSize: 10, color: "#9CA3AF" },
-  tag: { fontSize: 11, padding: "3px 10px", borderRadius: 20, background: "#EEF4FF", color: "#3B82F6", border: "1px solid rgba(59,130,246,0.20)" },
-  amenity: { display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: "#2563EB", background: "#EEF4FF", padding: "3px 10px", borderRadius: 20, border: "1px solid rgba(59,130,246,0.15)" },
-  heartBtn: { position: "absolute", top: 10, right: 10, background: "rgba(255,255,255,0.92)", backdropFilter: "blur(8px)", border: "1px solid rgba(0,0,0,0.08)", borderRadius: "50%", width: 34, height: 34, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" },
-  catBadge: { position: "absolute", bottom: 10, left: 10, background: "rgba(255,255,255,0.92)", backdropFilter: "blur(8px)", color: "#374151", fontSize: 10, fontWeight: 700, padding: "4px 10px", borderRadius: 20, border: "1px solid rgba(0,0,0,0.08)" },
-  actionBtn: { background: "linear-gradient(135deg,#2563EB,#3B82F6)", border: "none", color: "white", padding: "8px 16px", borderRadius: 10, cursor: "pointer", fontSize: 12, fontWeight: 700, transition: "all .2s", fontFamily: "inherit", boxShadow: "0 4px 12px rgba(37,99,235,0.25)" },
-  flightBadge: { fontSize: 11, color: "#2563EB", background: "#EEF4FF", padding: "3px 10px", borderRadius: 20, border: "1px solid rgba(59,130,246,0.20)", display: "inline-flex", alignItems: "center", gap: 4 },
+  tag: { fontSize: 10, padding: "2px 8px", borderRadius: 16, background: "#EEF4FF", color: "#3B82F6", border: "1px solid rgba(59,130,246,0.20)" },
+  amenity: { display: "flex", alignItems: "center", gap: 3, fontSize: 10, color: "#2563EB", background: "#EEF4FF", padding: "2px 8px", borderRadius: 16, border: "1px solid rgba(59,130,246,0.15)" },
+  heartBtn: { position: "absolute", top: 8, right: 8, background: "rgba(255,255,255,0.92)", backdropFilter: "blur(6px)", border: "1px solid rgba(0,0,0,0.08)", borderRadius: "50%", width: 30, height: 30, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" },
+  catBadge: { position: "absolute", bottom: 8, left: 8, background: "rgba(255,255,255,0.92)", backdropFilter: "blur(6px)", color: "#374151", fontSize: 9, fontWeight: 700, padding: "3px 8px", borderRadius: 16, border: "1px solid rgba(0,0,0,0.08)" },
+  actionBtn: { background: "linear-gradient(135deg,#2563EB,#3B82F6)", border: "none", color: "white", padding: "7px 12px", borderRadius: 8, cursor: "pointer", fontSize: 11, fontWeight: 700, transition: "all .2s", fontFamily: "inherit", boxShadow: "0 3px 10px rgba(37,99,235,0.22)" },
+  flightBadge: { fontSize: 10, color: "#2563EB", background: "#EEF4FF", padding: "2px 8px", borderRadius: 16, border: "1px solid rgba(59,130,246,0.20)", display: "inline-flex", alignItems: "center", gap: 3 },
 };

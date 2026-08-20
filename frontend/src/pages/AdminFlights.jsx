@@ -1,6 +1,10 @@
 import { useState, useEffect } from "react";
 import AdminNavbar from "../components/AdminNavbar";
-import { FaPlane, FaCheck, FaCheckCircle, FaSearch, FaEnvelope, FaPhone, FaUsers, FaClock, FaExchangeAlt } from "react-icons/fa";
+import SearchAutocomplete from "../components/SearchAutocomplete";
+import {
+  FaPlane, FaCheck, FaCheckCircle, FaSearch, FaEnvelope,
+  FaPhone, FaUsers, FaClock, FaExchangeAlt, FaTimesCircle
+} from "react-icons/fa";
 import axios from "axios";
 
 export default function AdminFlights() {
@@ -16,6 +20,7 @@ export default function AdminFlights() {
   }, []);
 
   const fetchFlightBookings = async () => {
+    setLoading(true);
     try {
       const res = await axios.get("http://127.0.0.1:5000/api/admin/bookings/flights");
       setBookings(res.data || []);
@@ -39,7 +44,7 @@ export default function AdminFlights() {
       if (res.data) {
         setNotification({
           type: "success",
-          message: "✓ Booking is Confirmed and Ticket is Generated to User!"
+          message: "✓ Flight booking confirmed and e-ticket pass generated for customer!"
         });
 
         setBookings(prev => prev.map(b => b._id === booking._id ? { ...b, status: "Confirmed", confirmedAt: res.data.confirmedAt } : b));
@@ -48,7 +53,7 @@ export default function AdminFlights() {
       console.error(err);
       setNotification({
         type: "error",
-        message: err.response?.data?.message || "Failed to confirm flight booking. Please try again."
+        message: err.response?.data?.message || "Failed to confirm flight booking."
       });
     } finally {
       setConfirmingId(null);
@@ -75,208 +80,208 @@ export default function AdminFlights() {
       <AdminNavbar />
       <div style={{
         minHeight: "100vh",
-        background: "linear-gradient(135deg, #090d16 0%, #0f172a 100%)",
-        color: "#ffffff",
-        padding: "110px 40px 60px",
-        fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif"
+        background: "#F8FAFC",
+        color: "#0F172A",
+        padding: "100px 36px 60px",
+        fontFamily: "'Inter', system-ui, -apple-system, sans-serif"
       }}>
         <div style={{ maxWidth: 1240, margin: "0 auto" }}>
+
           {/* Header */}
-          <div style={{ marginBottom: 32, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 16 }}>
+          <div style={{
+            marginBottom: 28, display: "flex", justifyContent: "space-between",
+            alignItems: "flex-end", flexWrap: "wrap", gap: 16
+          }}>
             <div>
-              <div style={{ display: "inline-flex", alignItems: "center", gap: 8, color: "#a855f7", fontSize: 13, fontWeight: 700, marginBottom: 4 }}>
-                <FaPlane /> Admin Flight Approvals
+              <div style={{
+                display: "inline-flex", alignItems: "center", gap: 8,
+                color: "#0284C7", fontSize: 13, fontWeight: 800, marginBottom: 6
+              }}>
+                <FaPlane /> AIRWAYS &amp; TRANSPORT RESERVATIONS
               </div>
-              <h1 style={{ fontSize: "2.2rem", fontWeight: 900, margin: 0 }}>
-                Flight Booking Requests
+              <h1 style={{ fontSize: "2.2rem", fontWeight: 900, margin: 0, color: "#0F172A" }}>
+                Flight Bookings &amp; Passes
               </h1>
-              <p style={{ color: "#94a3b8", fontSize: "0.95rem", margin: "4px 0 0" }}>
-                Review passenger flight ticket applications and approve bookings.
+              <p style={{ color: "#64748B", fontSize: "0.95rem", margin: "4px 0 0" }}>
+                Review passenger flight reservations, approve airline e-tickets, and dispatch booking confirmations.
               </p>
             </div>
 
-            {/* Filters */}
-            <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-              <div style={{ position: "relative" }}>
-                <FaSearch style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: "#64748b" }} />
-                <input
-                  type="text"
-                  placeholder="Search passenger, flight, route, ID..."
-                  value={search}
-                  onChange={e => setSearch(e.target.value)}
-                  style={{
-                    padding: "10px 16px 10px 40px", borderRadius: 12, width: 270,
-                    background: "rgba(30, 41, 59, 0.7)", border: "1px solid rgba(255,255,255,0.1)",
-                    color: "#ffffff", fontSize: 13, outline: "none"
-                  }}
-                />
+            {/* Quick stats */}
+            <div style={{ display: "flex", gap: 12 }}>
+              <div style={{
+                background: "#FFFFFF", border: "1px solid #E2E8F0", padding: "10px 18px",
+                borderRadius: 12, boxShadow: "0 1px 3px rgba(0,0,0,0.03)"
+              }}>
+                <span style={{ fontSize: 11, color: "#64748B", textTransform: "uppercase", fontWeight: 700, display: "block" }}>Total Flights</span>
+                <strong style={{ fontSize: 18, color: "#0F172A", fontWeight: 900 }}>{bookings.length}</strong>
               </div>
-
-              <select
-                value={filterStatus}
-                onChange={e => setFilterStatus(e.target.value)}
-                style={{
-                  padding: "10px 16px", borderRadius: 12,
-                  background: "rgba(30, 41, 59, 0.7)", border: "1px solid rgba(255,255,255,0.1)",
-                  color: "#ffffff", fontSize: 13, outline: "none", cursor: "pointer"
-                }}
-              >
-                <option value="all">All Statuses</option>
-                <option value="pending">Pending Approval</option>
-                <option value="confirmed">Confirmed</option>
-              </select>
+              <div style={{
+                background: "#FFFFFF", border: "1px solid #FCD34D", padding: "10px 18px",
+                borderRadius: 12, boxShadow: "0 1px 3px rgba(0,0,0,0.03)"
+              }}>
+                <span style={{ fontSize: 11, color: "#D97706", textTransform: "uppercase", fontWeight: 700, display: "block" }}>Pending</span>
+                <strong style={{ fontSize: 18, color: "#D97706", fontWeight: 900 }}>
+                  {bookings.filter(b => (b.status || "Pending") === "Pending").length}
+                </strong>
+              </div>
             </div>
           </div>
 
-          {/* Toast Notification */}
+          {/* Notification */}
           {notification && (
             <div style={{
-              background: notification.type === "success" ? "rgba(16, 185, 129, 0.2)" : "rgba(220, 38, 38, 0.2)",
-              border: notification.type === "success" ? "1px solid rgba(16, 185, 129, 0.4)" : "1px solid rgba(220, 38, 38, 0.4)",
-              color: notification.type === "success" ? "#34d399" : "#f87171",
-              padding: "14px 20px", borderRadius: 14, fontSize: 14, fontWeight: 600,
-              marginBottom: 24, display: "flex", alignItems: "center", gap: 10
+              padding: "14px 20px", borderRadius: 12, marginBottom: 20,
+              background: notification.type === "success" ? "#DCFCE7" : "#FEE2E2",
+              border: notification.type === "success" ? "1px solid #86EFAC" : "1px solid #FCA5A5",
+              color: notification.type === "success" ? "#15803D" : "#DC2626",
+              fontSize: 14, fontWeight: 700, display: "flex", alignItems: "center", gap: 10
             }}>
-              <FaCheckCircle /> {notification.message}
+              {notification.type === "success" ? <FaCheckCircle /> : <FaTimesCircle />}
+              {notification.message}
             </div>
           )}
 
-          {/* Table Container */}
+          {/* Filter / Search */}
           <div style={{
-            background: "rgba(30, 41, 59, 0.5)", backdropFilter: "blur(16px)",
-            border: "1px solid rgba(255, 255, 255, 0.08)", borderRadius: 24,
-            overflow: "hidden", boxShadow: "0 12px 40px rgba(0,0,0,0.3)"
+            background: "#FFFFFF", border: "1px solid #E2E8F0", borderRadius: 16,
+            padding: "16px 20px", marginBottom: 24, display: "flex", justifyContent: "space-between",
+            alignItems: "center", flexWrap: "wrap", gap: 14, boxShadow: "0 1px 3px rgba(0,0,0,0.02)"
+          }}>
+            <div style={{ flex: "1 1 280px", maxWidth: 400 }}>
+              <SearchAutocomplete
+                value={search}
+                onChange={setSearch}
+                localData={bookings}
+                searchFields={["passengerName", "contactName", "contactEmail", "airline", "route", "from", "to", "bookingId", "_id"]}
+                placeholder="Search passenger, airline, route, ID..."
+                onSelect={(item, title) => {
+                  setSearch(title);
+                }}
+                inputStyle={{
+                  padding: "10px 14px 10px 38px",
+                  borderRadius: 10,
+                  background: "#F8FAFC",
+                  borderColor: "#E2E8F0",
+                  fontSize: 13
+                }}
+              />
+            </div>
+
+            <div style={{ display: "flex", gap: 8 }}>
+              {["all", "pending", "confirmed"].map(st => (
+                <button
+                  key={st}
+                  onClick={() => setFilterStatus(st)}
+                  style={{
+                    padding: "8px 16px", borderRadius: 10, border: "none",
+                    background: filterStatus === st ? "#2563EB" : "#F1F5F9",
+                    color: filterStatus === st ? "#FFFFFF" : "#64748B",
+                    fontSize: 13, fontWeight: 700, cursor: "pointer", textTransform: "capitalize",
+                    transition: "all 0.2s"
+                  }}
+                >
+                  {st === "all" ? "All Statuses" : st}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Bookings Table */}
+          <div style={{
+            background: "#FFFFFF", border: "1px solid #E2E8F0", borderRadius: 20,
+            overflow: "hidden", boxShadow: "0 2px 8px rgba(0,0,0,0.02)"
           }}>
             {loading ? (
-              <div style={{ padding: 60, textAlign: "center", color: "#94a3b8" }}>Loading flight requests...</div>
+              <div style={{ padding: 60, textAlign: "center", color: "#64748B" }}>Loading flight reservations...</div>
             ) : filteredBookings.length === 0 ? (
-              <div style={{ padding: 60, textAlign: "center", color: "#64748b" }}>
-                <div style={{ fontSize: 36, marginBottom: 12 }}>✈️</div>
-                <h3 style={{ color: "#ffffff", margin: "0 0 6px" }}>No flight bookings found</h3>
-                <p style={{ margin: 0, fontSize: 14 }}>There are no flight ticket requests matching your filters.</p>
-              </div>
+              <div style={{ padding: 60, textAlign: "center", color: "#64748B" }}>No flight bookings found.</div>
             ) : (
               <div style={{ overflowX: "auto" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: 13 }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
                   <thead>
-                    <tr style={{ background: "rgba(15, 23, 42, 0.8)", borderBottom: "1px solid rgba(255,255,255,0.08)", color: "#94a3b8" }}>
-                      <th style={{ padding: "16px 20px", fontWeight: 700 }}>Booking ID</th>
-                      <th style={{ padding: "16px 20px", fontWeight: 700 }}>Passenger Name</th>
-                      <th style={{ padding: "16px 20px", fontWeight: 700 }}>Contact Email & Phone</th>
-                      <th style={{ padding: "16px 20px", fontWeight: 700 }}>Flight No / Airline</th>
-                      <th style={{ padding: "16px 20px", fontWeight: 700 }}>Route (From &rarr; To)</th>
-                      <th style={{ padding: "16px 20px", fontWeight: 700 }}>Travel Date</th>
-                      <th style={{ padding: "16px 20px", fontWeight: 700 }}>Passengers</th>
-                      <th style={{ padding: "16px 20px", fontWeight: 700 }}>Price</th>
-                      <th style={{ padding: "16px 20px", fontWeight: 700 }}>Status</th>
-                      <th style={{ padding: "16px 20px", fontWeight: 700, textAlign: "center" }}>Action</th>
+                    <tr style={{ background: "#F8FAFC", borderBottom: "1px solid #E2E8F0", color: "#64748B" }}>
+                      <th style={{ padding: "14px 18px", textAlign: "left", fontWeight: 700 }}>Booking ID</th>
+                      <th style={{ padding: "14px 18px", textAlign: "left", fontWeight: 700 }}>Passenger</th>
+                      <th style={{ padding: "14px 18px", textAlign: "left", fontWeight: 700 }}>Airline / Flight</th>
+                      <th style={{ padding: "14px 18px", textAlign: "left", fontWeight: 700 }}>Route</th>
+                      <th style={{ padding: "14px 18px", textAlign: "left", fontWeight: 700 }}>Travel Date</th>
+                      <th style={{ padding: "14px 18px", textAlign: "left", fontWeight: 700 }}>Seats</th>
+                      <th style={{ padding: "14px 18px", textAlign: "left", fontWeight: 700 }}>Amount</th>
+                      <th style={{ padding: "14px 18px", textAlign: "left", fontWeight: 700 }}>Status</th>
+                      <th style={{ padding: "14px 18px", textAlign: "center", fontWeight: 700 }}>Action</th>
                     </tr>
                   </thead>
                   <tbody>
                     {filteredBookings.map((b) => {
                       const isPending = (b.status || "Pending") === "Pending";
-                      const isConfirming = confirmingId === b._id;
+                      const isConfirmed = b.status === "Confirmed";
 
                       return (
-                        <tr
-                          key={b._id}
-                          style={{
-                            borderBottom: "1px solid rgba(255,255,255,0.05)",
-                            transition: "background 0.2s"
-                          }}
-                          onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.03)"}
-                          onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-                        >
-                          {/* ID */}
-                          <td style={{ padding: "18px 20px", fontFamily: "monospace", color: "#a855f7", fontWeight: 700 }}>
+                        <tr key={b._id} style={{ borderBottom: "1px solid #F1F5F9" }}>
+                          <td style={{ padding: "16px 18px", fontFamily: "monospace", color: "#2563EB", fontWeight: 700 }}>
                             #{String(b._id).slice(-8)}
                           </td>
 
-                          {/* Customer */}
-                          <td style={{ padding: "18px 20px", color: "#ffffff", fontWeight: 700 }}>
-                            {b.customerName || b.passengerName || "Passenger"}
+                          <td style={{ padding: "16px 18px" }}>
+                            <div style={{ fontWeight: 800, color: "#0F172A" }}>{b.customerName || b.userEmail}</div>
+                            <div style={{ fontSize: 11, color: "#64748B" }}>{b.customerEmail || b.userEmail}</div>
                           </td>
 
-                          {/* Contact */}
-                          <td style={{ padding: "18px 20px", color: "#cbd5e1" }}>
+                          <td style={{ padding: "16px 18px", fontWeight: 700, color: "#0F172A" }}>
                             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                              <FaEnvelope size={11} color="#94a3b8" /> {b.customerEmail || b.userEmail}
-                            </div>
-                            <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: "#64748b", marginTop: 2 }}>
-                              <FaPhone size={10} color="#64748b" /> {b.phone || "N/A"}
+                              <FaPlane size={12} color="#0284C7" />
+                              {b.flightName || b.flightNo || "Scheduled Flight"}
                             </div>
                           </td>
 
-                          {/* Flight Name */}
-                          <td style={{ padding: "18px 20px", color: "#ffffff", fontWeight: 700 }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                              <FaPlane color="#a855f7" /> {b.flightName || b.flightNo || "Flight"}
-                            </div>
+                          <td style={{ padding: "16px 18px", color: "#334155", fontWeight: 600 }}>
+                            {b.from} &rarr; {b.to}
                           </td>
 
-                          {/* Route */}
-                          <td style={{ padding: "18px 20px", color: "#cbd5e1" }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: 6, fontWeight: 700, color: "#38bdf8" }}>
-                              <span>{b.from}</span>
-                              <FaExchangeAlt size={10} color="#64748b" />
-                              <span>{b.to}</span>
-                            </div>
+                          <td style={{ padding: "16px 18px", color: "#64748B" }}>
+                            {b.departureDate || b.travelDate || "Scheduled"}
                           </td>
 
-                          {/* Travel Date */}
-                          <td style={{ padding: "18px 20px", color: "#cbd5e1" }}>
-                            <div style={{ fontSize: 13, fontWeight: 600 }}>{b.departureDate || b.travelDate}</div>
-                            <div style={{ fontSize: 10, color: "#64748b", marginTop: 2 }}>Requested: {String(b.bookingDate || b.createdAt || "").slice(0, 10)}</div>
+                          <td style={{ padding: "16px 18px", color: "#0F172A", fontWeight: 700 }}>
+                            {b.passengers || b.guests || 1} Seat(s)
                           </td>
 
-                          {/* Passengers */}
-                          <td style={{ padding: "18px 20px", color: "#cbd5e1" }}>
-                            <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "rgba(255,255,255,0.06)", padding: "4px 10px", borderRadius: 8 }}>
-                              <FaUsers size={12} color="#a855f7" /> {b.passengers || b.guests || 1}
-                            </span>
+                          <td style={{ padding: "16px 18px", fontWeight: 900, color: "#16A34A" }}>
+                            {b.price || "₹6,500"}
                           </td>
 
-                          {/* Price */}
-                          <td style={{ padding: "18px 20px", color: "#10b981", fontWeight: 800, fontSize: 14 }}>
-                            {b.price}
-                          </td>
-
-                          {/* Status */}
-                          <td style={{ padding: "18px 20px" }}>
+                          <td style={{ padding: "16px 18px" }}>
                             <span style={{
-                              padding: "6px 12px", borderRadius: 20, fontSize: 11, fontWeight: 800,
-                              background: isPending ? "rgba(245, 158, 11, 0.15)" : "rgba(16, 185, 129, 0.15)",
-                              color: isPending ? "#f59e0b" : "#10b981",
-                              border: isPending ? "1px solid rgba(245, 158, 11, 0.3)" : "1px solid rgba(16, 185, 129, 0.3)",
-                              display: "inline-flex", alignItems: "center", gap: 5
+                              padding: "4px 12px", borderRadius: 16, fontSize: 11, fontWeight: 800,
+                              background: isConfirmed ? "#DCFCE7" : "#FEF3C7",
+                              color: isConfirmed ? "#15803D" : "#B45309",
+                              border: isConfirmed ? "1px solid #86EFAC" : "1px solid #FCD34D",
+                              display: "inline-flex", alignItems: "center", gap: 4
                             }}>
-                              {isPending ? <FaClock size={10} /> : <FaCheck size={10} />}
+                              {isConfirmed ? <FaCheckCircle size={10} /> : <FaClock size={10} />}
                               {b.status || "Pending"}
                             </span>
                           </td>
 
-                          {/* Action Button */}
-                          <td style={{ padding: "18px 20px", textAlign: "center" }}>
+                          <td style={{ padding: "16px 18px", textAlign: "center" }}>
                             {isPending ? (
                               <button
                                 onClick={() => handleConfirmBooking(b)}
-                                disabled={isConfirming}
+                                disabled={confirmingId === b._id}
                                 style={{
-                                  padding: "9px 18px", borderRadius: 12,
-                                  background: "linear-gradient(135deg, #059669 0%, #10b981 100%)",
-                                  color: "#ffffff", fontWeight: 700, fontSize: 12, border: "none",
-                                  cursor: isConfirming ? "wait" : "pointer",
-                                  boxShadow: "0 4px 14px rgba(16, 185, 129, 0.3)",
-                                  display: "inline-flex", alignItems: "center", gap: 6,
-                                  transition: "all 0.2s"
+                                  padding: "7px 14px", borderRadius: 8, border: "none",
+                                  background: "linear-gradient(135deg, #10B981, #059669)",
+                                  color: "#FFFFFF", fontSize: 12, fontWeight: 800, cursor: "pointer",
+                                  display: "inline-flex", alignItems: "center", gap: 5
                                 }}
                               >
-                                <FaCheck /> {isConfirming ? "Confirming..." : "Confirm Booking"}
+                                <FaCheck size={10} /> {confirmingId === b._id ? "Approving..." : "Confirm Flight"}
                               </button>
                             ) : (
-                              <div style={{ fontSize: 11, color: "#10b981", fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>
-                                <FaCheckCircle /> Confirmed
-                              </div>
+                              <span style={{ color: "#15803D", fontWeight: 700, fontSize: 12 }}>
+                                ✓ Approved
+                              </span>
                             )}
                           </td>
                         </tr>

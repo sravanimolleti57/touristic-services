@@ -1,534 +1,883 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useLocation, Link } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
+import { useUser } from "../context/UserContext";
 import {
-  FaEye,
-  FaEyeSlash,
+  FaUser,
   FaEnvelope,
   FaLock,
-  FaBrain,
+  FaEye,
+  FaEyeSlash,
+  FaSpinner,
   FaCheckCircle,
-  FaUser,
-  FaArrowLeft
+  FaExclamationTriangle,
+  FaShieldAlt,
+  FaTimes
 } from "react-icons/fa";
 import axios from "axios";
+import "../styles/login.css";
 
-/* ───────────────── Floating Background Orbs ───────────────── */
-
-function Orbs() {
-  const orbs = [
-    { w: 500, h: 500, top: "-15%", left: "-10%", c: "rgba(37,99,235,0.06)", delay: "0s" },
-    { w: 350, h: 350, top: "60%", right: "-8%", c: "rgba(14,165,233,0.05)", delay: "-3s" },
-    { w: 220, h: 220, top: "35%", left: "42%", c: "rgba(99,102,241,0.04)", delay: "-1.5s" },
-    { w: 180, h: 180, bottom: "5%", left: "15%", c: "rgba(37,99,235,0.04)", delay: "-2s" },
-  ];
-
-  return (
-    <>
-      {orbs.map((o, i) => (
-        <div
-          key={i}
-          style={{
-            position: "absolute",
-            borderRadius: "50%",
-            pointerEvents: "none",
-            width: o.w,
-            height: o.h,
-            top: o.top || "auto",
-            bottom: o.bottom || "auto",
-            left: o.left || "auto",
-            right: o.right || "auto",
-            background: `radial-gradient(circle,${o.c} 0%,transparent 70%)`,
-            animation: "lp-float 7s ease-in-out infinite",
-            animationDelay: o.delay,
-          }}
-        />
-      ))}
-    </>
-  );
-}
-
-/* ───────────────── Login Component (No OTP) ───────────────── */
-
-function Login() {
+export default function Login({ initialFlip = false }) {
   const navigate = useNavigate();
   const location = useLocation();
+  const { updateUser } = useUser();
 
-  const [isRegister, setIsRegister] = useState(false);
+  const queryParams = new URLSearchParams(location.search);
+  const initialRole = queryParams.get("tab") === "admin" || location.pathname.includes("admin") ? "admin" : "user";
+  const shouldStartSignUp = initialFlip || location.pathname.includes("register") || queryParams.get("mode") === "signup";
 
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  // Role: "user" (Front) | "admin" (Back)
+  const [role, setRole] = useState(initialRole);
 
-  const [showPw, setShowPw] = useState(false);
+  // User Login Form
+  const [loginIdentifier, setLoginIdentifier] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+  const [showLoginPw, setShowLoginPw] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
+
+  // Admin Login Form
+  const [adminIdentifier, setAdminIdentifier] = useState("");
+  const [adminPassword, setAdminPassword] = useState("");
+  const [showAdminPw, setShowAdminPw] = useState(false);
+
+  // Sign Up Modal & Form
+  const [showSignUpModal, setShowSignUpModal] = useState(shouldStartSignUp);
+  const [signupName, setSignupName] = useState("");
+  const [signupEmail, setSignupEmail] = useState("");
+  const [signupPassword, setSignupPassword] = useState("");
+  const [signupConfirmPw, setSignupConfirmPw] = useState("");
+  const [showSignupPw, setShowSignupPw] = useState(false);
+  const [showSignupConfirmPw, setShowSignupConfirmPw] = useState(false);
+
+  // Feedback & Loading
   const [error, setError] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const [emailFocus, setEmailFocus] = useState(false);
-  const [pwFocus, setPwFocus] = useState(false);
-  const [nameFocus, setNameFocus] = useState(false);
-
-  // Read prefilled registered email & password from navigation state if available
+  // Read saved remembered email or prefilled credentials from navigation
   useEffect(() => {
     if (location.state?.registeredEmail) {
-      setEmail(location.state.registeredEmail);
+      setLoginIdentifier(location.state.registeredEmail);
       if (location.state?.registeredPassword) {
-        setPassword(location.state.registeredPassword);
+        setLoginPassword(location.state.registeredPassword);
       }
-      setSuccessMsg(location.state.successNotice || "Registration Successful! Please sign in using your registered credentials.");
-      setIsRegister(false);
+      setSuccessMsg(location.state.successNotice || "Account created successfully! Please sign in.");
+      setShowSignUpModal(false);
+      setRole("user");
+    } else {
+      const savedEmail = localStorage.getItem("travelai_remember_email");
+      if (savedEmail) {
+        setLoginIdentifier(savedEmail);
+      }
     }
-  }, [location.state]);
 
-  const isValidEmailFormat = /^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/.test(email.trim());
+    if (queryParams.get("tab") === "admin" || location.pathname.includes("admin")) {
+      setRole("admin");
+    } else if (location.pathname.includes("register") || queryParams.get("mode") === "signup") {
+      setShowSignUpModal(true);
+      setRole("user");
+    }
+  }, [location]);
 
-  /* ───────────── Login Handler ───────────── */
-  const handleLogin = async () => {
+  // Handle Role Switch (USER <-> ADMIN)
+  const handleRoleChange = (newRole) => {
+    if (role === newRole) return;
+    setRole(newRole);
+    setError("");
+    setSuccessMsg("");
+  };
+
+  /* ───────────────── USER LOGIN HANDLER ───────────────── */
+  const handleUserLogin = async (e) => {
+    if (e && e.preventDefault) e.preventDefault();
     setError("");
     setSuccessMsg("");
 
-    if (!email.trim() || !password.trim()) {
-      setError("Please enter your registered Email and Password.");
-      return;
-    }
+    const emailTrimmed = loginIdentifier.trim().toLowerCase();
+    const pwTrimmed = loginPassword.trim();
 
-    if (!isValidEmailFormat) {
-      setError("Please enter a valid email address format.");
+    if (!emailTrimmed || !pwTrimmed) {
+      setError("Please enter your Username/Email and Password.");
       return;
     }
 
     setLoading(true);
 
     try {
-      const response = await axios.post(
-        "http://127.0.0.1:5000/login",
-        { email: email.trim().toLowerCase(), password: password.trim() },
+      const res = await axios.post(
+        "http://127.0.0.1:5000/api/auth/login",
+        { email: emailTrimmed, password: pwTrimmed },
         { timeout: 8000 }
       );
 
-      const userRole = response.data.role || "user";
-      localStorage.setItem(
-        "user",
-        JSON.stringify({
-          name: response.data.name || email.split("@")[0],
-          email: response.data.email || email,
-          role: userRole,
-          isLoggedIn: true,
-        })
-      );
+      if (rememberMe) {
+        localStorage.setItem("travelai_remember_email", emailTrimmed);
+      } else {
+        localStorage.removeItem("travelai_remember_email");
+      }
+
+      const userRole = res.data?.role || "user";
+      const userAvatar = res.data?.avatar || res.data?.profileImage || "";
+      const userData = {
+        name: res.data?.name || emailTrimmed.split("@")[0],
+        email: res.data?.email || emailTrimmed,
+        role: userRole,
+        avatar: userAvatar,
+        profileImage: userAvatar,
+        isLoggedIn: true
+      };
+
+      updateUser(userData);
       localStorage.setItem("role", userRole);
 
-      const redirectUrl = new URLSearchParams(location.search).get("redirect");
-
+      const redirectParam = queryParams.get("redirect");
       if (userRole === "admin") {
-        navigate(redirectUrl || "/admin/dashboard");
+        navigate(redirectParam || "/admin/dashboard", { replace: true });
       } else {
-        navigate(redirectUrl || "/home");
+        navigate(redirectParam || "/home", { replace: true });
       }
     } catch (err) {
-      console.warn("Login API endpoint note, checking registered users database:", err);
+      console.error("[USER LOGIN ERROR]", err);
+      let errorMsg = "Login failed. Please check your credentials.";
 
-      const storedUsers = JSON.parse(localStorage.getItem("registered_users") || "[]");
-      const matched = storedUsers.find(
-        u => u.email.toLowerCase() === email.trim().toLowerCase() && u.password === password.trim()
-      );
-
-      if (matched || (email.trim().length > 3 && password.trim().length >= 3 && !err.response)) {
-        const roleToAssign = matched?.role || (email.toLowerCase().includes("admin") ? "admin" : "user");
-        localStorage.setItem(
-          "user",
-          JSON.stringify({
-            name: matched?.name || email.split("@")[0],
-            email: email.trim().toLowerCase(),
-            role: roleToAssign,
-            isLoggedIn: true,
-          })
-        );
-        localStorage.setItem("role", roleToAssign);
-
-        const redirectUrl = new URLSearchParams(location.search).get("redirect");
-        if (roleToAssign === "admin") {
-          navigate(redirectUrl || "/admin/dashboard");
-        } else {
-          navigate(redirectUrl || "/home");
-        }
-        return;
+      if (!err.response && (err.message === "Network Error" || err.code === "ERR_NETWORK")) {
+        errorMsg = "Unable to connect to authentication server. Please check your connection.";
+      } else if (err.response?.status === 401) {
+        errorMsg = err.response.data?.message || "Invalid email or password.";
+      } else if (err.response?.status === 404) {
+        errorMsg = err.response.data?.message || "Account not found. Please sign up.";
+      } else if (err.response?.data?.message) {
+        errorMsg = err.response.data.message;
       }
-
-      if (err.response?.data?.message) {
-        setError(err.response.data.message);
-      } else {
-        setError("Invalid credentials. Please check your registered email and password.");
-      }
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }
   };
 
-  /* ───────────── Register Handler ───────────── */
-  const handleRegister = async () => {
+  /* ───────────────── ADMIN LOGIN HANDLER ───────────────── */
+  const handleAdminLogin = async (e) => {
+    if (e && e.preventDefault) e.preventDefault();
     setError("");
     setSuccessMsg("");
 
-    if (!name.trim() || !email.trim() || !password.trim()) {
+    const adminInputTrimmed = adminIdentifier.trim().toLowerCase();
+    const pwTrimmed = adminPassword.trim();
+
+    if (!adminInputTrimmed || !pwTrimmed) {
+      setError("Please enter Admin Email/Username and Password.");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const res = await axios.post(
+        "http://127.0.0.1:5000/api/auth/admin-login",
+        { email: adminInputTrimmed, password: pwTrimmed },
+        { timeout: 8000 }
+      );
+
+      if (res.data && res.data.role === "admin") {
+        const adminAvatar = res.data.avatar || res.data.profileImage || "";
+        const adminData = {
+          name: res.data.name || "System Admin",
+          email: res.data.email || adminInputTrimmed,
+          role: "admin",
+          avatar: adminAvatar,
+          profileImage: adminAvatar,
+          isLoggedIn: true
+        };
+
+        updateUser(adminData);
+        localStorage.setItem("role", "admin");
+
+        const redirectParam = queryParams.get("redirect");
+        navigate(redirectParam || "/admin/dashboard", { replace: true });
+      } else {
+        setError(res.data?.message || "Access Denied: Administrator privileges required.");
+      }
+    } catch (err) {
+      console.error("[ADMIN LOGIN ERROR]", err);
+      let errorMsg = "Administrator authentication failed.";
+
+      if (!err.response && (err.message === "Network Error" || err.code === "ERR_NETWORK")) {
+        errorMsg = "Unable to connect to authentication server. Please check your connection.";
+      } else if (err.response?.status === 401) {
+        errorMsg = err.response.data?.message || "Invalid administrator email or password.";
+      } else if (err.response?.status === 404) {
+        errorMsg = err.response.data?.message || "Administrator account not found.";
+      } else if (err.response?.status === 403) {
+        errorMsg = err.response.data?.message || "Access Denied: You do not have Administrator privileges.";
+      } else if (err.response?.data?.message) {
+        errorMsg = err.response.data.message;
+      }
+      setError(errorMsg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /* ───────────────── SIGN UP HANDLER ───────────────── */
+  const handleSignUp = async (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    setError("");
+    setSuccessMsg("");
+
+    const nameTrimmed = signupName.trim();
+    const emailTrimmed = signupEmail.trim().toLowerCase();
+    const pwTrimmed = signupPassword.trim();
+    const confirmPwTrimmed = signupConfirmPw.trim();
+
+    if (!nameTrimmed || !emailTrimmed || !pwTrimmed || !confirmPwTrimmed) {
       setError("Please fill in all required fields.");
       return;
     }
 
-    if (!isValidEmailFormat) {
-      setError("Please enter a valid email address format.");
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(emailTrimmed)) {
+      setError("Please enter a valid email address.");
+      return;
+    }
+
+    if (pwTrimmed.length < 4) {
+      setError("Password must be at least 4 characters long.");
+      return;
+    }
+
+    if (pwTrimmed !== confirmPwTrimmed) {
+      setError("Passwords do not match. Please verify.");
       return;
     }
 
     setLoading(true);
 
     try {
-      const response = await axios.post(
-        "http://127.0.0.1:5000/register",
-        { name: name.trim(), email: email.trim().toLowerCase(), password: password.trim(), role: "user" },
-        { timeout: 10000 }
+      const res = await axios.post(
+        "http://127.0.0.1:5000/api/auth/register",
+        {
+          name: nameTrimmed,
+          email: emailTrimmed,
+          password: pwTrimmed,
+          role: "user"
+        },
+        { timeout: 8000 }
       );
 
-      setIsRegister(false);
-      setError("");
-      setSuccessMsg(response.data?.message || "Registration Successful! Please log in using your registered email and password.");
+      setSuccessMsg(res.data?.message || "Account created successfully! Please sign in.");
+      setLoginIdentifier(emailTrimmed);
+      setLoginPassword(pwTrimmed);
+      setSignupName("");
+      setSignupEmail("");
+      setSignupPassword("");
+      setSignupConfirmPw("");
+      setShowSignUpModal(false);
+      setRole("user");
     } catch (err) {
-      console.error(err);
-      setError(err.response?.data?.message || "Registration failed. Email may already be registered.");
+      console.error("[SIGN UP ERROR]", err);
+      let errorMsg = "Registration failed. Email may already be registered.";
+
+      if (!err.response && (err.message === "Network Error" || err.code === "ERR_NETWORK")) {
+        errorMsg = "Unable to connect to authentication server. Please check your connection.";
+      } else if (err.response?.data?.message) {
+        errorMsg = err.response.data.message;
+      }
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleKeyDown = (e) => {
-    if (e.key !== "Enter") return;
-    if (isRegister) { handleRegister(); } else { handleLogin(); }
+  /* ───────────────── NEUMORPHIC STYLES ───────────────── */
+  const styles = {
+    pageContainer: {
+      minHeight: "100vh",
+      background: "#e8ecf2",
+      color: "#2b3445",
+      fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      justifyContent: "center",
+      padding: "24px 16px",
+      boxSizing: "border-box",
+      position: "relative"
+    },
+    // Segmented Role Switch [ USER | ADMIN ]
+    segmentedSwitch: {
+      display: "inline-flex",
+      background: "#e8ecf2",
+      padding: "6px",
+      borderRadius: "999px",
+      boxShadow: "inset 3px 3px 6px #c5d0e0, inset -3px -3px 6px #ffffff",
+      marginBottom: "24px",
+      gap: "6px",
+      zIndex: 10
+    },
+    segmentButton: (isActive) => ({
+      padding: "9px 30px",
+      borderRadius: "999px",
+      border: "none",
+      background: isActive ? "#e8ecf2" : "transparent",
+      color: isActive ? "#1e293b" : "#718096",
+      fontWeight: 800,
+      fontSize: "13px",
+      letterSpacing: "1px",
+      cursor: "pointer",
+      boxShadow: isActive ? "4px 4px 10px #c5d0e0, -4px -4px 10px #ffffff" : "none",
+      transition: "all 0.25s ease"
+    }),
+    // 3D Perspective Flip Container
+    flipContainer: {
+      perspective: "1200px",
+      WebkitPerspective: "1200px",
+      width: "530px",
+      height: "530px",
+      maxWidth: "min(92vw, 530px)",
+      maxHeight: "min(92vw, 530px)",
+      aspectRatio: "1 / 1",
+      position: "relative",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center"
+    },
+    flipCard: {
+      width: "100%",
+      height: "100%",
+      position: "relative",
+      transformStyle: "preserve-3d",
+      WebkitTransformStyle: "preserve-3d",
+      transition: "transform 0.8s ease-in-out",
+      transform: role === "admin" ? "rotateY(180deg)" : "rotateY(0deg)"
+    },
+    // Neumorphic Circular Faces
+    cardFace: {
+      position: "absolute",
+      inset: 0,
+      width: "100%",
+      height: "100%",
+      background: "#e8ecf2",
+      borderRadius: "50%",
+      padding: "36px 32px",
+      boxShadow: "20px 20px 50px #c5d0e0, -20px -20px 50px #ffffff, inset 4px 4px 8px rgba(255,255,255,0.9), inset -4px -4px 8px rgba(197,208,224,0.35)",
+      border: "10px solid #eef2f7",
+      boxSizing: "border-box",
+      backfaceVisibility: "hidden",
+      WebkitBackfaceVisibility: "hidden",
+      transformStyle: "preserve-3d",
+      WebkitTransformStyle: "preserve-3d",
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      justifyContent: "center"
+    },
+    cardFront: {
+      transform: "rotateY(0deg)"
+    },
+    cardBack: {
+      transform: "rotateY(180deg)"
+    },
+    innerForm: {
+      width: "100%",
+      maxWidth: "330px",
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "stretch"
+    },
+    title: {
+      fontSize: "26px",
+      fontWeight: 900,
+      color: "#212529",
+      margin: "0 0 4px",
+      textAlign: "center",
+      letterSpacing: "-0.5px"
+    },
+    subtitle: {
+      fontSize: "12px",
+      fontWeight: 500,
+      color: "#718096",
+      margin: "0 0 16px",
+      textAlign: "center"
+    },
+    inputContainer: {
+      position: "relative",
+      marginBottom: "12px"
+    },
+    inputField: {
+      width: "100%",
+      padding: "11px 38px 11px 42px",
+      borderRadius: "999px",
+      border: "none",
+      background: "#e8ecf2",
+      color: "#2d3748",
+      fontSize: "13px",
+      fontWeight: 500,
+      outline: "none",
+      boxSizing: "border-box",
+      boxShadow: "inset 3px 3px 6px #c5d0e0, inset -3px -3px 6px #ffffff",
+      transition: "box-shadow 0.2s ease"
+    },
+    inputIcon: {
+      position: "absolute",
+      left: "16px",
+      top: "50%",
+      transform: "translateY(-50%)",
+      color: "#718096",
+      fontSize: "13px",
+      pointerEvents: "none"
+    },
+    eyeButton: {
+      position: "absolute",
+      right: "14px",
+      top: "50%",
+      transform: "translateY(-50%)",
+      background: "none",
+      border: "none",
+      color: "#718096",
+      cursor: "pointer",
+      padding: "4px",
+      display: "flex",
+      alignItems: "center"
+    },
+    submitButton: {
+      width: "100%",
+      padding: "12px 20px",
+      borderRadius: "999px",
+      border: "1px solid rgba(255,255,255,0.7)",
+      background: "#e8ecf2",
+      color: "#2b3445",
+      fontSize: "13.5px",
+      fontWeight: 900,
+      letterSpacing: "1px",
+      cursor: loading ? "not-allowed" : "pointer",
+      boxShadow: "5px 5px 12px #c5d0e0, -5px -5px 12px #ffffff",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: "8px",
+      marginTop: "10px",
+      marginBottom: "14px",
+      transition: "all 0.2s ease"
+    },
+    footerText: {
+      textAlign: "center",
+      fontSize: "12px",
+      color: "#718096",
+      margin: 0
+    },
+    actionLink: {
+      color: "#d32f2f",
+      fontWeight: 800,
+      cursor: "pointer",
+      textDecoration: "none",
+      marginLeft: "4px"
+    },
+    alertBox: (isErr) => ({
+      padding: "6px 12px",
+      borderRadius: "999px",
+      marginBottom: "10px",
+      background: "#e8ecf2",
+      boxShadow: "inset 2px 2px 4px #c5d0e0, inset -2px -2px 4px #ffffff",
+      color: isErr ? "#dc2626" : "#15803d",
+      fontSize: "11.5px",
+      fontWeight: 600,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: "6px",
+      lineHeight: 1.3
+    }),
+    // Neumorphic Sign Up Modal Overlay
+    modalOverlay: {
+      position: "fixed",
+      inset: 0,
+      backgroundColor: "rgba(30, 41, 59, 0.45)",
+      backdropFilter: "blur(4px)",
+      zIndex: 100,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      padding: "16px"
+    },
+    modalContent: {
+      width: "100%",
+      maxWidth: "460px",
+      background: "#e8ecf2",
+      borderRadius: "32px",
+      padding: "36px 32px",
+      boxShadow: "20px 20px 50px #b0bece, -20px -20px 50px #ffffff",
+      border: "4px solid #eef2f7",
+      boxSizing: "border-box",
+      position: "relative"
+    },
+    modalCloseBtn: {
+      position: "absolute",
+      top: "18px",
+      right: "18px",
+      background: "#e8ecf2",
+      border: "none",
+      borderRadius: "50%",
+      width: "32px",
+      height: "32px",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      color: "#718096",
+      cursor: "pointer",
+      boxShadow: "3px 3px 6px #c5d0e0, -3px -3px 6px #ffffff"
+    }
   };
 
-  const inputBox = (focused) => ({
-    display: "flex",
-    alignItems: "center",
-    gap: 10,
-    background: "#FFFFFF",
-    border: `1.5px solid ${focused ? "#2563EB" : "#E5E7EB"}`,
-    borderRadius: 12,
-    padding: "13px 16px",
-    boxShadow: focused ? "0 0 0 3px rgba(37,99,235,0.10)" : "0 1px 3px rgba(0,0,0,0.05)",
-    transition: "all .25s",
-  });
-
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        background: "linear-gradient(135deg,#EFF6FF 0%,#F8FAFC 50%,#F0F9FF 100%)",
-        position: "relative",
-        overflow: "hidden",
-        fontFamily: "'Inter','Segoe UI',system-ui,sans-serif",
-        padding: 20,
-      }}
-    >
-      <style>{`
-        @keyframes lp-float{ 0%,100%{transform:translateY(0)} 50%{transform:translateY(-12px)} }
-        @keyframes lp-fadeUp{ from{opacity:0;transform:translateY(30px);} to{opacity:1;transform:translateY(0);} }
-      `}</style>
-
-      <Orbs />
-
-      {/* Back button */}
-      <button
-        onClick={() => navigate("/")}
-        style={{
-          position: "absolute", top: 24, left: 24, zIndex: 20,
-          background: "#FFFFFF", border: "1px solid #E5E7EB",
-          color: "#374151", padding: "9px 16px", borderRadius: 12, cursor: "pointer",
-          display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 700,
-          boxShadow: "0 2px 8px rgba(0,0,0,0.05)"
-        }}
-      >
-        <FaArrowLeft /> Home
-      </button>
-
-      <div
-        style={{
-          width: "100%",
-          maxWidth: 440,
-          background: "#FFFFFF",
-          border: "1px solid #E5E7EB",
-          borderRadius: 28,
-          padding: "36px 32px",
-          animation: "lp-fadeUp .6s ease",
-          boxShadow: "0 8px 40px rgba(0,0,0,0.08), 0 2px 8px rgba(0,0,0,0.04)",
-          position: "relative",
-          zIndex: 10,
-        }}
-      >
-        {/* Logo */}
-        <div style={{ textAlign: "center", marginBottom: 24 }}>
-          <div
-            style={{
-              width: 52,
-              height: 52,
-              borderRadius: 16,
-              margin: "0 auto 12px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              background: "linear-gradient(135deg,#2563EB,#3B82F6)",
-              fontSize: 24,
-              boxShadow: "0 4px 14px rgba(37,99,235,0.25)",
-            }}
-          >
-            ✈️
-          </div>
-
-          <div
-            style={{
-              fontSize: 26,
-              fontWeight: 900,
-              background: "linear-gradient(135deg,#2563EB,#0EA5E9,#6366F1)",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-            }}
-          >
-            TravelAI
-          </div>
-
-          <div style={{ color: "#6B7280", marginTop: 4, fontSize: 13, fontWeight: 600 }}>
-            User Portal &amp; Credential Authentication
-          </div>
-        </div>
-
-        {/* Login/Register Tabs */}
-        <div
-          style={{
-            display: "flex",
-            background: "#F3F4F6",
-            borderRadius: 12,
-            overflow: "hidden",
-            marginBottom: 20,
-            padding: 4,
-            gap: 4,
-          }}
-        >
-          <button
-            onClick={() => { setIsRegister(false); setError(""); setSuccessMsg(""); }}
-            style={{
-              flex: 1,
-              padding: "9px 12px",
-              border: "none",
-              cursor: "pointer",
-              color: !isRegister ? "#2563EB" : "#6B7280",
-              background: !isRegister ? "#FFFFFF" : "transparent",
-              borderRadius: 10,
-              fontWeight: 800,
-              fontSize: 13,
-              transition: "all 0.2s",
-              boxShadow: !isRegister ? "0 1px 4px rgba(0,0,0,0.08)" : "none",
-              fontFamily: "inherit",
-            }}
-          >
-            Sign In
-          </button>
-
-          <button
-            onClick={() => { setIsRegister(true); setError(""); setSuccessMsg(""); }}
-            style={{
-              flex: 1,
-              padding: "9px 12px",
-              border: "none",
-              cursor: "pointer",
-              color: isRegister ? "#2563EB" : "#6B7280",
-              background: isRegister ? "#FFFFFF" : "transparent",
-              borderRadius: 10,
-              fontWeight: 800,
-              fontSize: 13,
-              transition: "all 0.2s",
-              boxShadow: isRegister ? "0 1px 4px rgba(0,0,0,0.08)" : "none",
-              fontFamily: "inherit",
-            }}
-          >
-            Register
-          </button>
-        </div>
-
-        {/* Heading */}
-        <div style={{ marginBottom: 18 }}>
-          <h2 style={{ color: "#111827", margin: 0, fontSize: 20, fontWeight: 800 }}>
-            {isRegister ? "Create Account 🚀" : "Sign In to Your Account ✈️"}
-          </h2>
-          <p style={{ color: "#6B7280", fontSize: 13, margin: "4px 0 0" }}>
-            {isRegister
-              ? "Register with your name, email & password."
-              : "Enter your registered credentials to proceed."}
-          </p>
-        </div>
-
-        {/* Name (for Register tab) */}
-        {isRegister && (
-          <div style={{ marginBottom: 14 }}>
-            <label style={{ color: "#374151", fontSize: 12, fontWeight: 700, display: "block", marginBottom: 6 }}>
-              Full Name *
-            </label>
-            <div style={inputBox(nameFocus)}>
-              <FaUser color={nameFocus ? "#2563EB" : "#9CA3AF"} />
-              <input
-                type="text"
-                placeholder="John Doe"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                onFocus={() => setNameFocus(true)}
-                onBlur={() => setNameFocus(false)}
-                style={{
-                  flex: 1, border: "none", outline: "none",
-                  background: "transparent", color: "#111827", fontSize: 13,
-                }}
-              />
-            </div>
-          </div>
-        )}
-
-        {/* Email */}
-        <div style={{ marginBottom: 14 }}>
-          <label style={{ color: "#374151", fontSize: 12, fontWeight: 700, display: "block", marginBottom: 6 }}>
-            Email Address *
-          </label>
-          <div style={inputBox(emailFocus)}>
-            <FaEnvelope color={emailFocus ? "#2563EB" : "#9CA3AF"} />
-            <input
-              type="email"
-              placeholder="user@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              onFocus={() => setEmailFocus(true)}
-              onBlur={() => setEmailFocus(false)}
-              onKeyDown={handleKeyDown}
-              style={{
-                flex: 1, border: "none", outline: "none",
-                background: "transparent", color: "#111827", fontSize: 13,
-              }}
-            />
-          </div>
-        </div>
-
-        {/* Password */}
-        <div style={{ marginBottom: 20 }}>
-          <label style={{ color: "#374151", fontSize: 12, fontWeight: 700, display: "block", marginBottom: 6 }}>
-            Password *
-          </label>
-          <div style={inputBox(pwFocus)}>
-            <FaLock color={pwFocus ? "#2563EB" : "#9CA3AF"} />
-            <input
-              type={showPw ? "text" : "password"}
-              placeholder="Enter Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              onFocus={() => setPwFocus(true)}
-              onBlur={() => setPwFocus(false)}
-              onKeyDown={handleKeyDown}
-              style={{
-                flex: 1, border: "none", outline: "none",
-                background: "transparent", color: "#111827", fontSize: 13,
-              }}
-            />
-            <span onClick={() => setShowPw(!showPw)} style={{ cursor: "pointer", color: "#9CA3AF" }}>
-              {showPw ? <FaEyeSlash /> : <FaEye />}
-            </span>
-          </div>
-        </div>
-
-        {/* Success Message Banner */}
-        {successMsg && (
-          <div
-            style={{
-              background: "#DCFCE7",
-              border: "1px solid #16A34A",
-              color: "#15803D",
-              padding: "10px 14px",
-              borderRadius: 10,
-              marginBottom: 14,
-              fontSize: 12,
-              fontWeight: 700,
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-            }}
-          >
-            <FaCheckCircle color="#15803D" size={16} /> {successMsg}
-          </div>
-        )}
-
-        {/* Error */}
-        {error && (
-          <div
-            style={{
-              background: "rgba(220,38,38,.06)",
-              border: "1px solid rgba(220,38,38,.2)",
-              color: "#DC2626",
-              padding: "10px 14px",
-              borderRadius: 10,
-              marginBottom: 14,
-              fontSize: 12,
-              fontWeight: 600,
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-            }}
-          >
-            ⚠️ {error}
-          </div>
-        )}
-
-        {/* Submit Button */}
+    <div style={styles.pageContainer}>
+      {/* Role Switch: [ USER | ADMIN ] */}
+      <div style={styles.segmentedSwitch}>
         <button
-          onClick={async () => {
-            if (isRegister) { await handleRegister(); } else { await handleLogin(); }
-          }}
-          disabled={loading}
-          style={{
-            width: "100%",
-            padding: "14px",
-            border: "none",
-            borderRadius: 12,
-            background: loading
-              ? "#E5E7EB"
-              : "linear-gradient(135deg,#2563EB,#3B82F6)",
-            color: loading ? "#9CA3AF" : "white",
-            fontSize: 15,
-            fontWeight: 800,
-            cursor: loading ? "not-allowed" : "pointer",
-            transition: ".3s",
-            boxShadow: loading ? "none" : "0 4px 14px rgba(37,99,235,0.25)",
-            fontFamily: "inherit",
-          }}
+          type="button"
+          id="user-tab-btn"
+          onClick={() => handleRoleChange("user")}
+          style={styles.segmentButton(role === "user")}
         >
-          {loading ? "Please Wait..." : isRegister ? "Create Account 🚀" : "Sign In ✈️"}
+          USER
         </button>
-
-        {/* AI Badge */}
-        <div
-          style={{
-            marginTop: 18,
-            padding: "10px 14px",
-            background: "rgba(37,99,235,.05)",
-            border: "1px solid rgba(37,99,235,.12)",
-            borderRadius: 12,
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-          }}
+        <button
+          type="button"
+          id="admin-tab-btn"
+          onClick={() => handleRoleChange("admin")}
+          style={styles.segmentButton(role === "admin")}
         >
-          <FaBrain color="#2563EB" />
-          <span style={{ color: "#6B7280", fontSize: 12 }}>
-            Secure Credential Auth • Touristic Services Engine
-          </span>
+          ADMIN
+        </button>
+      </div>
+
+      {/* 3D Perspective Flip Container */}
+      <div className="flip-container" style={styles.flipContainer}>
+        <div
+          className={`flip-card ${role === "admin" ? "flipped" : ""}`}
+          style={styles.flipCard}
+        >
+          {/* ───────────────── FRONT SIDE (USER LOGIN) ───────────────── */}
+          <div className="flip-card-front" style={{ ...styles.cardFace, ...styles.cardFront }}>
+            <form onSubmit={handleUserLogin} style={styles.innerForm}>
+              <h1 style={styles.title}>User Login</h1>
+              <p style={styles.subtitle}>Sign in to your account</p>
+
+              {role === "user" && error && (
+                <div style={styles.alertBox(true)}>
+                  <FaExclamationTriangle size={12} style={{ flexShrink: 0 }} />
+                  <span>{error}</span>
+                </div>
+              )}
+
+              {role === "user" && successMsg && (
+                <div style={styles.alertBox(false)}>
+                  <FaCheckCircle size={12} style={{ flexShrink: 0 }} />
+                  <span>{successMsg}</span>
+                </div>
+              )}
+
+              {/* Username / Email Input */}
+              <div style={styles.inputContainer}>
+                <FaUser style={styles.inputIcon} />
+                <input
+                  type="text"
+                  id="user-login-identifier"
+                  required
+                  placeholder="Username or Email"
+                  value={loginIdentifier}
+                  onChange={(e) => setLoginIdentifier(e.target.value)}
+                  style={styles.inputField}
+                />
+              </div>
+
+              {/* Password Input */}
+              <div style={styles.inputContainer}>
+                <FaLock style={styles.inputIcon} />
+                <input
+                  type={showLoginPw ? "text" : "password"}
+                  id="user-login-password"
+                  required
+                  placeholder="Password"
+                  value={loginPassword}
+                  onChange={(e) => setLoginPassword(e.target.value)}
+                  style={styles.inputField}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowLoginPw(!showLoginPw)}
+                  style={styles.eyeButton}
+                  title={showLoginPw ? "Hide Password" : "Show Password"}
+                >
+                  {showLoginPw ? <FaEyeSlash size={13} /> : <FaEye size={13} />}
+                </button>
+              </div>
+
+              {/* Remember me & Forgot password */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "11.5px", color: "#718096", margin: "6px 4px 2px" }}>
+                <label style={{ display: "flex", alignItems: "center", gap: "6px", cursor: "pointer" }}>
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    style={{ accentColor: "#2b3445", cursor: "pointer" }}
+                  />
+                  <span>Remember me</span>
+                </label>
+
+                <span
+                  onClick={() => alert("Please contact administrator or sign up if you have forgotten your password.")}
+                  style={{ cursor: "pointer", color: "#718096", textDecoration: "none" }}
+                >
+                  Forgot password?
+                </span>
+              </div>
+
+              {/* SIGN IN BUTTON */}
+              <button
+                type="submit"
+                id="user-login-submit-btn"
+                disabled={loading}
+                style={styles.submitButton}
+                onMouseDown={(e) => (e.currentTarget.style.boxShadow = "inset 2px 2px 5px #c5d0e0, inset -2px -2px 5px #ffffff")}
+                onMouseUp={(e) => (e.currentTarget.style.boxShadow = "5px 5px 12px #c5d0e0, -5px -5px 12px #ffffff")}
+              >
+                {loading && role === "user" ? (
+                  <>
+                    <FaSpinner style={{ animation: "spin 1s linear infinite" }} />
+                    <span>SIGNING IN...</span>
+                  </>
+                ) : (
+                  <span>SIGN IN</span>
+                )}
+              </button>
+
+              {/* Sign Up Link */}
+              <p style={styles.footerText}>
+                Don't have an account?
+                <span
+                  id="user-signup-link"
+                  onClick={() => {
+                    setError("");
+                    setSuccessMsg("");
+                    setShowSignUpModal(true);
+                  }}
+                  style={styles.actionLink}
+                >
+                  Sign up
+                </span>
+              </p>
+            </form>
+          </div>
+
+          {/* ───────────────── BACK SIDE (ADMIN LOGIN) ───────────────── */}
+          <div className="flip-card-back" style={{ ...styles.cardFace, ...styles.cardBack }}>
+            <form onSubmit={handleAdminLogin} style={styles.innerForm}>
+              <h1 style={styles.title}>Admin Login</h1>
+              <p style={styles.subtitle}>Sign in to admin dashboard</p>
+
+              {role === "admin" && error && (
+                <div style={styles.alertBox(true)}>
+                  <FaExclamationTriangle size={12} style={{ flexShrink: 0 }} />
+                  <span>{error}</span>
+                </div>
+              )}
+
+              {role === "admin" && successMsg && (
+                <div style={styles.alertBox(false)}>
+                  <FaCheckCircle size={12} style={{ flexShrink: 0 }} />
+                  <span>{successMsg}</span>
+                </div>
+              )}
+
+              {/* Admin Identifier */}
+              <div style={styles.inputContainer}>
+                <FaShieldAlt style={styles.inputIcon} />
+                <input
+                  type="text"
+                  id="admin-login-identifier"
+                  required
+                  placeholder="Admin Email / Username"
+                  value={adminIdentifier}
+                  onChange={(e) => setAdminIdentifier(e.target.value)}
+                  style={styles.inputField}
+                />
+              </div>
+
+              {/* Admin Password */}
+              <div style={styles.inputContainer}>
+                <FaLock style={styles.inputIcon} />
+                <input
+                  type={showAdminPw ? "text" : "password"}
+                  id="admin-login-password"
+                  required
+                  placeholder="Admin Password"
+                  value={adminPassword}
+                  onChange={(e) => setAdminPassword(e.target.value)}
+                  style={styles.inputField}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowAdminPw(!showAdminPw)}
+                  style={styles.eyeButton}
+                  title={showAdminPw ? "Hide Password" : "Show Password"}
+                >
+                  {showAdminPw ? <FaEyeSlash size={13} /> : <FaEye size={13} />}
+                </button>
+              </div>
+
+              {/* SIGN IN BUTTON */}
+              <button
+                type="submit"
+                id="admin-login-submit-btn"
+                disabled={loading}
+                style={styles.submitButton}
+                onMouseDown={(e) => (e.currentTarget.style.boxShadow = "inset 2px 2px 5px #c5d0e0, inset -2px -2px 5px #ffffff")}
+                onMouseUp={(e) => (e.currentTarget.style.boxShadow = "5px 5px 12px #c5d0e0, -5px -5px 12px #ffffff")}
+              >
+                {loading && role === "admin" ? (
+                  <>
+                    <FaSpinner style={{ animation: "spin 1s linear infinite" }} />
+                    <span>VERIFYING ADMIN...</span>
+                  </>
+                ) : (
+                  <span>SIGN IN</span>
+                )}
+              </button>
+
+              <p style={{ ...styles.footerText, fontSize: "11px", marginTop: "4px" }}>
+                🔒 Authorized Administrator Access Only
+              </p>
+            </form>
+          </div>
         </div>
       </div>
+
+      {/* ───────────────── SIGN UP MODAL OVERLAY ───────────────── */}
+      {showSignUpModal && (
+        <div style={styles.modalOverlay} onClick={() => setShowSignUpModal(false)}>
+          <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              onClick={() => setShowSignUpModal(false)}
+              style={styles.modalCloseBtn}
+              title="Close"
+            >
+              <FaTimes size={14} />
+            </button>
+
+            <form onSubmit={handleSignUp} style={{ ...styles.innerForm, maxWidth: "100%" }}>
+              <h1 style={styles.title}>Sign Up</h1>
+              <p style={styles.subtitle}>Create your TravelAI account</p>
+
+              {error && (
+                <div style={styles.alertBox(true)}>
+                  <FaExclamationTriangle size={12} style={{ flexShrink: 0 }} />
+                  <span>{error}</span>
+                </div>
+              )}
+
+              {/* Full Name */}
+              <div style={styles.inputContainer}>
+                <FaUser style={styles.inputIcon} />
+                <input
+                  type="text"
+                  required
+                  placeholder="Full name"
+                  value={signupName}
+                  onChange={(e) => setSignupName(e.target.value)}
+                  style={styles.inputField}
+                />
+              </div>
+
+              {/* Email */}
+              <div style={styles.inputContainer}>
+                <FaEnvelope style={styles.inputIcon} />
+                <input
+                  type="email"
+                  required
+                  placeholder="Email address"
+                  value={signupEmail}
+                  onChange={(e) => setSignupEmail(e.target.value)}
+                  style={styles.inputField}
+                />
+              </div>
+
+              {/* Password */}
+              <div style={styles.inputContainer}>
+                <FaLock style={styles.inputIcon} />
+                <input
+                  type={showSignupPw ? "text" : "password"}
+                  required
+                  placeholder="Password (min 4 chars)"
+                  value={signupPassword}
+                  onChange={(e) => setSignupPassword(e.target.value)}
+                  style={styles.inputField}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowSignupPw(!showSignupPw)}
+                  style={styles.eyeButton}
+                  title={showSignupPw ? "Hide Password" : "Show Password"}
+                >
+                  {showSignupPw ? <FaEyeSlash size={13} /> : <FaEye size={13} />}
+                </button>
+              </div>
+
+              {/* Confirm Password */}
+              <div style={styles.inputContainer}>
+                <FaLock style={styles.inputIcon} />
+                <input
+                  type={showSignupConfirmPw ? "text" : "password"}
+                  required
+                  placeholder="Confirm password"
+                  value={signupConfirmPw}
+                  onChange={(e) => setSignupConfirmPw(e.target.value)}
+                  style={styles.inputField}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowSignupConfirmPw(!showSignupConfirmPw)}
+                  style={styles.eyeButton}
+                  title={showSignupConfirmPw ? "Hide Password" : "Show Password"}
+                >
+                  {showSignupConfirmPw ? <FaEyeSlash size={13} /> : <FaEye size={13} />}
+                </button>
+              </div>
+
+              {/* CREATE ACCOUNT BUTTON */}
+              <button
+                type="submit"
+                disabled={loading}
+                style={styles.submitButton}
+                onMouseDown={(e) => (e.currentTarget.style.boxShadow = "inset 2px 2px 5px #c5d0e0, inset -2px -2px 5px #ffffff")}
+                onMouseUp={(e) => (e.currentTarget.style.boxShadow = "5px 5px 12px #c5d0e0, -5px -5px 12px #ffffff")}
+              >
+                {loading ? (
+                  <>
+                    <FaSpinner style={{ animation: "spin 1s linear infinite" }} />
+                    <span>CREATING ACCOUNT...</span>
+                  </>
+                ) : (
+                  <span>CREATE ACCOUNT</span>
+                )}
+              </button>
+
+              <p style={styles.footerText}>
+                Already have an account?
+                <span
+                  onClick={() => {
+                    setError("");
+                    setSuccessMsg("");
+                    setShowSignUpModal(false);
+                  }}
+                  style={styles.actionLink}
+                >
+                  Sign in
+                </span>
+              </p>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
-
-export default Login;

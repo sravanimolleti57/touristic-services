@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import axios from "axios";
 import {
   FaArrowLeft, FaStar, FaCalendarAlt, FaClock,
   FaHeart, FaRegHeart, FaShareAlt, FaPlay,
@@ -8,8 +9,10 @@ import {
   FaMapMarkerAlt, FaTag
 } from "react-icons/fa";
 import { getPlaceById } from "../data/destinations";
-import { HOTELS_LIST } from "../data/hotels";
+import { HOTELS_LIST, getHotelsByDestinationId, getHotelsByDestination } from "../data/hotels";
 import SharedNavbar from "../components/SharedNavbar";
+import HotelSentimentDonut from "../components/HotelSentimentDonut";
+import FeedbackAnalysisModal from "../components/FeedbackAnalysisModal";
 import "../styles/shared.css";
 
 /* ─── Stars ────────────────────────────────────── */
@@ -123,20 +126,85 @@ const INNER_CARD = {
 export default function DestinationDetails() {
   const { placeId } = useParams();
   const navigate = useNavigate();
-  const place = getPlaceById(placeId);
+  const [place, setPlace] = useState(() => getPlaceById(placeId));
+  const [dynamicHotels, setDynamicHotels] = useState([]);
+  const [dynamicActivities, setDynamicActivities] = useState([]);
   const [liked, setLiked] = useState(false);
   const [lightboxIdx, setLightboxIdx] = useState(null);
   const [expandedVisit, setExpandedVisit] = useState(null);
+  const [analysisModalHotel, setAnalysisModalHotel] = useState(null);
 
-  const cityName = place?.name ? place.name.split(",")[0].trim() : "";
+  useEffect(() => {
+    fetchLiveDestination();
+  }, [placeId]);
 
-  // Matching hotels for this destination
-  const matchedHotels = HOTELS_LIST.filter(h =>
-    h.location.toLowerCase().includes(cityName.toLowerCase()) ||
-    (place?.name && h.location.toLowerCase().includes(place.name.toLowerCase()))
-  ).slice(0, 3);
+  const fetchLiveDestination = async () => {
+    try {
+      const res = await axios.get(`http://127.0.0.1:5000/api/destinations/${placeId}`);
+      if (res.data && res.data.name) {
+        setPlace(res.data);
+      }
+    } catch (err) {
+      console.warn("Could not load dynamic destination:", err);
+    }
 
-  const displayHotels = matchedHotels.length > 0 ? matchedHotels : HOTELS_LIST.slice(0, 3);
+    try {
+      const hRes = await axios.get(`http://127.0.0.1:5000/api/hotels?destinationId=${placeId}&status=Active`);
+      if (hRes.data && hRes.data.length > 0) {
+        setDynamicHotels(hRes.data);
+      }
+    } catch (err) {
+      console.warn("Could not load dynamic hotels:", err);
+    }
+
+    try {
+      const aRes = await axios.get(`http://127.0.0.1:5000/api/activities?destinationId=${placeId}&status=Active`);
+      if (aRes.data && aRes.data.length > 0) {
+        setDynamicActivities(aRes.data);
+      }
+    } catch (err) {
+      console.warn("Could not load dynamic activities:", err);
+    }
+  };
+
+  const handleToggleWishlist = async () => {
+    const userStr = localStorage.getItem("user");
+    if (!userStr) {
+      navigate("/login");
+      return;
+    }
+    const userObj = JSON.parse(userStr);
+    const email = userObj.email;
+    const nextLiked = !liked;
+    setLiked(nextLiked);
+
+    try {
+      if (nextLiked) {
+        await axios.post("http://127.0.0.1:5000/api/user/wishlist", {
+          email,
+          itemId: String(placeId),
+          itemType: "destination",
+          title: place?.name || "Destination",
+          location: place?.location || place?.country || "",
+          image: place?.img || (place?.images && place?.images[0]) || "",
+          price: place?.price || "₹12,000",
+          rating: place?.rating || 4.8
+        });
+      } else {
+        await axios.delete(`http://127.0.0.1:5000/api/user/wishlist/${email}/${placeId}`);
+      }
+    } catch (err) {
+      console.warn("Wishlist toggle error:", err);
+    }
+  };
+
+  const cityName = place?.name ? place.name.split(",")[0].trim() : (placeId || "");
+
+  // Matching hotels strictly for this destination
+  const matchedHotels = getHotelsByDestinationId(place?.id);
+  const displayHotels = dynamicHotels.length > 0
+    ? dynamicHotels
+    : (matchedHotels.length > 0 ? matchedHotels : getHotelsByDestination(place?.name));
 
   const handleStartBooking = () => {
     const userStr = localStorage.getItem("user");
@@ -158,8 +226,8 @@ export default function DestinationDetails() {
       }}>
         <div style={{ fontSize: 56 }}>🗺️</div>
         <h2 style={{ fontWeight: 800, fontSize: 24, margin: 0 }}>Destination not found</h2>
-        <p style={{ color: "#6B7280", fontSize: 14, margin: 0 }}>The destination you're looking for doesn't exist.</p>
-        <button onClick={() => navigate("/search?tab=places")} style={{
+        <p style={{ color: "#6B7280", fontSize: 14, margin: 0 }}>Unable to find destination details for "{placeId}".</p>
+        <button onClick={() => navigate("/search")} style={{
           padding: "12px 28px", borderRadius: 10, border: "none",
           background: "linear-gradient(to right, #2563EB, #3B82F6)",
           color: "white", fontWeight: 700, cursor: "pointer", fontSize: 14,
@@ -184,65 +252,65 @@ export default function DestinationDetails() {
       `}</style>
 
       <div className="sr-main">
-        <div style={{ maxWidth: 1100, margin: "0 auto", padding: "28px 36px 60px" }}>
+        <div style={{ maxWidth: 1160, margin: "0 auto", padding: "16px 24px 44px" }}>
 
           {/* Sub-header */}
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
             <button
               onClick={() => navigate(-1)}
               className="dd-back-btn"
               style={{
                 background: "#FFFFFF", border: "1px solid #E5E7EB",
-                color: "#6B7280", padding: "10px 20px", borderRadius: 10, cursor: "pointer",
-                display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 600,
+                color: "#6B7280", padding: "7px 14px", borderRadius: 8, cursor: "pointer",
+                display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600,
                 fontFamily: "inherit", transition: "all .2s",
               }}
             >
-              <FaArrowLeft size={12} /> Back
+              <FaArrowLeft size={11} /> Back
             </button>
 
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <button
-                onClick={() => setLiked(!liked)}
+                onClick={handleToggleWishlist}
                 title="Save to wishlist"
                 style={{
                   background: liked ? "rgba(239,68,68,0.08)" : "#FFFFFF",
                   border: `1px solid ${liked ? "rgba(239,68,68,0.25)" : "#E5E7EB"}`,
-                  borderRadius: 10, width: 42, height: 42, display: "flex",
+                  borderRadius: 8, width: 36, height: 36, display: "flex",
                   alignItems: "center", justifyContent: "center", cursor: "pointer",
                 }}
               >
-                {liked ? <FaHeart color="#ef4444" size={16} /> : <FaRegHeart color="#9CA3AF" size={16} />}
+                {liked ? <FaHeart color="#ef4444" size={14} /> : <FaRegHeart color="#9CA3AF" size={14} />}
               </button>
               <button
                 onClick={() => { if (navigator.share) navigator.share({ title: place.name, url: window.location.href }); }}
                 title="Share destination"
                 style={{
                   background: "#FFFFFF", border: "1px solid #E5E7EB",
-                  borderRadius: 10, width: 42, height: 42, display: "flex",
+                  borderRadius: 8, width: 36, height: 36, display: "flex",
                   alignItems: "center", justifyContent: "center", cursor: "pointer",
                 }}
               >
-                <FaShareAlt color="#9CA3AF" size={14} />
+                <FaShareAlt color="#9CA3AF" size={13} />
               </button>
               <button
                 onClick={handleStartBooking}
                 className="dd-book-btn"
                 style={{
-                  padding: "10px 22px", borderRadius: 10, border: "none",
+                  padding: "8px 18px", borderRadius: 8, border: "none",
                   background: "linear-gradient(135deg, #2563EB, #3B82F6)",
-                  color: "#FFFFFF", fontWeight: 700, fontSize: 13, cursor: "pointer",
-                  display: "flex", alignItems: "center", gap: 8,
-                  boxShadow: "0 4px 14px rgba(37,99,235,0.25)", transition: "all .2s",
+                  color: "#FFFFFF", fontWeight: 700, fontSize: 12, cursor: "pointer",
+                  display: "flex", alignItems: "center", gap: 6,
+                  boxShadow: "0 3px 10px rgba(37,99,235,0.22)", transition: "all .2s",
                 }}
               >
-                <FaSuitcaseRolling /> Book This Trip
+                <FaSuitcaseRolling size={12} /> Book This Trip
               </button>
             </div>
           </div>
 
           {/* HERO IMAGE BANNER */}
-          <div style={{ position: "relative", borderRadius: 20, overflow: "hidden", marginBottom: 20, height: 400 }}>
+          <div style={{ position: "relative", borderRadius: 16, overflow: "hidden", marginBottom: 16, height: 320 }}>
             <img
               src={place.img}
               alt={place.name}
@@ -252,43 +320,43 @@ export default function DestinationDetails() {
             {/* Gradient overlay for readability */}
             <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.35) 45%, transparent 75%)" }} />
             
-            <div style={{ position: "absolute", bottom: 28, left: 32, right: 32, display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: 16 }}>
+            <div style={{ position: "absolute", bottom: 20, left: 24, right: 24, display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: 12 }}>
               <div>
-                <span style={{ fontSize: 12, fontWeight: 800, color: "#93c5fd", textTransform: "uppercase", letterSpacing: 2, display: "block", marginBottom: 6 }}>
+                <span style={{ fontSize: 11, fontWeight: 800, color: "#93c5fd", textTransform: "uppercase", letterSpacing: 1.5, display: "block", marginBottom: 4 }}>
                   {place.category}
                 </span>
-                <h1 style={{ fontSize: 38, fontWeight: 900, margin: 0, marginBottom: 10, color: "white" }}>
+                <h1 style={{ fontSize: 28, fontWeight: 900, margin: 0, marginBottom: 6, color: "white" }}>
                   {place.name}
                 </h1>
-                <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                    <Stars rating={place.rating} size={14} />
-                    <span style={{ fontSize: 14, fontWeight: 800, color: "white" }}>{place.rating}</span>
-                    <span style={{ fontSize: 12, color: "#CBD5E1" }}>({(place.reviews || 1200).toLocaleString()} reviews)</span>
+                <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                    <Stars rating={place.rating} size={12} />
+                    <span style={{ fontSize: 13, fontWeight: 800, color: "white" }}>{place.rating}</span>
+                    <span style={{ fontSize: 11, color: "#CBD5E1" }}>({(place.reviews || 1200).toLocaleString()} reviews)</span>
                   </div>
                   <SentimentBadge label={place.sentiment || "96% Positive"} />
-                  <div style={{ display: "flex", alignItems: "center", gap: 6, color: "#93c5fd", fontSize: 13, fontWeight: 600 }}>
-                    <FaCalendarAlt size={11} /> Best: {place.bestTime}
+                  <div style={{ display: "flex", alignItems: "center", gap: 4, color: "#93c5fd", fontSize: 12, fontWeight: 600 }}>
+                    <FaCalendarAlt size={10} /> Best: {place.bestTime}
                   </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6, color: "#93c5fd", fontSize: 13, fontWeight: 600 }}>
-                    <FaClock size={11} /> {place.tripDuration}
+                  <div style={{ display: "flex", alignItems: "center", gap: 4, color: "#93c5fd", fontSize: 12, fontWeight: 600 }}>
+                    <FaClock size={10} /> {place.tripDuration}
                   </div>
                 </div>
               </div>
 
               {/* Price & Direct Book Action */}
-              <div style={{ background: "rgba(255,255,255,0.15)", backdropFilter: "blur(10px)", border: "1px solid rgba(255,255,255,0.25)", borderRadius: 16, padding: "16px 22px", textAlign: "right" }}>
-                <div style={{ color: "#CBD5E1", fontSize: 11, textTransform: "uppercase", fontWeight: 700 }}>Starting from</div>
-                <div style={{ fontSize: 26, fontWeight: 900, color: "#FFFFFF" }}>{place.price}</div>
-                <div style={{ fontSize: 11, color: "#93c5fd", marginBottom: 10 }}>per person · All-inclusive packages</div>
+              <div style={{ background: "rgba(255,255,255,0.15)", backdropFilter: "blur(10px)", border: "1px solid rgba(255,255,255,0.25)", borderRadius: 12, padding: "12px 18px", textAlign: "right" }}>
+                <div style={{ color: "#CBD5E1", fontSize: 10, textTransform: "uppercase", fontWeight: 700 }}>Starting from</div>
+                <div style={{ fontSize: 20, fontWeight: 900, color: "#FFFFFF" }}>{place.price}</div>
+                <div style={{ color: "#93c5fd", fontSize: 10, marginBottom: 8 }}>per traveler · All-inclusive</div>
                 <button
                   onClick={handleStartBooking}
                   className="dd-book-btn"
                   style={{
-                    width: "100%", padding: "11px 22px", borderRadius: 10, border: "none",
+                    width: "100%", padding: "8px 16px", borderRadius: 8, border: "none",
                     background: "linear-gradient(135deg, #2563EB, #3B82F6)",
-                    color: "white", fontWeight: 800, fontSize: 14, cursor: "pointer",
-                    boxShadow: "0 4px 14px rgba(37,99,235,0.4)",
+                    color: "white", fontWeight: 800, fontSize: 12, cursor: "pointer",
+                    boxShadow: "0 3px 10px rgba(37,99,235,0.3)",
                   }}
                 >
                   ⚡ Book Now
@@ -351,11 +419,11 @@ export default function DestinationDetails() {
           )}
 
           {/* VISIT SPOTS / ATTRACTIONS */}
-          {place.visits && place.visits.length > 0 && (
+          {(dynamicActivities.length > 0 || (place.visits && place.visits.length > 0)) && (
             <div style={CARD_STYLE}>
-              <SectionHeader icon="📍" title="Must-See Attractions & Spots" subtitle={`${place.visits.length} curated highlights with visiting tips`} />
+              <SectionHeader icon="📍" title="Must-See Attractions & Spots" subtitle={`${(dynamicActivities.length > 0 ? dynamicActivities : place.visits).length} curated highlights with visiting tips`} />
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 14 }}>
-                {place.visits.map((v, i) => (
+                {(dynamicActivities.length > 0 ? dynamicActivities : place.visits).map((v, i) => (
                   <div key={i}
                     onClick={() => setExpandedVisit(expandedVisit === i ? null : i)}
                     style={{
@@ -385,7 +453,11 @@ export default function DestinationDetails() {
                     </p>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 10, fontSize: 11, color: "#9CA3AF" }}>
                       <span>⏱ Best: {v.time || "Morning"}</span>
-                      {v.entryFee && <span style={{ color: "#16A34A", fontWeight: 700 }}>Entry: {v.entryFee}</span>}
+                      {(v.priceFormatted || v.price || v.entryFee) && (
+                        <span style={{ color: "#16A34A", fontWeight: 700 }}>
+                          {v.priceFormatted || (typeof v.price === "number" ? `₹${v.price.toLocaleString("en-IN")}` : v.entryFee)}
+                        </span>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -429,11 +501,15 @@ export default function DestinationDetails() {
                   <div style={{ fontSize: 11, color: "#6B7280", marginTop: 2, display: "flex", alignItems: "center", gap: 4 }}>
                     <FaMapMarkerAlt size={10} color="#ef4444" /> {h.location}
                   </div>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 8 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
-                      <FaStar size={11} color="#f59e0b" />
-                      <span style={{ fontSize: 12, fontWeight: 700, color: "#374151" }}>{h.rating}</span>
-                    </div>
+
+                  {/* AI Sentiment Analysis Visualization (Replaces star rating) */}
+                  <HotelSentimentDonut
+                    hotel={h}
+                    onOpenAnalysis={setAnalysisModalHotel}
+                  />
+
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 6, paddingTop: 4, borderTop: "1px solid #F1F5F9" }}>
+                    <span style={{ fontSize: 11, color: "#64748B", fontWeight: 600 }}>Standard Rate</span>
                     <div style={{ fontSize: 13, fontWeight: 800, color: "#2563EB" }}>{h.price}</div>
                   </div>
                 </div>
@@ -611,6 +687,15 @@ export default function DestinationDetails() {
           items={place.gallery}
           startIndex={lightboxIdx}
           onClose={() => setLightboxIdx(null)}
+        />
+      )}
+
+      {/* Hotel Feedback Analysis Modal */}
+      {analysisModalHotel && (
+        <FeedbackAnalysisModal
+          item={analysisModalHotel}
+          itemType="hotel"
+          onClose={() => setAnalysisModalHotel(null)}
         />
       )}
     </div>

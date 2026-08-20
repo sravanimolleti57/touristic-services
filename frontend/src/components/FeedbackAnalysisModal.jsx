@@ -1,24 +1,34 @@
 import React, { useEffect, useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer,
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
 } from "recharts";
 import {
   FaTimes, FaChartPie, FaShieldAlt, FaThumbsUp,
-  FaThumbsDown, FaHotel, FaPlane, FaStar, FaCheckCircle, FaBrain, FaHashtag, FaQuoteLeft
+  FaThumbsDown, FaHotel, FaPlane, FaStar, FaCheckCircle, FaBrain, FaHashtag, FaQuoteLeft,
+  FaMapMarkerAlt, FaExternalLinkAlt
 } from "react-icons/fa";
 import axios from "axios";
 import { analyzeReviewText } from "../utils/reviewAnalytics";
 
 export default function FeedbackAnalysisModal({ item, itemType = "hotel", onClose }) {
+  const navigate = useNavigate();
   const [hotelReviews, setHotelReviews] = useState([]);
   const [sentiments, setSentiments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("pie");
 
-  const title = item?.name || item?.airline || item?.flightNo || "Selected Hotel / Flight";
-  const subtitle = item?.location || (item?.from && item?.to ? `${item.from} → ${item.to}` : item?.airline) || "";
+  const isDestination = itemType.toLowerCase() === "destination";
   const isFlight = itemType.toLowerCase() === "flight";
+
+  // For destinations, extract the city/country portion (e.g. "Bali, Indonesia" → "Bali")
+  const destKeyword = isDestination ? (item?.name || "").split(",")[0].trim().toLowerCase() : null;
+
+  const title = item?.name || item?.airline || item?.flightNo || "Selected Destination";
+  const subtitle = isDestination
+    ? (item?.category ? `${item.category} · ${item?.overview || ""}`.slice(0, 80) : "")
+    : item?.location || (item?.from && item?.to ? `${item.from} → ${item.to}` : item?.airline) || "";
 
   const user = JSON.parse(localStorage.getItem("user") || "{}");
   const email = user?.email || "guest@user.com";
@@ -30,25 +40,51 @@ export default function FeedbackAnalysisModal({ item, itemType = "hotel", onClos
     let allRevs = [];
 
     try {
-      const res = await axios.get(`http://127.0.0.1:5000/reviews/${email}`);
-      if (Array.isArray(res.data) && res.data.length > 0) allRevs = res.data;
+      if (!isDestination && !isFlight && title) {
+        const hRes = await axios.get(`http://127.0.0.1:5000/api/reviews`, {
+          params: { hotelName: title },
+          timeout: 3000
+        });
+        if (Array.isArray(hRes.data) && hRes.data.length > 0) {
+          allRevs = hRes.data;
+        }
+      }
     } catch (err) {
-      console.warn("Backend reviews endpoint warning, checking fallback dataset:", err);
+      console.warn("Hotel-specific reviews lookup fallback:", err);
+    }
+
+    if (allRevs.length === 0) {
+      try {
+        const res = await axios.get(`http://127.0.0.1:5000/reviews/${email}`);
+        if (Array.isArray(res.data) && res.data.length > 0) allRevs = res.data;
+      } catch (err) {
+        console.warn("Backend reviews endpoint warning, checking fallback dataset:", err);
+      }
     }
 
     if (allRevs.length === 0) {
       allRevs = [
-        { hostelName: "The Leela Palace", user: "Anand R.", text: "Royal luxury experience! Exceptional service, stunning architecture, and pristine pool area.", type: "Text, Audio", rating: "5", createdAt: new Date().toISOString() },
-        { hostelName: "The Leela Palace", user: "Priya S.", text: "Superb dining and friendly concierge staff. Room cleanliness was 10/10.", type: "Text", rating: "5", createdAt: new Date(Date.now() - 86400000 * 1).toISOString() },
-        { hostelName: "Taj Mahal Palace", user: "Vikram M.", text: "Iconic sea view room! Attentive staff and delicious breakfast spread.", type: "Text, Video", rating: "5", createdAt: new Date(Date.now() - 86400000 * 2).toISOString() },
-        { hostelName: "Oberoi Udaivilas", user: "Neha K.", text: "Breathtaking lake views and tranquil spa services. Highly recommended!", type: "Text", rating: "5", createdAt: new Date(Date.now() - 86400000 * 3).toISOString() },
-        { hostelName: "Zostel Hotel Jaipur", user: "Rahul T.", text: "Awesome vibe! Met great travellers, super clean rooms.", type: "Text, Audio", rating: "5", createdAt: new Date(Date.now() - 86400000 * 4).toISOString() },
-        { hostelName: "GoStops Hotel Rishikesh", user: "Meera D.", text: "Nice Ganga view from rooftop, but WiFi was slightly slow during evening peak.", type: "Text", rating: "4", createdAt: new Date(Date.now() - 86400000 * 5).toISOString() },
+        { hostelName: "The Apurva Kempinski Bali", hotelName: "The Apurva Kempinski Bali", user: "Liam Tanaka", text: "Cliffside infinity pools and majestic Balinese architecture. Truly unmatched luxury and hospitality.", type: "Text, Audio", rating: "5", createdAt: new Date().toISOString() },
+        { hostelName: "The Apurva Kempinski Bali", hotelName: "The Apurva Kempinski Bali", user: "Sophie Martin", text: "Impeccable cleanliness, spacious ocean-view suite, and incredible reef dining experience.", type: "Text", rating: "5", createdAt: new Date(Date.now() - 86400000 * 1).toISOString() },
+        { hostelName: "Hard Rock Hotel Bali", hotelName: "Hard Rock Hotel Bali", user: "Marcus Vance", text: "Awesome energetic vibe! The massive freeform pool and live music events were highlight of our stay.", type: "Text", rating: "5", createdAt: new Date(Date.now() - 86400000 * 2).toISOString() },
+        { hostelName: "Oberoi Udaivilas", hotelName: "Oberoi Udaivilas", user: "Anand Sharma", text: "Breathtaking royal experience! Lake Pichola views, immaculate service, and world-class Rajasthani dining.", type: "Text", rating: "5", createdAt: new Date(Date.now() - 86400000 * 3).toISOString() },
+        { hostelName: "Hôtel Plaza Athénée", hotelName: "Hôtel Plaza Athénée", user: "Chloe Dubois", text: "Unforgettable Eiffel Tower view from the balcony! Haute cuisine and Parisian elegance at its finest.", type: "Text", rating: "5", createdAt: new Date(Date.now() - 86400000 * 4).toISOString() },
       ];
     }
 
     const matchedRevs = allRevs.filter(r => {
-      const nameInRev = (r.hostelName || r.hotelName || "").toLowerCase();
+      const nameInRev = (r.hostelName || r.hotelName || r.destination || "").toLowerCase();
+      const locInRev = (r.location || r.city || "").toLowerCase();
+      if (isDestination && destKeyword) {
+        // For destinations: match reviews whose hotel/hostel name or location
+        // contains the destination keyword (e.g. "bali" in "Four Seasons Bali")
+        return (
+          nameInRev.includes(destKeyword) ||
+          locInRev.includes(destKeyword) ||
+          destKeyword.includes(nameInRev.split(" ")[0]) ||
+          (item?.name || "").toLowerCase().includes(nameInRev.split(" ")[0])
+        );
+      }
       const targetName = title.toLowerCase();
       return nameInRev.includes(targetName) || targetName.includes(nameInRev);
     });
@@ -95,13 +131,20 @@ export default function FeedbackAnalysisModal({ item, itemType = "hotel", onClos
           { name: "Crew Hospitality",        score: Math.min(100, posPct + 4), color: "#059669" },
           { name: "In-Flight Services",      score: Math.min(95, posPct - 5), color: "#D97706" },
         ]
+      : isDestination
+      ? [
+          { name: "Scenery & Attractions",  score: Math.min(99, posPct + 3), color: "#059669" },
+          { name: "Local Hospitality",      score: Math.min(98, posPct + 1), color: "#2563EB" },
+          { name: "Food & Cuisine",         score: Math.min(100, posPct + 4), color: "#7C3AED" },
+          { name: "Value & Affordability",  score: Math.min(95, posPct - 4), color: "#D97706" },
+        ]
       : [
           { name: "Cleanliness & Hygiene",  score: Math.min(99, posPct + 3), color: "#059669" },
           { name: "Location & Transport",   score: Math.min(98, posPct + 1), color: "#2563EB" },
           { name: "Staff Hospitality",      score: Math.min(100, posPct + 4), color: "#7C3AED" },
           { name: "Value & Amenities",      score: Math.min(95, posPct - 4), color: "#D97706" },
         ];
-  }, [analytics, isFlight]);
+  }, [analytics, isFlight, isDestination]);
 
   return (
     <div style={styles.overlay} onClick={onClose}>
@@ -113,12 +156,18 @@ export default function FeedbackAnalysisModal({ item, itemType = "hotel", onClos
             <div style={styles.iconWrap}>
               {isFlight
                 ? <FaPlane size={20} color="#2563EB" />
+                : isDestination
+                ? <FaMapMarkerAlt size={20} color="#059669" />
                 : <FaHotel size={20} color="#7C3AED" />
               }
             </div>
             <div>
               <div style={styles.categoryBadge}>
-                {isFlight ? "FLIGHT REAL FEEDBACK ANALYSIS" : "HOTEL REAL FEEDBACK ANALYSIS"}
+                {isFlight
+                  ? "FLIGHT REAL FEEDBACK ANALYSIS"
+                  : isDestination
+                  ? "DESTINATION FEEDBACK ANALYSIS"
+                  : "HOTEL REAL FEEDBACK ANALYSIS"}
               </div>
               <h2 style={styles.title}>{title}</h2>
               {subtitle && <p style={styles.subtitle}>{subtitle}</p>}
@@ -341,6 +390,44 @@ export default function FeedbackAnalysisModal({ item, itemType = "hotel", onClos
               </div>
             </div>
 
+            {/* View Full Reviews Hub Button */}
+            <div style={{ marginTop: 24, paddingTop: 16, borderTop: "1px solid #E5E7EB", display: "flex", justifyContent: "flex-end", gap: 10, flexWrap: "wrap" }}>
+              <button
+                onClick={onClose}
+                style={{
+                  padding: "10px 18px", borderRadius: 10,
+                  border: "1px solid #E5E7EB", background: "#F8FAFC",
+                  color: "#6B7280", fontWeight: 700, fontSize: 13, cursor: "pointer",
+                  fontFamily: "inherit"
+                }}
+              >
+                Close
+              </button>
+              <button
+                onClick={() => {
+                  onClose();
+                  if (isDestination) {
+                    navigate(`/reviews?type=destination&destination=${encodeURIComponent(item?.name || title)}`);
+                  } else if (isFlight) {
+                    navigate(`/reviews?type=hotel`);
+                  } else {
+                    const dest = item?.destinationName || item?.destination || item?.location || "";
+                    navigate(`/reviews?type=hotel&destination=${encodeURIComponent(dest)}&hotel=${encodeURIComponent(item?.name || title)}`);
+                  }
+                }}
+                style={{
+                  padding: "10px 20px", borderRadius: 10,
+                  border: "none", background: "linear-gradient(135deg, #2563EB, #3B82F6)",
+                  color: "#FFFFFF", fontWeight: 700, fontSize: 13, cursor: "pointer",
+                  display: "inline-flex", alignItems: "center", gap: 8,
+                  boxShadow: "0 4px 12px rgba(37,99,235,0.25)",
+                  fontFamily: "inherit"
+                }}
+              >
+                <span>Explore Reviews &amp; Submit Feedback</span>
+                <FaExternalLinkAlt size={11} />
+              </button>
+            </div>
           </div>
         )}
 

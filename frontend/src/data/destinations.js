@@ -605,5 +605,33 @@ export const PLACES = [
 ];
 
 export function getPlaceById(id) {
-  return PLACES.find((place) => String(place.id) === String(id));
+  if (!id) return undefined;
+  const strId = String(id).trim().toLowerCase();
+
+  // 1. Direct match by id or _id
+  const byId = PLACES.find((place) => String(place.id) === String(id) || String(place._id) === String(id));
+  if (byId) return byId;
+
+  // 2. Exact match by name (e.g. "Maldives" or "Paris, France")
+  const byName = PLACES.find((place) => (place.name || "").toLowerCase() === strId);
+  if (byName) return byName;
+
+  // 3. Match by city name (e.g. "Paris", "Bali", "Tokyo", "Rome")
+  const byCity = PLACES.find((place) => {
+    const city = (place.name || "").split(",")[0].trim().toLowerCase();
+    return city === strId;
+  });
+  if (byCity) return byCity;
+
+  // 4. Match by slug / clean alphanumeric (e.g. "new-york", "newyorkcity", "rajasthan")
+  const cleanSearch = strId.replace(/[^a-z0-9]/g, "");
+  if (cleanSearch) {
+    const bySlug = PLACES.find((place) => {
+      const pSlug = (place.name || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+      return pSlug === cleanSearch || pSlug.includes(cleanSearch) || cleanSearch.includes(pSlug);
+    });
+    if (bySlug) return bySlug;
+  }
+
+  return undefined;
 }

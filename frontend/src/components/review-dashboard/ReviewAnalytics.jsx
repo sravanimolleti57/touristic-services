@@ -8,7 +8,40 @@ import ProsConsCard from "./ProsConsCard";
 import AISummary from "./AISummary";
 import { FaChartPie, FaSpinner, FaExclamationCircle } from "react-icons/fa";
 
-export default function ReviewAnalytics({ reviews = [] }) {
+// Error Boundary prevents Recharts/analytics errors from blanking the entire Reviews page
+class AnalyticsErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+  componentDidCatch(error, info) {
+    console.warn("ReviewAnalytics render error caught by boundary:", error, info);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{
+          padding: 24, borderRadius: 16, textAlign: "center",
+          background: "#FFFFFF", border: "1px solid #E5E7EB",
+          display: "flex", flexDirection: "column", alignItems: "center", gap: 8,
+          boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+        }}>
+          <FaExclamationCircle style={{ fontSize: 22, color: "#D1D5DB", marginBottom: 4 }} />
+          <h4 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: "#374151" }}>Analytics Unavailable</h4>
+          <p style={{ margin: 0, fontSize: 12, color: "#9CA3AF" }}>
+            Submit a review to generate analytics.
+          </p>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+function ReviewAnalyticsInner({ reviews = [] }) {
   const { analytics, loading } = useReviewAnalytics(reviews);
 
   if (loading) {
@@ -38,7 +71,7 @@ export default function ReviewAnalytics({ reviews = [] }) {
         <FaExclamationCircle style={{ fontSize: 22, color: "#D1D5DB", marginBottom: 4 }} />
         <h4 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: "#374151" }}>No Review Analytics Available</h4>
         <p style={{ margin: 0, fontSize: 12, color: "#9CA3AF" }}>
-          Submit a hotel review to generate the Emotion Pie Chart and statistics.
+          Submit a review to generate the Emotion Pie Chart and statistics.
         </p>
       </div>
     );
@@ -63,5 +96,13 @@ export default function ReviewAnalytics({ reviews = [] }) {
       <KeywordCloud keywords={analytics.keywords} />
       <ProsConsCard pros={analytics.pros} cons={analytics.cons} />
     </div>
+  );
+}
+
+export default function ReviewAnalytics({ reviews = [] }) {
+  return (
+    <AnalyticsErrorBoundary>
+      <ReviewAnalyticsInner reviews={reviews} />
+    </AnalyticsErrorBoundary>
   );
 }

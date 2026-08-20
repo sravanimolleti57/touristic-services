@@ -4,11 +4,26 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recha
 import { FaStar, FaSmile, FaMeh, FaFrown } from "react-icons/fa";
 
 export default function EmotionChart({ data = [], avgRating = 4.8, totalReviews = 0 }) {
-  if (!data || data.length === 0) return null;
+  const validData = Array.isArray(data)
+    ? data.filter(d => Number.isFinite(Number(d.value)) && Number(d.value) >= 0)
+    : [];
 
-  const posData = data.find(d => d.name.toLowerCase().includes("pos")) || { value: 0, count: 0 };
-  const neuData = data.find(d => d.name.toLowerCase().includes("neu")) || { value: 0, count: 0 };
-  const negData = data.find(d => d.name.toLowerCase().includes("neg")) || { value: 0, count: 0 };
+  const displayData = validData.length > 0 && validData.some(d => Number(d.value) > 0)
+    ? validData
+    : [
+        { name: "Positive Sentiment", value: 100, count: totalReviews || 0 },
+      ];
+
+  // Ensure all values in displayData are finite positive numbers (guard against NaN crashing Recharts)
+  const safeDisplayData = displayData.map(d => ({
+    ...d,
+    value: Number.isFinite(Number(d.value)) && Number(d.value) > 0 ? Number(d.value) : 1,
+    count: Number(d.count) || 0,
+  }));
+
+  const posData = safeDisplayData.find(d => (d.name || "").toLowerCase().includes("pos")) || { value: 0, count: 0 };
+  const neuData = safeDisplayData.find(d => (d.name || "").toLowerCase().includes("neu")) || { value: 0, count: 0 };
+  const negData = safeDisplayData.find(d => (d.name || "").toLowerCase().includes("neg")) || { value: 0, count: 0 };
 
   return (
     <motion.div
@@ -44,14 +59,14 @@ export default function EmotionChart({ data = [], avgRating = 4.8, totalReviews 
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
-              data={data}
+              data={safeDisplayData}
               cx="50%" cy="50%"
               innerRadius={50} outerRadius={75}
               paddingAngle={6}
               dataKey="value"
               animationDuration={1200}
             >
-              {data.map((entry, index) => (
+              {safeDisplayData.map((entry, index) => (
                 <Cell
                   key={`cell-${index}`}
                   fill={

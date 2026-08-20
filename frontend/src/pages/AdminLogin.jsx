@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { FaUserShield, FaLock, FaEnvelope, FaEye, FaEyeSlash, FaArrowLeft, FaShieldAlt } from "react-icons/fa";
 import axios from "axios";
@@ -11,6 +11,14 @@ export default function AdminLogin() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    const userStr = localStorage.getItem("user");
+    const role = localStorage.getItem("role");
+    if (userStr && role === "admin") {
+      navigate("/admin/dashboard", { replace: true });
+    }
+  }, [navigate]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
@@ -18,8 +26,8 @@ export default function AdminLogin() {
 
     try {
       const res = await axios.post("http://127.0.0.1:5000/api/auth/admin-login", {
-        email: email.trim(),
-        password: password.strip ? password.strip() : password
+        email: email.trim().toLowerCase(),
+        password: password.trim()
       });
 
       if (res.data && res.data.role === "admin") {
@@ -31,13 +39,13 @@ export default function AdminLogin() {
         localStorage.setItem("user", JSON.stringify(adminUser));
         localStorage.setItem("role", "admin");
 
-        navigate("/admin/dashboard");
+        navigate("/admin/dashboard", { replace: true });
       } else {
         setError(res.data.message || "Invalid administrator credentials.");
       }
     } catch (err) {
       console.error(err);
-      const msg = err.response?.data?.message || "Admin login failed. Please check credentials.";
+      const msg = err.response?.data?.message || "Admin login failed. Please check your credentials.";
       setError(msg);
     } finally {
       setLoading(false);
@@ -47,84 +55,77 @@ export default function AdminLogin() {
   return (
     <div style={{
       minHeight: "100vh",
-      background: "linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #090d16 100%)",
-      color: "#ffffff",
-      fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif",
+      background: "#F8FAFC",
+      color: "#0F172A",
+      fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
       display: "flex",
       alignItems: "center",
-      justify: "center",
+      justifyContent: "center",
       padding: "24px",
-      position: "relative",
-      overflow: "hidden"
+      position: "relative"
     }}>
-      {/* Background Glow */}
-      <div style={{
-        position: "absolute", width: 500, height: 500, borderRadius: "50%",
-        background: "radial-gradient(circle, rgba(168, 85, 247, 0.2) 0%, transparent 70%)",
-        top: "20%", left: "50%", transform: "translate(-50%, -50%)", pointerEvents: "none"
-      }} />
-
-      {/* Back button */}
+      {/* Return button */}
       <button
         onClick={() => navigate("/")}
         style={{
-          position: "absolute", top: 32, left: 32,
-          background: "rgba(255, 255, 255, 0.08)", border: "1px solid rgba(255, 255, 255, 0.15)",
-          color: "#ffffff", padding: "10px 18px", borderRadius: 12, cursor: "pointer",
-          display: "flex", alignItems: "center", gap: 8, fontSize: 14, fontWeight: 600,
-          backdropFilter: "blur(10px)", transition: "all 0.2s"
+          position: "absolute", top: 28, left: 28,
+          background: "#FFFFFF", border: "1px solid #E2E8F0",
+          color: "#475569", padding: "10px 18px", borderRadius: 12, cursor: "pointer",
+          display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 700,
+          boxShadow: "0 1px 3px rgba(0,0,0,0.03)", transition: "all 0.2s"
         }}
       >
-        <FaArrowLeft /> Return to Portal Choice
+        <FaArrowLeft /> Back to Portal
       </button>
 
       {/* Admin Login Card */}
       <div style={{
-        width: "100%", maxWidth: 440,
-        background: "rgba(30, 41, 59, 0.75)",
-        backdropFilter: "blur(20px)",
-        border: "1px solid rgba(168, 85, 247, 0.3)",
+        width: "100%", maxWidth: 420,
+        background: "#FFFFFF",
+        border: "1px solid #E2E8F0",
         borderRadius: 24,
-        padding: "44px 36px",
-        boxShadow: "0 20px 50px rgba(0,0,0,0.5)",
-        position: "relative", zIndex: 10
+        padding: "40px 32px",
+        boxShadow: "0 10px 30px rgba(0,0,0,0.04), 0 1px 3px rgba(0,0,0,0.02)",
+        position: "relative"
       }}>
-        <div style={{ textAlign: "center", marginBottom: 32 }}>
+        <div style={{ textAlign: "center", marginBottom: 28 }}>
           <div style={{
-            width: 64, height: 64, borderRadius: 20,
-            background: "linear-gradient(135deg, #7e22ce 0%, #a855f7 100%)",
+            width: 60, height: 60, borderRadius: 18,
+            background: "linear-gradient(135deg, #2563EB 0%, #3B82F6 100%)",
             display: "inline-flex", alignItems: "center", justifyContent: "center",
-            fontSize: 28, color: "#ffffff", marginBottom: 16,
-            boxShadow: "0 8px 24px rgba(168,85,247,0.4)"
+            fontSize: 26, color: "#FFFFFF", marginBottom: 14,
+            boxShadow: "0 6px 18px rgba(37,99,235,0.25)"
           }}>
             <FaUserShield />
           </div>
-          <h1 style={{ fontSize: "1.8rem", fontWeight: 800, margin: "0 0 6px", color: "#ffffff" }}>
-            Admin Portal Sign In
+
+          <h1 style={{ fontSize: "1.6rem", fontWeight: 900, color: "#0F172A", margin: "0 0 6px" }}>
+            Admin Console Login
           </h1>
-          <p style={{ color: "#94a3b8", fontSize: "0.9rem", margin: 0 }}>
-            Management authentication required
+          <p style={{ color: "#64748B", fontSize: "0.9rem", margin: 0 }}>
+            Sign in to access management dashboard &amp; controls
           </p>
         </div>
 
         {error && (
           <div style={{
-            background: "rgba(220, 38, 38, 0.15)", border: "1px solid rgba(220, 38, 38, 0.4)",
-            color: "#f87171", padding: "12px 16px", borderRadius: 12, fontSize: 13,
-            marginBottom: 20, display: "flex", alignItems: "center", gap: 10
+            padding: "12px 16px", borderRadius: 12, marginBottom: 20,
+            background: "#FEF2F2", border: "1px solid #FCA5A5",
+            color: "#DC2626", fontSize: 13, fontWeight: 600,
+            display: "flex", alignItems: "center", gap: 8
           }}>
             <FaShieldAlt /> {error}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-          {/* Email field */}
-          <div>
-            <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#cbd5e1", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.5px" }}>
-              Administrator Email
+        <form onSubmit={handleSubmit}>
+          {/* Email */}
+          <div style={{ marginBottom: 18 }}>
+            <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#475569", marginBottom: 6, textTransform: "uppercase" }}>
+              Admin Email
             </label>
             <div style={{ position: "relative" }}>
-              <FaEnvelope style={{ position: "absolute", left: 16, top: "50%", transform: "translateY(-50%)", color: "#94a3b8" }} />
+              <FaEnvelope style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: "#94A3B8" }} />
               <input
                 type="email"
                 required
@@ -132,33 +133,31 @@ export default function AdminLogin() {
                 onChange={e => setEmail(e.target.value)}
                 placeholder="admin@tourism.com"
                 style={{
-                  width: "100%", padding: "14px 16px 14px 44px", borderRadius: 12,
-                  background: "rgba(15, 23, 42, 0.6)", border: "1px solid rgba(255, 255, 255, 0.12)",
-                  color: "#ffffff", fontSize: 14, outline: "none", boxSizing: "border-box",
-                  fontFamily: "inherit"
+                  width: "100%", padding: "12px 14px 12px 38px", borderRadius: 12,
+                  border: "1px solid #CBD5E1", background: "#F8FAFC", color: "#0F172A",
+                  fontSize: 14, outline: "none", boxSizing: "border-box"
                 }}
               />
             </div>
           </div>
 
-          {/* Password field */}
-          <div>
-            <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#cbd5e1", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.5px" }}>
-              Admin Secret Key / Password
+          {/* Password */}
+          <div style={{ marginBottom: 24 }}>
+            <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#475569", marginBottom: 6, textTransform: "uppercase" }}>
+              Password
             </label>
             <div style={{ position: "relative" }}>
-              <FaLock style={{ position: "absolute", left: 16, top: "50%", transform: "translateY(-50%)", color: "#94a3b8" }} />
+              <FaLock style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: "#94A3B8" }} />
               <input
                 type={showPw ? "text" : "password"}
                 required
                 value={password}
                 onChange={e => setPassword(e.target.value)}
-                placeholder="••••••••••••"
+                placeholder="Enter admin password"
                 style={{
-                  width: "100%", padding: "14px 44px 14px 44px", borderRadius: 12,
-                  background: "rgba(15, 23, 42, 0.6)", border: "1px solid rgba(255, 255, 255, 0.12)",
-                  color: "#ffffff", fontSize: 14, outline: "none", boxSizing: "border-box",
-                  fontFamily: "inherit"
+                  width: "100%", padding: "12px 42px 12px 38px", borderRadius: 12,
+                  border: "1px solid #CBD5E1", background: "#F8FAFC", color: "#0F172A",
+                  fontSize: 14, outline: "none", boxSizing: "border-box"
                 }}
               />
               <button
@@ -166,7 +165,7 @@ export default function AdminLogin() {
                 onClick={() => setShowPw(!showPw)}
                 style={{
                   position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)",
-                  background: "none", border: "none", color: "#94a3b8", cursor: "pointer"
+                  background: "none", border: "none", color: "#94A3B8", cursor: "pointer", padding: 0
                 }}
               >
                 {showPw ? <FaEyeSlash /> : <FaEye />}
@@ -174,33 +173,18 @@ export default function AdminLogin() {
             </div>
           </div>
 
-          {/* Quick Credential Hint for Demo */}
-          <div style={{
-            background: "rgba(168, 85, 247, 0.1)", border: "1px dashed rgba(168, 85, 247, 0.3)",
-            borderRadius: 10, padding: "10px 14px", fontSize: 12, color: "#c084fc", textAlign: "center"
-          }}>
-            Default Admin: <strong>admin@tourism.com</strong> | Password: <strong>admin123</strong>
-          </div>
-
-          {/* Submit button */}
+          {/* Submit */}
           <button
             type="submit"
             disabled={loading}
             style={{
-              marginTop: 6,
-              padding: "15px",
-              borderRadius: 14,
-              background: "linear-gradient(135deg, #7e22ce 0%, #a855f7 100%)",
-              color: "#ffffff",
-              fontSize: 15,
-              fontWeight: 700,
-              border: "none",
-              cursor: loading ? "wait" : "pointer",
-              boxShadow: "0 8px 20px rgba(126, 34, 206, 0.4)",
-              transition: "all 0.2s"
+              width: "100%", padding: "14px", borderRadius: 12, border: "none",
+              background: "linear-gradient(135deg, #2563EB 0%, #3B82F6 100%)",
+              color: "#FFFFFF", fontSize: 14, fontWeight: 800, cursor: loading ? "wait" : "pointer",
+              boxShadow: "0 4px 14px rgba(37,99,235,0.25)", transition: "all 0.2s"
             }}
           >
-            {loading ? "Authenticating Admin..." : "Access Admin Dashboard"}
+            {loading ? "Authenticating..." : "Sign In to Admin Console"}
           </button>
         </form>
       </div>
